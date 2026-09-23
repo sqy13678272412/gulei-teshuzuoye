@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作业许可 - 受限空间作业</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #dfe3ea;
+    font-size: 14px;
+  }
+
+  /* ===== 手机页 ===== */
+  .mobile-page {
+    max-width: 430px; margin: 0 auto; min-height: 100vh;
+    background: #f4f6fa; display: flex; flex-direction: column;
+    box-shadow: 0 0 24px rgba(0, 0, 0, .25);
+  }
+  .m-head {
+    height: 48px; background: #fff; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; font-size: 16px; font-weight: 600; color: #1f2d3d;
+  }
+  .m-head .back { position: absolute; left: 14px; font-size: 20px; color: #333; cursor: pointer; }
+  .m-tabs { display: flex; background: #fff; }
+  .m-tab {
+    flex: 1; text-align: center; padding: 12px 0; color: #5a6472;
+    font-size: 15px; cursor: pointer; position: relative; user-select: none;
+  }
+  .m-tab.active { color: #1f8ef1; font-weight: 600; }
+  .m-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 44px; height: 3px; background: #1f8ef1; border-radius: 2px;
+  }
+  .m-filter { display: flex; gap: 8px; padding: 12px 12px 0; }
+  .m-filter .f-item {
+    flex: 1; background: #fff; border: 1px solid #e6ebf2; border-radius: 6px;
+    padding: 9px 10px; color: #a0a8b4; font-size: 12.5px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .m-query-row { display: flex; gap: 10px; padding: 12px; }
+  .m-query-row button { flex: 1; height: 38px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .m-btn-query { background: #1f8ef1; color: #fff; border: none; }
+  .m-btn-query:active { opacity: .88; }
+  .m-btn-reset { background: #fff; color: #5a6472; border: 1px solid #d8e0ea; }
+
+  .m-card { background: #fff; border-radius: 10px; margin: 0 12px 12px; padding: 14px; }
+  .m-card-title { font-size: 16.5px; font-weight: 600; color: #1f2d3d; margin-bottom: 6px; }
+  .m-row { display: flex; align-items: center; padding: 8px 0; font-size: 13.5px; border-bottom: 1px solid #f5f6f9; }
+  .m-row .lb { color: #8a94a3; width: 150px; flex-shrink: 0; }
+  .m-row .val { margin-left: auto; color: #333; text-align: right; }
+  .m-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .m-actions button {
+    flex: 1; height: 38px; border: none; border-radius: 6px; color: #fff;
+    font-size: 13.5px; cursor: pointer;
+  }
+  .m-actions button:active { opacity: .88; }
+  .m-act-blue { background: #8ca0cc; }
+  .m-act-orange { background: #f5a623; }
+
+  /* 更多下拉（朝上弹出） */
+  .more-wrap { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; }
+  .more-link { color: #1f8ef1; font-size: 13.5px; cursor: pointer; }
+  .more-menu {
+    position: absolute; bottom: calc(100% + 8px); right: 0; width: 160px;
+    background: #fff; border-radius: 8px; box-shadow: 0 -2px 14px rgba(0, 0, 0, .16);
+    display: none; z-index: 60; overflow: hidden;
+  }
+  .more-menu.show { display: block; }
+  .more-item {
+    padding: 12px 16px; font-size: 14px; color: #333; cursor: pointer; text-align: center;
+  }
+  .more-item:active { background: #f5f6f9; }
+  .more-item + .more-item { border-top: 1px solid #f0f1f5; }
+
+  /* ===== 人员及工器具登记弹窗 ===== */
+  .m-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 400;
+    display: none; align-items: center; justify-content: center;
+  }
+  .m-mask.show { display: flex; }
+  .reg-dialog {
+    width: min(430px, 96vw); height: min(880px, 94vh); background: #f4f6fa;
+    border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .reg-head {
+    display: flex; align-items: center; padding: 16px; background: #fff;
+    border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .reg-back { color: #1f8ef1; font-size: 14.5px; cursor: pointer; width: 44px; flex-shrink: 0; }
+  .reg-title { flex: 1; text-align: center; font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .reg-close { width: 44px; flex-shrink: 0; text-align: right; color: #333; font-size: 18px; cursor: pointer; line-height: 1; }
+
+  .reg-tabs { display: flex; background: #fff; flex-shrink: 0; }
+  .reg-tab {
+    flex: 1; text-align: center; padding: 12px 0; color: #5a6472; font-size: 14.5px;
+    cursor: pointer; position: relative; user-select: none;
+  }
+  .reg-tab.active { color: #1f8ef1; font-weight: 600; }
+  .reg-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 40px; height: 3px; background: #1f8ef1; border-radius: 2px;
+  }
+  .reg-body { flex: 1; overflow-y: auto; padding: 12px; }
+  .reg-pane { display: none; }
+  .reg-pane.active { display: block; }
+
+  /* 人员登记卡片 */
+  .reg-card { background: #fff; border-radius: 10px; padding: 4px 14px 12px; margin-bottom: 12px; }
+  .reg-card-head {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid #f5f6f9; margin-bottom: 4px;
+  }
+  .reg-avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: #16233f; color: #fff;
+    font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .reg-card-name { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .reg-row { display: flex; align-items: center; padding: 9px 0; font-size: 13.5px; }
+  .reg-row .lb { color: #8a94a3; width: 130px; flex-shrink: 0; }
+  .reg-row .val { margin-left: auto; color: #333; }
+
+  /* 是/否单选 */
+  .reg-radios { display: inline-flex; gap: 18px; }
+  .reg-radio { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; color: #333; cursor: pointer; user-select: none; }
+  .reg-radio input { width: 15px; height: 15px; accent-color: #1f8ef1; cursor: pointer; }
+
+  /* 时间输入 */
+  .reg-time {
+    height: 32px; border: 1px solid #d8e0ea; border-radius: 6px; padding: 0 8px;
+    font-size: 12.5px; color: #333; outline: none; background: #fff; width: 185px;
+  }
+  .reg-time:focus { border-color: #1f8ef1; }
+  .reg-time:disabled { background: #f5f6f9; color: #b0b6c0; }
+
+  /* 工器具登记 */
+  .tool-tip {
+    font-size: 12.5px; color: #8a94a3; padding: 2px 4px 10px;
+  }
+  .tool-row {
+    display: flex; align-items: center; gap: 10px; background: #fff;
+    border-radius: 10px; padding: 13px 14px; margin-bottom: 10px; cursor: pointer;
+    flex-wrap: wrap;
+  }
+  .tool-row input[type="checkbox"] { width: 17px; height: 17px; accent-color: #1f8ef1; flex-shrink: 0; cursor: pointer; }
+  .tool-name { flex: 1; font-size: 14px; color: #333; min-width: 0; }
+  .tool-qty {
+    width: 74px; height: 32px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 0 8px; font-size: 13px; outline: none; text-align: center; flex-shrink: 0;
+  }
+  .tool-qty:focus { border-color: #1f8ef1; }
+  .tool-qty:disabled { background: #f5f6f9; color: #b0b6c0; }
+
+  /* 拍照留证（人员/工器具每条独立） */
+  .reg-photo-bar { display: flex; align-items: center; gap: 10px; padding: 8px 0 2px; }
+  .reg-photo-btn {
+    flex-shrink: 0; height: 30px; padding: 0 14px; border: 1px solid #d8e0ea; border-radius: 15px;
+    background: #fff; font-size: 12.5px; color: #333; cursor: pointer;
+  }
+  .reg-photo-btn:active { background: #f5f6f9; }
+  .reg-thumbs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-width: 0; }
+  .reg-thumb {
+    width: 44px; height: 44px; border-radius: 6px; object-fit: cover; cursor: pointer;
+    border: 1px solid #e6ebf2;
+  }
+  .reg-thumb-del {
+    position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(0,0,0,.55); color: #fff; font-size: 10px; line-height: 16px; text-align: center;
+    cursor: pointer; display: none;
+  }
+  .reg-thumb-wrap { position: relative; }
+  .reg-thumb-wrap:hover .reg-thumb-del { display: block; }
+  .reg-photo-count { font-size: 12px; color: #8a94a3; }
+
+  /* 工器具自定义添加 */
+  .tool-add { color: #1f8ef1; font-size: 13.5px; padding: 8px 4px; cursor: pointer; user-select: none; }
+  .tool-custom-input { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .tool-custom-input input[type="text"] {
+    flex: 1; height: 32px; border: 1px solid #d8e0ea; border-radius: 6px; padding: 0 10px;
+    font-size: 13px; outline: none; min-width: 0;
+  }
+  .tool-custom-input input[type="text"]:focus { border-color: #1f8ef1; }
+  .tool-custom-ok { color: #1f8ef1; font-size: 13.5px; cursor: pointer; flex-shrink: 0; }
+  .tool-del { color: #b0b6c0; cursor: pointer; flex-shrink: 0; font-size: 14px; }
+
+  /* 保存按钮 */
+  .reg-save {
+    flex-shrink: 0; margin: 0 12px calc(12px + env(safe-area-inset-bottom));
+    height: 44px; border: none; border-radius: 22px; background: #1f8ef1;
+    color: #fff; font-size: 15px; cursor: pointer;
+  }
+  .reg-save:active { opacity: .88; }
+
+  /* 监控画面列表弹窗 */
+  .mon-dialog {
+    width: min(430px, 96vw); height: min(850px, 92vh); background: #f4f6fa;
+    border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .mon-body { flex: 1; overflow-y: auto; padding: 14px; }
+  .mon-info { background: #fff; border-radius: 10px; padding: 4px 14px; margin-bottom: 14px; }
+  .mon-cam {
+    background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .06);
+  }
+  .mon-cam:active { background: #f8fafd; }
+  .mon-cam .ci { font-size: 22px; }
+  .mon-cam-name { font-size: 14.5px; font-weight: 600; color: #1f2d3d; flex: 1; }
+  .cam-state { font-size: 12.5px; padding: 2px 12px; border-radius: 3px; }
+  .cam-state.on { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
+  .cam-state.off { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
+
+  /* 摄像头画面弹窗 */
+  .mcam-dialog {
+    width: min(380px, 92vw); background: #fff; border-radius: 12px; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .mcam-head { display: flex; align-items: flex-start; padding: 16px 16px 10px; }
+  .mcam-name { font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .mcam-loc { font-size: 12.5px; color: #8a94a3; margin-top: 4px; }
+  .mcam-close { margin-left: auto; color: #333; font-size: 18px; cursor: pointer; line-height: 1; }
+  .mcam-body { background: #16233f; padding: 12px 14px 16px; }
+  .mcam-screen {
+    background: #000; border-radius: 10px; height: 260px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #8a94a3; gap: 12px;
+  }
+  .mcam-screen .ic { font-size: 46px; }
+  .mcam-screen .t1 { color: #cfd6e2; font-size: 15.5px; font-weight: 600; }
+  .mcam-screen .t2 { font-size: 13px; }
+  .mcam-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .mcam-actions button {
+    height: 42px; border-radius: 21px; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; border: none;
+  }
+  .btn-playback { color: #fff; background: linear-gradient(90deg, #2ba4f0, #1f8ef1); }
+  .btn-refresh { background: #fff; color: #333; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-page">
+  <div class="m-head">
+    <span class="back" onclick="history.back()">‹</span>
+    作业许可
+  </div>
+  <div class="m-tabs">
+    <div class="m-tab">作业流转</div>
+    <div class="m-tab active">我的作业</div>
+  </div>
+  <div class="m-filter">
+    <div class="f-item">选择作业类型 <span style="color:#c3c6cf">›</span></div>
+    <div class="f-item">选择作业状态 <span style="color:#c3c6cf">›</span></div>
+    <div class="f-item">选择时间 <span style="color:#c3c6cf">›</span></div>
+  </div>
+  <div class="m-query-row">
+    <button class="m-btn-query" onclick="toast('查询（示例）')">查询</button>
+    <button class="m-btn-reset" onclick="toast('已重置（示例）')">重置</button>
+  </div>
+
+  <!-- 受限空间作业卡片（已去掉草稿标签） -->
+  <div class="m-card">
+    <div class="m-card-title">受限空间作业</div>
+    <div class="m-row"><span class="lb">作业编号:</span><span class="val">SX-20260915-0001</span></div>
+    <div class="m-row"><span class="lb">申请时间:</span><span class="val">2026-09-15 09:30:12</span></div>
+    <div class="m-row"><span class="lb">作业接收人:</span><span class="val">hsk</span></div>
+    <div class="m-row"><span class="lb">作业监护人:</span><span class="val">hsk、jsy</span></div>
+    <div class="m-row"><span class="lb">作业内容:</span><span class="val">罐体内部清理及检修</span></div>
+    <div class="m-row"><span class="lb">作业位置:</span><span class="val">1号罐区/T-101罐内部</span></div>
+    <div class="m-row"><span class="lb">计划实施开始时间:</span><span class="val"></span></div>
+    <div class="m-row"><span class="lb">计划实施结束时间:</span><span class="val"></span></div>
+    <div class="m-row"><span class="lb">作业耗时:</span><span class="val"></span></div>
+    <div class="m-row"><span class="lb">气体分析过期倒计时:</span><span class="val"></span></div>
+    <div class="m-row"><span class="lb">气体分析人员:</span><span class="val">当前为【首次气体分析员】</span></div>
+    <div class="m-actions">
+      <button class="m-act-blue" onclick="toast('作废（示例）')">作废</button>
+      <button class="m-act-blue" onclick="toast('编辑（示例）')">编辑</button>
+      <button class="m-act-blue" onclick="toast('复制（示例）')">复制</button>
+      <button class="m-act-orange" onclick="toast('查看进展（示例）')">查看进展</button>
+      <div class="more-wrap">
+        <span class="more-link" onclick="toggleMore(event)">更多</span>
+        <div class="more-menu" id="moreMenu">
+          <div class="more-item" onclick="openMon()">监控画面</div>
+          <div class="more-item" onclick="toast('人员变更（示例）')">人员变更</div>
+          <div class="more-item" onclick="openRegister()">人员及工器具登记</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 人员及工器具登记弹窗 ============ -->
+<div class="m-mask" id="regMask">
+  <div class="reg-dialog">
+    <div class="reg-head">
+      <span class="reg-back" onclick="closeRegister()">返回</span>
+      <span class="reg-title">人员及工器具登记</span>
+      <span class="reg-close" onclick="closeRegister()">✕</span>
+    </div>
+    <div class="reg-tabs">
+      <div class="reg-tab active" onclick="switchRegTab(this,'person')">人员登记</div>
+      <div class="reg-tab" onclick="switchRegTab(this,'tool')">工器具登记</div>
+    </div>
+    <div class="reg-body">
+      <!-- 人员登记 -->
+      <div class="reg-pane active" id="panePerson"></div>
+      <!-- 工器具登记 -->
+      <div class="reg-pane" id="paneTool">
+        <div class="tool-tip">勾选本次需要带入受限空间的工器具，并填写对应数量；每条可拍照留证</div>
+        <div id="toolList"></div>
+        <div class="tool-custom-input" id="toolCustomRow" style="display:none;">
+          <input type="text" id="toolCustomName" placeholder="请输入工器具名称">
+          <span class="tool-custom-ok" onclick="confirmToolAdd()">确定</span>
+          <span class="tool-del" onclick="hideToolAdd()" title="取消">✕</span>
+        </div>
+        <div class="tool-add" onclick="showToolAdd()">＋自定义添加</div>
+      </div>
+    </div>
+    <button class="reg-save" onclick="saveRegister()">保 存</button>
+  </div>
+  <input type="file" id="regPhotoInput" accept="image/*" multiple hidden>
+</div>
+
+<!-- ============ 照片预览弹窗 ============ -->
+<div class="m-mask" id="regPvMask">
+  <div class="reg-dialog" style="height:auto;max-height:90vh;">
+    <div class="reg-head">
+      <span class="reg-back" onclick="closeRegPreview()">返回</span>
+      <span class="reg-title">照片预览</span>
+      <span class="reg-close" onclick="closeRegPreview()">✕</span>
+    </div>
+    <div class="reg-body" id="regPvContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ 监控画面列表弹窗 ============ -->
+<div class="m-mask" id="monMask">
+  <div class="mon-dialog">
+    <div class="reg-head">
+      <span class="reg-back" onclick="closeMon()">返回</span>
+      <span class="reg-title">监控画面</span>
+      <span class="reg-close" onclick="closeMon()">✕</span>
+    </div>
+    <div class="mon-body">
+      <div class="mon-info">
+        <div class="m-row"><span class="lb" style="color:#8a94a3;width:110px;flex-shrink:0;">作业名称:</span><span class="val" style="margin-left:auto;color:#333;">受限空间作业</span></div>
+        <div class="m-row"><span class="lb" style="color:#8a94a3;width:110px;flex-shrink:0;">作业编号:</span><span class="val" style="margin-left:auto;color:#333;">SX-20260915-0001</span></div>
+        <div class="m-row"><span class="lb" style="color:#8a94a3;width:110px;flex-shrink:0;">作业状态:</span><span class="val" style="margin-left:auto;color:#333;">作业中</span></div>
+      </div>
+      <div class="mon-cam" onclick="openMCam('罐口云台', '1号罐区/T-101罐口')">
+        <span class="ci">📷</span>
+        <span class="mon-cam-name">罐口云台</span>
+        <span class="cam-state on">在线</span>
+      </div>
+      <div class="mon-cam" onclick="openMCam('罐区全景', '1号罐区/西侧')">
+        <span class="ci">📷</span>
+        <span class="mon-cam-name">罐区全景</span>
+        <span class="cam-state on">在线</span>
+      </div>
+      <div class="mon-cam" onclick="openMCam('出入口枪机', '1号罐区/T-101入口')">
+        <span class="ci">📷</span>
+        <span class="mon-cam-name">出入口枪机</span>
+        <span class="cam-state off">掉线</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 摄像头画面弹窗 ============ -->
+<div class="m-mask" id="mcamMask">
+  <div class="mcam-dialog">
+    <div class="mcam-head">
+      <div>
+        <div class="mcam-name" id="mcamTitle">罐口云台</div>
+        <div class="mcam-loc" id="mcamLoc">1号罐区/T-101罐口</div>
+      </div>
+      <span class="mcam-close" onclick="closeMCam()">✕</span>
+    </div>
+    <div class="mcam-body">
+      <div class="mcam-screen">
+        <span class="ic">📹</span>
+        <span class="t1">实时监控画面</span>
+        <span class="t2">摄像头：<span id="mcamName">罐口云台</span></span>
+      </div>
+      <div class="mcam-actions">
+        <button class="btn-playback" onclick="toast('查看回放（示例）')">🎙 查看回放</button>
+        <button class="btn-refresh" onclick="toast('画面已刷新（示例）')">🎙 刷新画面</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ================= 作业人员（示例数据） ================= */
+  var workers = [
+    { name: '张强', phone: '139****1122' },
+    { name: '郑磊', phone: '139****9900' },
+    { name: '李敏', phone: '138****7788' }
+  ];
+
+  /* ================= 登记数据读写 ================= */
+  var PERSON_KEY = 'cs_register_persons';
+  var TOOL_KEY = 'cs_register_tools';
+
+  function loadJSON(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  /* ================= 更多下拉 ================= */
+  function toggleMore(e) {
+    e.stopPropagation();
+    document.getElementById('moreMenu').classList.toggle('show');
+  }
+  document.addEventListener('click', function (e) {
+    var menu = document.getElementById('moreMenu');
+    if (menu && !menu.contains(e.target)) menu.classList.remove('show');
+  });
+
+  /* ================= 弹窗开关 ================= */
+  function openRegister() {
+    document.getElementById('moreMenu').classList.remove('show');
+    renderPersonPane();
+    renderToolPane();
+    document.getElementById('regMask').classList.add('show');
+  }
+  function closeRegister() { document.getElementById('regMask').classList.remove('show'); }
+  document.getElementById('regMask').addEventListener('click', function (e) {
+    if (e.target === this) closeRegister();
+  });
+
+  /* ================= 弹窗内 tab 切换 ================= */
+  function switchRegTab(el, pane) {
+    document.querySelectorAll('.reg-tab').forEach(function (t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    document.querySelectorAll('.reg-pane').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById(pane === 'person' ? 'panePerson' : 'paneTool').classList.add('active');
+  }
+
+  /* ================= 人员登记 ================= */
+  function nowStr() {
+    var d = new Date();
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function renderPersonPane() {
+    var saved = loadJSON(PERSON_KEY) || {};
+    document.getElementById('panePerson').innerHTML = workers.map(function (w, i) {
+      var s = saved[w.name] || {};
+      var entered = s.entered !== undefined ? s.entered : true;  // 默认“是”
+      var time = s.time || nowStr();                             // 默认当前时间
+      var photos = s.photos || [];
+      return '<div class="reg-card">' +
+        '<div class="reg-card-head">' +
+          '<span class="reg-avatar">' + w.name.charAt(0) + '</span>' +
+          '<span class="reg-card-name">' + w.name + '</span>' +
+        '</div>' +
+        '<div class="reg-row"><span class="lb">姓名</span><span class="val">' + w.name + '</span></div>' +
+        '<div class="reg-row"><span class="lb">联系方式</span><span class="val">' + w.phone + '</span></div>' +
+        '<div class="reg-row"><span class="lb">是否进入受限空间</span>' +
+          '<span class="reg-radios">' +
+            '<label class="reg-radio"><input type="radio" name="enter_' + i + '" value="1" ' + (entered ? 'checked' : '') + ' onchange="toggleEnter(' + i + ')">是</label>' +
+            '<label class="reg-radio"><input type="radio" name="enter_' + i + '" value="0" ' + (entered ? '' : 'checked') + ' onchange="toggleEnter(' + i + ')">否</label>' +
+          '</span>' +
+        '</div>' +
+        '<div class="reg-row"><span class="lb">进入受限空间时间</span>' +
+          '<input type="datetime-local" class="reg-time" id="enterTime_' + i + '" value="' + time + '" ' + (entered ? '' : 'disabled') + '>' +
+        '</div>' +
+        '<div class="reg-photo-bar">' +
+          '<button class="reg-photo-btn" onclick="pickPhoto(\'person\',\'' + w.name + '\')">📷 拍照</button>' +
+          '<span class="reg-thumbs" id="pthumbs_' + i + '">' + photoThumbsHtml(photos, 'person', w.name) + '</span>' +
+          '<span class="reg-photo-count" id="pcount_' + i + '">' + (photos.length ? photos.length + ' 张' : '') + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  /* 单选切换：为“否”时进入时间置灰禁用 */
+  function toggleEnter(i) {
+    var on = document.querySelector('input[name="enter_' + i + '"]:checked').value === '1';
+    document.getElementById('enterTime_' + i).disabled = !on;
+  }
+
+  /* ================= 拍照留证（人员/工器具共用） ================= */
+  var regPhotoCtx = null; /* {type:'person'|'tool', name} */
+  function photoThumbsHtml(photos, type, name) {
+    return photos.map(function (p, j) {
+      return '<span class="reg-thumb-wrap">' +
+        '<img class="reg-thumb" src="' + p + '" onclick="previewRegPhoto(\'' + type + '\',\'' + name + '\',' + j + ')">' +
+        '<span class="reg-thumb-del" onclick="removeRegPhoto(\'' + type + '\',\'' + name + '\',' + j + ')">✕</span>' +
+      '</span>';
+    }).join('');
+  }
+  function pickPhoto(type, name) {
+    regPhotoCtx = { type: type, name: name };
+    document.getElementById('regPhotoInput').click();
+  }
+  document.getElementById('regPhotoInput').addEventListener('change', function () {
+    var ctx = regPhotoCtx;
+    var files = this.files;
+    this.value = '';
+    if (!ctx || !files.length) return;
+    var pending = files.length;
+    for (var i = 0; i < files.length; i++) {
+      (function (f) {
+        var r = new FileReader();
+        r.onload = function (e) {
+          if (ctx.type === 'person') {
+            var ps = loadJSON(PERSON_KEY) || {};
+            if (!ps[ctx.name]) ps[ctx.name] = { entered: true, time: nowStr(), photos: [] };
+            if (!ps[ctx.name].photos) ps[ctx.name].photos = [];
+            ps[ctx.name].photos.push(e.target.result);
+            localStorage.setItem(PERSON_KEY, JSON.stringify(ps));
+          } else {
+            var ts = loadJSON(TOOL_KEY) || {};
+            var t = normalizeToolSaved(ts[ctx.name]);
+            t.photos.push(e.target.result);
+            ts[ctx.name] = t;
+            localStorage.setItem(TOOL_KEY, JSON.stringify(ts));
+          }
+          if (--pending === 0) { renderPersonPane(); renderToolPane(); toast('照片已保存', 1500); }
+        };
+        r.readAsDataURL(f);
+      })(files[i]);
+    }
+  });
+  function previewRegPhoto(type, name, j) {
+    var arr;
+    if (type === 'person') arr = ((loadJSON(PERSON_KEY) || {})[name] || {}).photos || [];
+    else arr = normalizeToolSaved((loadJSON(TOOL_KEY) || {})[name]).photos;
+    if (!arr[j]) return;
+    document.getElementById('regPvContent').innerHTML =
+      '<img src="' + arr[j] + '" style="width:100%;border-radius:8px;display:block">';
+    document.getElementById('regPvMask').classList.add('show');
+  }
+  function closeRegPreview() {
+    document.getElementById('regPvMask').classList.remove('show');
+    document.getElementById('regPvContent').innerHTML = '';
+  }
+  document.getElementById('regPvMask').addEventListener('click', function (e) {
+    if (e.target === this) closeRegPreview();
+  });
+  function removeRegPhoto(type, name, j) {
+    if (type === 'person') {
+      var ps = loadJSON(PERSON_KEY) || {};
+      if (ps[name] && ps[name].photos) ps[name].photos.splice(j, 1);
+      localStorage.setItem(PERSON_KEY, JSON.stringify(ps));
+      renderPersonPane();
+    } else {
+      var ts = loadJSON(TOOL_KEY) || {};
+      var t = normalizeToolSaved(ts[name]);
+      t.photos.splice(j, 1);
+      ts[name] = t;
+      localStorage.setItem(TOOL_KEY, JSON.stringify(ts));
+      renderToolPane();
+    }
+  }
+
+  /* ================= 工器具登记 ================= */
+  var CUSTOM_TOOL_KEY = 'cs_register_custom_tools';
+  /* 兼容旧数据：工器具存档从纯数量 number 升级为 {qty, photos} */
+  function normalizeToolSaved(v) {
+    if (v === undefined || v === null) return { qty: 1, photos: [] };
+    if (typeof v === 'number') return { qty: v, photos: [] };
+    return { qty: v.qty !== undefined ? v.qty : 1, photos: v.photos || [] };
+  }
+  function getCustomTools() {
+    var list = loadJSON(CUSTOM_TOOL_KEY);
+    return Array.isArray(list) ? list : [];
+  }
+  /* 从工器具配置页（tool-config）读取受限空间作业已启用的工器具；无配置时用默认数据 */
+  function getTools() {
+    var defaults = ['便携式气体检测仪', '强制通风设备', '三脚架（救援支架）',
+                    '正压式空气呼吸器', '全身式安全带及安全绳', '防爆对讲机'];
+    try {
+      var raw = localStorage.getItem('tool_config_items');
+      if (raw) {
+        var data = JSON.parse(raw);
+        var list = (data['受限空间作业'] || []).filter(function (t) { return t.status === '启用'; });
+        if (list.length) return list.map(function (t) { return t.name; });
+      }
+    } catch (e) { /* 使用默认 */ }
+    return defaults;
+  }
+
+  function renderToolPane() {
+    var saved = loadJSON(TOOL_KEY) || {};
+    var custom = getCustomTools();
+    var tools = getTools().concat(custom);
+    document.getElementById('toolList').innerHTML = tools.map(function (name, i) {
+      var t = normalizeToolSaved(saved[name]);
+      var checked = saved[name] !== undefined;
+      var isCustom = custom.indexOf(name) >= 0;
+      return '<div class="tool-row">' +
+        '<input type="checkbox" id="tool_' + i + '" ' + (checked ? 'checked' : '') + ' onchange="toggleQty(' + i + ')">' +
+        '<span class="tool-name">' + name + '</span>' +
+        '<input type="number" class="tool-qty" id="qty_' + i + '" value="' + t.qty + '" min="1" ' + (checked ? '' : 'disabled') + '>' +
+        (isCustom ? '<span class="tool-del" onclick="removeCustomTool(\'' + name + '\')" title="删除">🗑</span>' : '') +
+        '<div class="reg-photo-bar" style="flex-basis:100%;padding-top:10px;">' +
+          '<button class="reg-photo-btn" onclick="pickPhoto(\'tool\',\'' + name + '\')">📷 拍照</button>' +
+          '<span class="reg-thumbs">' + photoThumbsHtml(t.photos, 'tool', name) + '</span>' +
+          '<span class="reg-photo-count">' + (t.photos.length ? t.photos.length + ' 张' : '') + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  /* 工器具自定义添加 */
+  function showToolAdd() {
+    document.getElementById('toolCustomRow').style.display = 'flex';
+    document.getElementById('toolCustomName').focus();
+  }
+  function hideToolAdd() {
+    document.getElementById('toolCustomRow').style.display = 'none';
+    document.getElementById('toolCustomName').value = '';
+  }
+  function confirmToolAdd() {
+    var name = document.getElementById('toolCustomName').value.trim();
+    if (!name) { toast('请输入工器具名称'); return; }
+    var custom = getCustomTools();
+    if (getTools().indexOf(name) >= 0 || custom.indexOf(name) >= 0) { toast('该工器具已存在'); return; }
+    custom.push(name);
+    localStorage.setItem(CUSTOM_TOOL_KEY, JSON.stringify(custom));
+    hideToolAdd();
+    renderToolPane();
+    toast('已添加：' + name, 1500);
+  }
+  function removeCustomTool(name) {
+    var custom = getCustomTools().filter(function (n) { return n !== name; });
+    localStorage.setItem(CUSTOM_TOOL_KEY, JSON.stringify(custom));
+    var saved = loadJSON(TOOL_KEY) || {};
+    delete saved[name];
+    localStorage.setItem(TOOL_KEY, JSON.stringify(saved));
+    renderToolPane();
+    toast('已删除：' + name, 1500);
+  }
+
+  /* 勾选后启用数量输入，取消勾选则禁用 */
+  function toggleQty(i) {
+    var cb = document.getElementById('tool_' + i);
+    document.getElementById('qty_' + i).disabled = !cb.checked;
+  }
+
+  /* ================= 保存 ================= */
+  function saveRegister() {
+    // 人员登记（保留已有照片）
+    var oldP = loadJSON(PERSON_KEY) || {};
+    var persons = {};
+    workers.forEach(function (w, i) {
+      persons[w.name] = {
+        entered: document.querySelector('input[name="enter_' + i + '"]:checked').value === '1',
+        time: document.getElementById('enterTime_' + i).value,
+        photos: (oldP[w.name] || {}).photos || []
+      };
+    });
+    localStorage.setItem(PERSON_KEY, JSON.stringify(persons));
+
+    // 工器具登记（保留已有照片）
+    var oldT = loadJSON(TOOL_KEY) || {};
+    var tools = {};
+    getTools().concat(getCustomTools()).forEach(function (name, i) {
+      if (document.getElementById('tool_' + i).checked) {
+        var q = parseInt(document.getElementById('qty_' + i).value, 10);
+        tools[name] = { qty: isNaN(q) || q < 1 ? 1 : q, photos: normalizeToolSaved(oldT[name]).photos };
+      }
+    });
+    localStorage.setItem(TOOL_KEY, JSON.stringify(tools));
+
+    // 保存后不关闭弹窗，仅提示 3 秒
+    toast('保存成功', 3000);
+  }
+
+  /* ================= 监控画面 ================= */
+  function openMon() {
+    document.getElementById('moreMenu').classList.remove('show');
+    document.getElementById('monMask').classList.add('show');
+  }
+  function closeMon() { document.getElementById('monMask').classList.remove('show'); }
+  document.getElementById('monMask').addEventListener('click', function (e) {
+    if (e.target === this) closeMon();
+  });
+  function openMCam(name, loc) {
+    document.getElementById('mcamTitle').textContent = name;
+    document.getElementById('mcamName').textContent = name;
+    document.getElementById('mcamLoc').textContent = loc;
+    document.getElementById('mcamMask').classList.add('show');
+  }
+  function closeMCam() { document.getElementById('mcamMask').classList.remove('show'); }
+  document.getElementById('mcamMask').addEventListener('click', function (e) {
+    if (e.target === this) closeMCam();
+  });
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg, ms) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, ms || 1800);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>气体分析设置</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9;
+    color: #333;
+    font-size: 14px;
+  }
+
+  /* ===== 顶部 ===== */
+  .topbar {
+    height: 52px;
+    background: #fff;
+    border-bottom: 1px solid #e6ebf2;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+  }
+  .topbar .logo { font-size: 17px; font-weight: 600; color: #1f2d3d; }
+  .topbar .menu { color: #5a6472; cursor: pointer; padding: 4px 10px; border-radius: 4px; }
+  .topbar .menu.active { color: #1f8ef1; font-weight: 600; background: #eaf4fe; }
+
+  .layout { display: flex; height: calc(100vh - 52px); }
+
+  /* ===== 左侧组织树 ===== */
+  .sidebar {
+    width: 230px;
+    background: #fff;
+    border-right: 1px solid #e6ebf2;
+    overflow-y: auto;
+    transition: width .2s;
+    flex-shrink: 0;
+  }
+  .sidebar.collapsed { width: 0; overflow: hidden; border-right: none; }
+  .tree { padding: 12px 8px; }
+  .tree-node { user-select: none; }
+  .tree-row {
+    display: flex; align-items: center; padding: 8px 10px;
+    border-radius: 4px; cursor: pointer; white-space: nowrap;
+  }
+  .tree-row:hover { background: #f3f7fc; }
+  .tree-row .arrow { width: 14px; color: #8a94a3; font-size: 11px; transition: transform .15s; }
+  .tree-row.open .arrow { transform: rotate(90deg); }
+  .tree-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .tree-row .doc { color: #1f8ef1; margin-left: 6px; font-size: 12px; }
+  .tree-children { margin-left: 22px; display: none; }
+  .tree-children.show { display: block; }
+
+  .collapse-btn {
+    position: relative; width: 16px; flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .collapse-btn::before {
+    content: '«'; position: absolute; left: -8px; width: 20px; height: 20px;
+    background: #fff; border: 1px solid #d8e0ea; border-radius: 50%; color: #8a94a3;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .collapse-btn.collapsed::before { content: '»'; }
+
+  /* ===== 主内容 ===== */
+  .main { flex: 1; overflow-y: auto; padding: 16px 20px 40px; }
+  .page-head { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+
+  .module {
+    background: #fff; border-radius: 8px; padding: 18px; margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
+  }
+  .module-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .module-title { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
+
+  /* ===== 按钮 ===== */
+  .btn {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472;
+    padding: 7px 16px; border-radius: 4px; cursor: pointer; font-size: 13.5px;
+  }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { background: #3da1f3; }
+
+  /* ===== 表格 ===== */
+  table.grid { width: 100%; border-collapse: collapse; }
+  table.grid th, table.grid td {
+    border: 1px solid #e6ebf2; padding: 10px 12px; text-align: center; font-size: 13.5px;
+  }
+  table.grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+  .link { color: #1f8ef1; cursor: pointer; margin: 0 5px; }
+  .link:hover { text-decoration: underline; }
+  .link.danger { color: #e64340; }
+  .empty-tip { text-align: center; color: #a0a8b4; padding: 26px 0; border: 1px solid #e6ebf2; border-top: none; }
+
+  /* ===== 执行标准表 ===== */
+  table.standard td:first-child { background: #f7f9fc; color: #5a6472; width: 160px; }
+  .radio-item { display: inline-flex; align-items: center; gap: 5px; margin: 0 14px; cursor: pointer; }
+  .radio-item input { accent-color: #1f8ef1; width: 15px; height: 15px; }
+  .radio-item span { color: #1f8ef1; }
+
+  /* ===== 查询区 ===== */
+  .search-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .search-bar label { color: #5a6472; }
+  .input, .select {
+    height: 34px; border: 1px solid #d8e0ea; border-radius: 4px; padding: 0 10px;
+    font-size: 13.5px; color: #333; outline: none; background: #fff;
+  }
+  .input:focus, .select:focus { border-color: #1f8ef1; }
+  .input { width: 220px; }
+  .select { width: 220px; }
+
+  /* ===== 分页 ===== */
+  .pager { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 14px; color: #5a6472; font-size: 13px; }
+  .pager .page-btn { min-width: 30px; height: 30px; border: 1px solid #d8e0ea; background: #fff; border-radius: 4px; cursor: pointer; color: #5a6472; }
+  .pager .page-btn.cur { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .pager .page-input { width: 46px; height: 30px; text-align: center; border: 1px solid #d8e0ea; border-radius: 4px; }
+
+  /* ===== 通用弹窗 ===== */
+  .mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .45);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .mask.show { display: flex; }
+  .dialog {
+    background: #fff; border-radius: 8px; width: 480px; max-width: 92vw;
+    max-height: 88vh; overflow-y: auto; animation: pop .16s ease;
+  }
+  .dialog.small { width: 380px; }
+  @keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .dialog-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 15px 20px; border-bottom: 1px solid #eef1f6;
+  }
+  .dialog-title { font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .dialog-close { cursor: pointer; color: #a0a8b4; font-size: 18px; line-height: 1; }
+  .dialog-body { padding: 20px; }
+  .dialog-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 20px; border-top: 1px solid #eef1f6; }
+
+  .form-item { display: flex; align-items: center; margin-bottom: 16px; }
+  .form-item label { width: 110px; text-align: right; padding-right: 12px; color: #5a6472; flex-shrink: 0; }
+  .form-item label .req { color: #e64340; margin-right: 2px; }
+  .form-item .input { flex: 1; width: auto; height: 36px; }
+
+  /* ===== 添加作业地点弹窗 ===== */
+  .site-dialog {
+    width: 94vw; max-width: 1280px; height: 86vh; max-height: 86vh;
+    display: flex; flex-direction: column; overflow: hidden;
+    background: #fff; border-radius: 8px;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, .2);
+    animation: pop .16s ease;
+  }
+  .site-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .site-title { font-size: 18px; font-weight: 600; color: #1f2d3d; }
+  .site-close { color: #e64340; font-size: 18px; cursor: pointer; }
+  .site-body { flex: 1; display: flex; min-height: 0; }
+  .site-list {
+    width: 212px; border-right: 1px solid #eef1f6; overflow-y: auto;
+    padding: 10px 0; flex-shrink: 0;
+  }
+  .site-parent {
+    padding: 8px 16px; font-weight: 600; color: #1f2d3d; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .site-parent .arrow { color: #8a94a3; font-size: 11px; transition: transform .15s; }
+  .site-parent.open .arrow { transform: rotate(90deg); }
+  .site-item {
+    padding: 8px 16px 8px 32px; color: #5a6472; cursor: pointer; font-size: 13.5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .site-item:hover { background: #f3f7fc; }
+  .site-item.active { color: #1f8ef1; background: #eaf4fe; }
+  .site-children.hidden { display: none; }
+
+  .site-map-wrap { flex: 1; position: relative; min-width: 0; }
+  .map-box { position: absolute; inset: 0; overflow: hidden; cursor: crosshair; background: #7d8a6a; }
+  .map-box svg { width: 100%; height: 100%; display: block; }
+  .map-pin {
+    position: absolute; width: 20px; height: 20px; border-radius: 50% 50% 50% 0;
+    background: #e64340; transform: rotate(-45deg);
+    border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    margin: -20px 0 0 -10px; z-index: 6;
+  }
+  .map-pin::after {
+    content: ''; position: absolute; width: 6px; height: 6px; background: #fff;
+    border-radius: 50%; top: 5px; left: 5px;
+  }
+  .map-refresh {
+    position: absolute; top: 12px; left: 12px; width: 30px; height: 30px;
+    background: rgba(255,255,255,.92); border-radius: 6px; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    color: #1f8ef1; cursor: pointer; font-size: 17px; box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  }
+  .map-layers {
+    position: absolute; top: 12px; left: 52px; z-index: 5; display: flex; gap: 8px;
+  }
+  .layer-box {
+    background: rgba(255,255,255,.92); border-radius: 6px; padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.15); font-size: 13px; color: #333;
+  }
+  .layer-box label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .layer-box input { accent-color: #1f8ef1; width: 15px; height: 15px; }
+  .map-scale {
+    position: absolute; right: 16px; bottom: 14px; z-index: 5;
+    color: #fff; font-size: 13px; text-align: center; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
+  .map-scale .bar { width: 90px; height: 0; border-top: 3px solid #fff; margin: 0 auto 3px; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .map-coord {
+    position: absolute; left: 12px; bottom: 12px; z-index: 5;
+    background: rgba(0,0,0,.5); color: #fff; font-size: 12px;
+    padding: 4px 10px; border-radius: 4px;
+  }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部菜单 -->
+<div class="topbar">
+  <span class="logo">特殊作业管理系统</span>
+  <span class="menu">工作台</span>
+  <span class="menu active">气体分析设置</span>
+</div>
+
+<div class="layout">
+  <!-- 左侧组织树 -->
+  <div class="sidebar" id="sidebar">
+    <div class="tree">
+      <div class="tree-node">
+        <div class="tree-row open" onclick="toggleTree(this)">
+          <span class="arrow">▶</span>
+          <span class="name">福建中沙石化有限公司</span>
+        </div>
+        <div class="tree-children show" id="orgChildren"></div>
+      </div>
+    </div>
+  </div>
+  <div class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()"></div>
+
+  <!-- 主内容 -->
+  <div class="main">
+    <div class="page-head">
+      <button class="btn primary" onclick="toast('保存成功')">保 存</button>
+    </div>
+
+    <!-- ============ 气体探头配置（新增模块） ============ -->
+    <div class="module">
+      <div class="module-head">
+        <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;">
+          <div class="module-title" style="flex-shrink:0;">气体探头配置</div>
+          <div style="color:#e64340;font-size:13px;">申请作业时的坐标和半径范围内有多个固定摄像头，那么就作业票选择气体分析时一起带过去，由开票人自行选择</div>
+        </div>
+        <button class="btn primary" onclick="openProbeForm(-1)" style="flex-shrink:0;">＋ 新增</button>
+      </div>
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>气体探头名称</th><th>品牌</th><th>唯一标识</th><th>所属位置</th>
+            <th style="width:230px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="probeTbody"></tbody>
+      </table>
+      <div class="empty-tip" id="probeEmpty" style="display:none">暂无数据，请点击右上角「新增」添加气体探头</div>
+    </div>
+
+    <!-- ============ 气体分析执行标准 ============ -->
+    <div class="module">
+      <div class="module-head"><div class="module-title">气体分析执行标准</div></div>
+      <table class="grid standard">
+        <thead>
+          <tr><th>作业类型</th><th>作业前</th><th>作业中</th><th>作业暂停</th></tr>
+        </thead>
+        <tbody id="standardTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- ============ 气体分析库 ============ -->
+    <div class="module">
+      <div class="module-head"><div class="module-title">气体分析库</div></div>
+      <div class="search-bar">
+        <label>气体名称</label>
+        <input class="input" id="gasNameInput" placeholder="请输入气体名称">
+        <label>检测单位</label>
+        <select class="select" id="gasUnitSelect">
+          <option value="">请选择检测单位</option>
+          <option>PPM</option><option>%LEL</option><option>%VOL</option><option>mg/m³</option>
+        </select>
+        <button class="btn primary" onclick="queryGas()">🔍 查询</button>
+        <button class="btn" onclick="resetGas()">⟳ 重置</button>
+        <span style="flex:1"></span>
+        <button class="btn primary" onclick="toast('打开添加气体（示例）')">＋ 添加</button>
+      </div>
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>气体名称</th><th>气体类型</th><th>检测单位</th>
+            <th>分析指标范围上限</th><th>分析指标范围下限</th>
+            <th>CAS号</th><th>是否默认选中</th><th style="width:120px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="gasTbody"></tbody>
+      </table>
+      <div class="pager">
+        共 <span id="gasTotal">1</span> 条
+        <button class="page-btn">‹</button>
+        <button class="page-btn cur">1</button>
+        <button class="page-btn">›</button>
+        前往 <input class="page-input" value="1"> 页
+      </div>
+    </div>
+
+    <!-- ============ 气体分析告警配置 ============ -->
+    <div class="module">
+      <div class="module-head">
+        <div class="module-title">气体分析告警配置</div>
+        <button class="btn primary" onclick="toast('打开添加告警规则（示例）')">＋ 添加</button>
+      </div>
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>告警规则名称</th><th>使用作业类型</th><th>报警类型</th>
+            <th>报警阶段</th><th>是否开启</th><th>是否上传</th><th style="width:120px">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="7" style="color:#a0a8b4">暂无数据</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 探头新增/编辑弹窗 ============ -->
+<div class="mask" id="probeMask">
+  <div class="dialog">
+    <div class="dialog-head">
+      <span class="dialog-title" id="probeFormTitle">新增气体探头</span>
+      <span class="dialog-close" onclick="closeMask('probeMask')">✕</span>
+    </div>
+    <div class="dialog-body">
+      <div class="form-item">
+        <label><span class="req">*</span>气体探头名称</label>
+        <input class="input" id="fName" placeholder="请输入气体探头名称">
+      </div>
+      <div class="form-item">
+        <label><span class="req">*</span>品牌</label>
+        <input class="input" id="fBrand" placeholder="请输入品牌">
+      </div>
+      <div class="form-item">
+        <label><span class="req">*</span>唯一标识</label>
+        <input class="input" id="fSn" placeholder="请输入唯一标识（如 SN 编号）">
+      </div>
+      <div class="form-item">
+        <label><span class="req">*</span>所属位置</label>
+        <input class="input" id="fLoc" placeholder="点击选择所属位置（打开地图标点）" readonly
+          style="cursor:pointer;background:#f7f9fc" onclick="openMapFromForm()">
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" onclick="closeMask('probeMask')">取 消</button>
+      <button class="btn primary" onclick="saveProbe()">确 定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 删除确认弹窗 ============ -->
+<div class="mask" id="confirmMask">
+  <div class="dialog small">
+    <div class="dialog-head"><span class="dialog-title">提示</span></div>
+    <div class="dialog-body" style="text-align:center;color:#5a6472">
+      确定要删除该气体探头吗？删除后不可恢复。
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" onclick="closeMask('confirmMask')">取 消</button>
+      <button class="btn primary" style="background:#e64340;border-color:#e64340" onclick="doDelete()">确 定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 标点弹窗：添加作业地点 ============ -->
+<div class="mask" id="mapMask">
+  <div class="site-dialog">
+    <div class="site-head">
+      <span class="site-title">添加作业地点</span>
+      <span class="site-close" onclick="closeMask('mapMask')">✕</span>
+    </div>
+    <div class="site-body">
+      <!-- 左侧区域列表 -->
+      <div class="site-list">
+        <div class="site-parent open" id="siteParent">
+          <span class="arrow">▶</span> 福建古雷中沙石化
+        </div>
+        <div id="siteChildren"></div>
+      </div>
+      <!-- 右侧地图 -->
+      <div class="site-map-wrap">
+        <div class="map-box" id="mapBox">
+          <svg id="siteSvg" viewBox="0 0 1000 700" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#2e6d7c"/>
+                <stop offset="1" stop-color="#4b8f96"/>
+              </linearGradient>
+              <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#8f8a76"/>
+                <stop offset="1" stop-color="#79866a"/>
+              </linearGradient>
+            </defs>
+            <rect width="1000" height="700" fill="url(#land)"/>
+            <!-- 海域 -->
+            <polygon fill="url(#sea)" points="0,0 620,0 560,90 520,150 470,210 440,290 400,360 360,440 280,520 160,600 60,700 0,700"/>
+            <!-- 滩涂 -->
+            <polygon fill="#c9bfa4" opacity=".75" points="620,0 560,90 520,150 470,210 440,290 400,360 360,440 280,520 160,600 60,700 200,700 320,600 420,520 470,440 500,360 540,290 580,210 645,120 685,40 685,0"/>
+            <!-- 厂区蓝色总范围 -->
+            <polygon fill="rgba(35,125,245,.28)" stroke="rgba(90,170,255,.9)" stroke-width="2"
+              points="470,210 540,120 640,60 780,40 1000,28 1000,700 380,700 400,520 430,420 440,330"/>
+            <!-- JS 动态渲染：layer-grid2 / layer-grid1 / floor1~4 -->
+            <text x="500" y="415" fill="#fff" font-size="17" text-anchor="middle"
+              style="paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px;">福建古雷中沙石化</text>
+            <text x="500" y="438" fill="#fff" font-size="14" text-anchor="middle"
+              style="paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px;">聚碳酸酯装置</text>
+          </svg>
+          <div class="map-pin" id="mapPin" style="display:none"></div>
+        </div>
+        <div class="map-refresh" onclick="toast('地图已刷新（示例）')" title="刷新">⟳</div>
+        <div class="map-layers">
+          <div class="layer-box">
+            <label><input type="checkbox" checked data-layer="layer-grid2"> 2级网格</label>
+            <label><input type="checkbox" checked data-layer="layer-grid1"> 1级网格</label>
+          </div>
+          <div class="layer-box">
+            <label><input type="checkbox" checked data-layer="floor1"> 一层</label>
+            <label><input type="checkbox" checked data-layer="floor2"> 二层</label>
+            <label><input type="checkbox" checked data-layer="floor3"> 三层</label>
+            <label><input type="checkbox" checked data-layer="floor4"> 四层</label>
+          </div>
+        </div>
+        <div class="map-scale"><div class="bar"></div>300 m</div>
+        <div class="map-coord" id="mapCoord">尚未标点，点击地图选择位置</div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" onclick="closeMask('mapMask')">取 消</button>
+      <button class="btn primary" onclick="savePoint()">保存标点</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 实时数据弹窗 ============ -->
+<div class="mask" id="dataMask">
+  <div class="dialog">
+    <div class="dialog-head">
+      <span class="dialog-title" id="dataTitle">实时数据</span>
+      <span class="dialog-close" onclick="closeMask('dataMask')">✕</span>
+    </div>
+    <div class="dialog-body">
+      <table class="grid">
+        <thead><tr><th>时间</th><th>数值</th></tr></thead>
+        <tbody id="dataTbody"></tbody>
+      </table>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn primary" onclick="closeMask('dataMask')">关 闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ================= 公共 ================= */
+  function closeMask(id) { document.getElementById(id).classList.remove('show'); }
+  function showMask(id) { document.getElementById(id).classList.add('show'); }
+  document.querySelectorAll('.mask').forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('show'); });
+  });
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+
+  /* ================= 组织树 ================= */
+  var orgs = ['成都海得', '成都名泽', '成都丰泰', '成都软件', '许昌软件', '外部单位', '物流仓储团队'];
+  document.getElementById('orgChildren').innerHTML = orgs.map(function (o) {
+    return '<div class="tree-row"><span class="arrow"></span><span class="name">' + o + '</span><span class="doc">▤</span></div>';
+  }).join('');
+  function toggleTree(row) {
+    row.classList.toggle('open');
+    row.nextElementSibling.classList.toggle('show');
+  }
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+    document.getElementById('collapseBtn').classList.toggle('collapsed');
+  }
+
+  /* ================= 气体探头配置 ================= */
+  var PROBE_KEY = 'gas_probes';
+  var probes = [];
+  try { probes = JSON.parse(localStorage.getItem(PROBE_KEY) || '[]'); } catch (e) { probes = []; }
+
+  var editingIndex = -1;
+  var mapIndex = -1;
+  var tempPoint = null;
+  var mapMode = 'probe';    // 'probe' 表格行内标点 | 'form' 表单所属位置标点
+  var formPoint = null;     // 表单标点的暂存点位
+  var tempAreaName = null;  // 从左侧区域列表点选时的区域名
+
+  function saveProbes() {
+    try { localStorage.setItem(PROBE_KEY, JSON.stringify(probes)); } catch (e) {}
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function renderProbes() {
+    var tbody = document.getElementById('probeTbody');
+    document.getElementById('probeEmpty').style.display = probes.length ? 'none' : 'block';
+    tbody.innerHTML = probes.map(function (p, i) {
+      var pointTag = p.point ? ' <span style="color:#8a94a3;font-size:12px">(已标点)</span>' : '';
+      return '<tr>' +
+        '<td>' + esc(p.name) + pointTag + '</td>' +
+        '<td>' + esc(p.brand) + '</td>' +
+        '<td>' + esc(p.sn) + '</td>' +
+        '<td>' + esc(p.loc) + '</td>' +
+        '<td>' +
+          '<span class="link" onclick="openMap(' + i + ')">标点</span>' +
+          '<span class="link" onclick="openData(' + i + ')">实时数据</span>' +
+          '<span class="link" onclick="openProbeForm(' + i + ')">编辑</span>' +
+          '<span class="link danger" onclick="askDelete(' + i + ')">删除</span>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function openProbeForm(i) {
+    editingIndex = i;
+    document.getElementById('probeFormTitle').textContent = i === -1 ? '新增气体探头' : '编辑气体探头';
+    document.getElementById('fName').value = i === -1 ? '' : probes[i].name;
+    document.getElementById('fBrand').value = i === -1 ? '' : probes[i].brand;
+    document.getElementById('fSn').value = i === -1 ? '' : probes[i].sn;
+    document.getElementById('fLoc').value = i === -1 ? '' : probes[i].loc;
+    // 表单标点初始值沿用已保存点位（编辑时）
+    formPoint = (i !== -1 && probes[i].point) ? { x: probes[i].point.x, y: probes[i].point.y } : null;
+    showMask('probeMask');
+  }
+
+  function saveProbe() {
+    var name = document.getElementById('fName').value.trim();
+    var brand = document.getElementById('fBrand').value.trim();
+    var sn = document.getElementById('fSn').value.trim();
+    var loc = document.getElementById('fLoc').value.trim();
+    if (!name || !brand || !sn || !loc) { toast('请填写完整所有必填项'); return; }
+
+    if (editingIndex === -1) {
+      probes.push({ name: name, brand: brand, sn: sn, loc: loc, point: formPoint });
+    } else {
+      probes[editingIndex].name = name;
+      probes[editingIndex].brand = brand;
+      probes[editingIndex].sn = sn;
+      probes[editingIndex].loc = loc;
+      probes[editingIndex].point = formPoint;
+    }
+    saveProbes();
+    renderProbes();
+    closeMask('probeMask');
+    toast(editingIndex === -1 ? '新增成功' : '修改成功');
+  }
+
+  var deleteIndex = -1;
+  function askDelete(i) { deleteIndex = i; showMask('confirmMask'); }
+  function doDelete() {
+    probes.splice(deleteIndex, 1);
+    saveProbes();
+    renderProbes();
+    closeMask('confirmMask');
+    toast('删除成功');
+  }
+
+  /* ================= 添加作业地点（标点） ================= */
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // 厂区网格分区（示意坐标，viewBox 1000×700）
+  var siteZones = [
+    { name: '混合蒸汽裂解装置', x: 870, y: 35, w: 130, h: 70 },
+    { name: '碳四加氢装置', x: 700, y: 60, w: 120, h: 60 },
+    { name: '苯乙烯抽提装置', x: 700, y: 120, w: 120, h: 55 },
+    { name: '丁二烯抽提装置', x: 830, y: 120, w: 130, h: 55 },
+    { name: '芳烃抽提装置', x: 700, y: 170, w: 120, h: 50 },
+    { name: '天然气计量站', x: 830, y: 170, w: 130, h: 50 },
+    { name: '火炬气回收站', x: 700, y: 215, w: 120, h: 50 },
+    { name: '己烯-1装置', x: 830, y: 215, w: 130, h: 50 },
+    { name: '二氧化碳回收预留', x: 700, y: 265, w: 260, h: 45 },
+    { name: '1号罐区', x: 560, y: 130, w: 130, h: 110 },
+    { name: '环氧乙烷/乙二醇装置', x: 560, y: 260, w: 260, h: 90 },
+    { name: '2号循环水场', x: 700, y: 355, w: 120, h: 55 },
+    { name: '环氧乙烷存储及装车站', x: 830, y: 355, w: 150, h: 55 },
+    { name: '聚乙烯包装及仓库', x: 560, y: 420, w: 260, h: 70 },
+    { name: '3号罐区/汽车装卸车场及叉车充电间', x: 480, y: 455, w: 190, h: 65 },
+    { name: '集装箱堆场', x: 700, y: 495, w: 180, h: 50 },
+    { name: '企业消防站(含气防站)', x: 890, y: 495, w: 110, h: 50 },
+    { name: '2号消防水泵房', x: 560, y: 540, w: 150, h: 50 },
+    { name: '聚丙烯包装及仓库', x: 390, y: 560, w: 140, h: 60 },
+    { name: '聚丙烯装置', x: 540, y: 575, w: 150, h: 60 },
+    { name: '均聚/无规聚丙烯装置', x: 390, y: 630, w: 150, h: 55 },
+    { name: '苯酚丙酮/异丙苯装置', x: 550, y: 645, w: 230, h: 50 },
+    { name: '综合仓库', x: 390, y: 665, w: 140, h: 35 }
+  ];
+
+  // 左侧区域列表
+  var siteList = [
+    '中控室/化验室/办公楼', '220KV总变电站', '维修车间', '凝液精制单元',
+    '1号循环水场', '1号消防水泵房', '混合蒸汽裂解装置', '1号事故水及雨水监测池',
+    '1号罐区', '碳四加氢装置', '丁二烯抽提装置', '苯乙烯抽提装置',
+    '天然气计量站', '芳烃抽提装置', '己烯-1装置', '火炬气回收站',
+    '二氧化碳回收预留', '环氧乙烷/乙二醇装置', '2号循环水场',
+    '环氧乙烷存储及装车站', '聚碳酸酯装置', '茂金属线性低密度聚乙烯/高密度聚乙烯'
+  ];
+
+  // 楼层标签示意点位
+  var floorPoints = {
+    floor1: [[620, 180], [760, 90], [900, 145], [620, 305], [900, 385], [620, 455]],
+    floor2: [[660, 220], [800, 240], [940, 200], [700, 440], [840, 525], [470, 590]],
+    floor3: [[590, 160], [740, 145], [880, 250], [640, 380], [780, 480], [500, 530]],
+    floor4: [[610, 250], [760, 190], [920, 320], [680, 405], [860, 445], [450, 640]]
+  };
+
+  function svgEl(tag, attrs, parent) {
+    var el = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    parent.appendChild(el);
+    return el;
+  }
+
+  // 渲染地图图层
+  function buildMapLayers() {
+    var svg = document.getElementById('siteSvg');
+
+    // 2级网格：装置分区
+    var g2 = svgEl('g', { id: 'layer-grid2' }, svg);
+    siteZones.forEach(function (z) {
+      svgEl('rect', {
+        x: z.x, y: z.y, width: z.w, height: z.h,
+        fill: 'rgba(25,110,240,.30)', stroke: 'rgba(130,195,255,.95)', 'stroke-width': 1.5
+      }, g2);
+      svgEl('text', {
+        x: z.x + z.w / 2, y: z.y + z.h / 2 + 5, fill: '#fff', 'font-size': 14,
+        'text-anchor': 'middle', style: 'paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px;'
+      }, g2).textContent = z.name;
+    });
+
+    // 1级网格：细分线
+    var g1 = svgEl('g', { id: 'layer-grid1', opacity: .5 }, svg);
+    for (var x = 420; x <= 1000; x += 40) {
+      svgEl('line', { x1: x, y1: 40, x2: x, y2: 700, stroke: 'rgba(150,205,255,.8)', 'stroke-width': 1 }, g1);
+    }
+    for (var y = 40; y <= 700; y += 40) {
+      svgEl('line', { x1: 420, y1: y, x2: 1000, y2: y, stroke: 'rgba(150,205,255,.8)', 'stroke-width': 1 }, g1);
+    }
+
+    // 楼层标签
+    for (var f = 1; f <= 4; f++) {
+      var gf = svgEl('g', { id: 'floor' + f }, svg);
+      floorPoints['floor' + f].forEach(function (p) {
+        svgEl('circle', { cx: p[0], cy: p[1], r: 10, fill: 'rgba(30,120,245,.75)', stroke: '#fff', 'stroke-width': 1.5 }, gf);
+        svgEl('text', {
+          x: p[0], y: p[1] + 4, fill: '#fff', 'font-size': 11, 'text-anchor': 'middle'
+        }, gf).textContent = f + '层';
+      });
+    }
+  }
+  buildMapLayers();
+
+  // 图层勾选
+  document.querySelectorAll('[data-layer]').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var g = document.getElementById(cb.getAttribute('data-layer'));
+      if (g) g.style.display = cb.checked ? '' : 'none';
+    });
+  });
+
+  // 左侧区域列表渲染
+  var siteChildren = document.getElementById('siteChildren');
+  siteChildren.innerHTML = siteList.map(function (n) {
+    return '<div class="site-item" data-name="' + n + '" onclick="pickArea(this)">' + n + '</div>';
+  }).join('');
+  document.getElementById('siteParent').addEventListener('click', function () {
+    this.classList.toggle('open');
+    siteChildren.classList.toggle('hidden');
+  });
+
+  function clearAreaActive() {
+    document.querySelectorAll('.site-item.active').forEach(function (el) { el.classList.remove('active'); });
+  }
+
+  // 点选左侧区域 → 在地图对应分区中心打标点
+  function pickArea(el) {
+    clearAreaActive();
+    el.classList.add('active');
+    var name = el.getAttribute('data-name');
+    tempAreaName = name; // 表单回填时优先使用区域名
+    var zone = siteZones.filter(function (z) { return z.name === name; })[0];
+    if (zone) {
+      tempPoint = { x: (zone.x + zone.w / 2) / 10, y: (zone.y + zone.h / 2) / 7 };
+    } else {
+      tempPoint = { x: 50, y: 50 }; // 列表中无对应分区的，标在厂区中心
+    }
+    renderPin();
+  }
+
+  function openMap(i) {
+    mapMode = 'probe';
+    mapIndex = i;
+    tempAreaName = null;
+    tempPoint = probes[i].point ? { x: probes[i].point.x, y: probes[i].point.y } : null;
+    clearAreaActive();
+    renderPin();
+    showMask('mapMask');
+  }
+
+  // 表单“所属位置”点击 → 打开同一地图弹窗进行标点
+  function openMapFromForm() {
+    mapMode = 'form';
+    tempAreaName = null;
+    tempPoint = formPoint ? { x: formPoint.x, y: formPoint.y } : null;
+    clearAreaActive();
+    renderPin();
+    showMask('mapMask');
+  }
+
+  function renderPin() {
+    var pin = document.getElementById('mapPin');
+    var coord = document.getElementById('mapCoord');
+    if (tempPoint) {
+      pin.style.display = 'block';
+      pin.style.left = tempPoint.x + '%';
+      pin.style.top = tempPoint.y + '%';
+      coord.textContent = '当前位置：X ' + tempPoint.x.toFixed(1) + '% ，Y ' + tempPoint.y.toFixed(1) + '%';
+    } else {
+      pin.style.display = 'none';
+      coord.textContent = '尚未标点，点击地图选择位置';
+    }
+  }
+
+  document.getElementById('mapBox').addEventListener('click', function (e) {
+    var rect = this.getBoundingClientRect();
+    tempPoint = {
+      x: Math.min(100, Math.max(0, (e.clientX - rect.left) / rect.width * 100)),
+      y: Math.min(100, Math.max(0, (e.clientY - rect.top) / rect.height * 100))
+    };
+    tempAreaName = null; // 直接点地图时不回填区域名，使用坐标
+    clearAreaActive();
+    renderPin();
+  });
+
+  function savePoint() {
+    if (!tempPoint) { toast('请先点击地图选择点位'); return; }
+    if (mapMode === 'form') {
+      // 表单“所属位置”标点：回写到输入框，不写入探头数据
+      formPoint = { x: tempPoint.x, y: tempPoint.y };
+      document.getElementById('fLoc').value = tempAreaName
+        ? tempAreaName
+        : 'X ' + tempPoint.x.toFixed(1) + '% ，Y ' + tempPoint.y.toFixed(1) + '%';
+      closeMask('mapMask');
+      toast('标点已保存');
+      return;
+    }
+    probes[mapIndex].point = { x: tempPoint.x, y: tempPoint.y };
+    saveProbes();
+    renderProbes();
+    closeMask('mapMask');
+    toast('标点已保存');
+  }
+
+  /* ================= 实时数据（模拟数据） ================= */
+  function openData(i) {
+    document.getElementById('dataTitle').textContent = probes[i].name + ' - 实时数据';
+    var now = Date.now();
+    var rows = [];
+    for (var k = 9; k >= 0; k--) {
+      var d = new Date(now - k * 5 * 60 * 1000);
+      var hh = ('0' + d.getHours()).slice(-2);
+      var mm = ('0' + d.getMinutes()).slice(-2);
+      var val = (5 + Math.random() * 40).toFixed(1);
+      rows.push('<tr><td>' + hh + ':' + mm + '</td><td>' + val + ' PPM</td></tr>');
+    }
+    document.getElementById('dataTbody').innerHTML = rows.join('');
+    showMask('dataMask');
+  }
+
+  renderProbes();
+
+  /* ================= 执行标准表 ================= */
+  var standardRows = [
+    ['热工作业(特级)', 1, 1, 1],
+    ['热工作业(一级)', 1, 1, 1],
+    ['热工作业(二级)', 1, 1, 1],
+    ['临时用电作业', 1, 1, 1],
+    ['进入受限空间作业', 1, 1, 1]
+  ];
+  document.getElementById('standardTbody').innerHTML = standardRows.map(function (r, i) {
+    var tds = r.slice(1).map(function (v, j) {
+      return '<td>' +
+        '<label class="radio-item"><input type="radio" name="std-' + i + '-' + j + '" ' + (v === 1 ? 'checked' : '') + '><span>30871标准</span></label>' +
+        '<label class="radio-item"><input type="radio" name="std-' + i + '-' + j + '" ' + (v === 2 ? 'checked' : '') + '><span style="color:#5a6472">企业标准</span></label>' +
+      '</td>';
+    }).join('');
+    return '<tr><td>' + r[0] + '</td>' + tds + '</tr>';
+  }).join('');
+
+  /* ================= 气体分析库 ================= */
+  var gasData = [
+    { name: '甲烷', type: '有毒有害气体', unit: 'PPM', upper: 12, lower: 1, cas: 'cas', def: true }
+  ];
+  function renderGas(list) {
+    var tbody = document.getElementById('gasTbody');
+    document.getElementById('gasTotal').textContent = list.length;
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="color:#a0a8b4">暂无数据</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(function (g) {
+      return '<tr>' +
+        '<td>' + g.name + '</td><td>' + g.type + '</td><td>' + g.unit + '</td>' +
+        '<td>' + g.upper + '</td><td>' + g.lower + '</td><td>' + g.cas + '</td>' +
+        '<td><span class="link">是</span></td>' +
+        '<td><span class="link" onclick="toast(\'编辑（示例）\')">编辑</span>' +
+            '<span class="link danger" onclick="toast(\'删除（示例）\')">删除</span></td>' +
+      '</tr>';
+    }).join('');
+  }
+  function queryGas() {
+    var n = document.getElementById('gasNameInput').value.trim();
+    var u = document.getElementById('gasUnitSelect').value;
+    renderGas(gasData.filter(function (g) {
+      return (!n || g.name.indexOf(n) > -1) && (!u || g.unit === u);
+    }));
+  }
+  function resetGas() {
+    document.getElementById('gasNameInput').value = '';
+    document.getElementById('gasUnitSelect').value = '';
+    renderGas(gasData);
+  }
+  renderGas(gasData);
+</script>
+</body>
+</html>

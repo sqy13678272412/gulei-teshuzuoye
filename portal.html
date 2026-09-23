@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>特殊作业管理系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9; color: #333; font-size: 14px;
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  }
+  /* ===== 主体布局 ===== */
+  .layout { flex: 1; display: flex; min-height: 0; }
+  /* 左侧菜单：纯文字 */
+  .side-menu {
+    width: 190px; flex-shrink: 0; overflow-y: auto;
+    background: #fff; border-right: 1px solid #e6ebf2;
+    padding: 10px 0;
+  }
+  .sm-item {
+    display: flex; align-items: center;
+    padding: 13px 24px; color: #333;
+    cursor: pointer; font-size: 14px; user-select: none;
+  }
+  .sm-item:hover { background: #f5f9ff; }
+  .sm-item.active { color: #1f8ef1; font-weight: 600; background: #eaf4fe; }
+  .sm-item.indent { padding-left: 44px; color: #5a6472; font-size: 13.5px; }
+  .sm-item.indent.active { color: #1f8ef1; }
+  /* 内容区 */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #f0f4f9; }
+  .crumb-bar {
+    height: 38px; flex-shrink: 0; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 16px;
+    color: #5a6472; font-size: 13px; gap: 8px;
+  }
+  .crumb-bar .cur { color: #1f8ef1; font-weight: 600; }
+  iframe { flex: 1; width: 100%; border: none; display: block; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- ============ 左侧菜单（9个页面） ============ -->
+  <div class="side-menu" id="sideMenu">
+    <div class="sm-item active" data-name="我的" data-src="index.html">我的</div>
+    <div class="sm-item" data-name="气体分析设置" data-src="gas-analysis.html">气体分析设置</div>
+    <div class="sm-item" data-name="作业台账" data-src="workorder-detail.html">作业台账</div>
+    <div class="sm-item" data-name="作业过程监控" data-src="video-monitor.html">作业过程监控</div>
+    <div class="sm-item" data-name="作业详情" data-src="personnel-change.html">作业详情</div>
+    <div class="sm-item" data-name="监护项配置" data-src="guardian-config.html">监护项配置</div>
+    <div class="sm-item" data-name="作业许可" data-src="person-tool-register.html">作业许可</div>
+    <div class="sm-item" data-name="工器具配置" data-src="tool-config.html">工器具配置</div>
+    <div class="sm-item" data-name="特殊时段配置" data-src="special-period.html">特殊时段配置</div>
+    <div class="sm-item" data-name="告警中心" data-src="告警配置/alarm-center-v2.html">告警中心</div>
+    <div class="sm-item indent" data-name="告警中心 / 告警规则配置" data-src="告警配置/alarm-center-v2.html#rules">告警规则配置</div>
+    <div class="sm-item indent" data-name="告警中心 / 告警数据" data-src="告警配置/alarm-center-v2.html#data">告警数据</div>
+    <div class="sm-item indent" data-name="告警中心 / 移动端" data-src="告警配置/alarm-center-v2.html#mobile">移动端</div>
+  </div>
+
+  <!-- ============ 内容区 ============ -->
+  <div class="main">
+    <div class="crumb-bar">特殊作业<span>/</span><span class="cur" id="crumbCur">我的</span></div>
+    <iframe id="pageFrame" src="index.html"></iframe>
+  </div>
+</div>
+
+<script>
+  var menu = document.getElementById('sideMenu');
+  var frame = document.getElementById('pageFrame');
+  var crumb = document.getElementById('crumbCur');
+  menu.addEventListener('click', function (e) {
+    var item = e.target.closest('.sm-item');
+    if (!item) return;
+    menu.querySelectorAll('.sm-item').forEach(function (s) { s.classList.remove('active'); });
+    item.classList.add('active');
+    /* 加时间戳参数强制 iframe 重新加载：
+       连续点同一页面（如 告警中心 → 告警数据）时仅 hash 变化不会触发 load，
+       必须整体刷新，#rules / #data 页签定位逻辑才会执行。
+       注意：时间戳必须拼在 hash 之前，否则 #data 会被破坏成 #data?_t=xxx */
+    var src = item.getAttribute('data-src');
+    var hi = src.indexOf('#');
+    var base = hi >= 0 ? src.slice(0, hi) : src;
+    var hash = hi >= 0 ? src.slice(hi) : '';
+    frame.src = base + (base.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now() + hash;
+    crumb.textContent = item.getAttribute('data-name');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工器具配置 - 特殊作业</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9;
+    color: #333;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 平台头部 ===== */
+  .platform-head {
+    height: 54px; flex-shrink: 0;
+    background: linear-gradient(90deg, #16233f 0%, #1d3054 60%, #243a66 100%);
+    display: flex; align-items: center; padding: 0 20px;
+  }
+  .ph-logo { display: flex; align-items: center; gap: 10px; }
+  .ph-logo .mark {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: conic-gradient(from 200deg, #f7c948, #2f9df4, #16233f);
+  }
+  .ph-logo .t1 { color: #fff; font-size: 17px; font-weight: 600; letter-spacing: 1px; }
+  .ph-logo .t2 { color: rgba(255,255,255,.45); font-size: 11px; }
+  .ph-title { color: #fff; font-size: 16px; font-weight: 600; margin-left: 26px; }
+  .ph-right { margin-left: auto; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.85); cursor: pointer; }
+  .ph-right .uavatar {
+    width: 28px; height: 28px; border-radius: 50%; background: #3a517c;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px;
+  }
+
+  /* ===== 页签栏 ===== */
+  .tabs-bar {
+    height: 42px; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+  }
+  .tabs-bar .fold { color: #5a6472; cursor: pointer; padding: 4px 8px; font-size: 15px; }
+  .chip {
+    border: 1px solid #d8e0ea; border-radius: 4px; padding: 5px 10px;
+    color: #5a6472; font-size: 13px; cursor: pointer; background: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip.active { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .chip .x { color: #a0a8b4; font-size: 12px; }
+  .chip .x:hover { color: #e64340; }
+
+  .layout { flex: 1; display: flex; min-height: 0; }
+
+  /* ===== 左侧菜单 ===== */
+  .side-menu {
+    width: 200px; flex-shrink: 0; overflow-y: auto;
+    background: linear-gradient(180deg, #1c2c4e 0%, #1f3a63 100%);
+    padding: 10px 0;
+  }
+  .sm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px;
+  }
+  .sm-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sm-item .ic { width: 16px; text-align: center; opacity: .8; }
+  .sm-item .exp { margin-left: auto; font-size: 11px; opacity: .6; }
+  .sm-sub { padding-left: 44px; color: rgba(255,255,255,.65); font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+  .sm-sub:hover { color: #fff; }
+  .sm-sub.active {
+    color: #fff; background: linear-gradient(90deg, #2f9df4, transparent);
+    border-left: 3px solid #f7c948; padding-left: 41px;
+  }
+
+  /* ===== 主区域 ===== */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px 40px; min-width: 0; }
+
+  .pane-box {
+    background: #fff; border: 1px solid #e6ebf2; border-radius: 6px;
+    padding: 16px; min-height: calc(100vh - 190px);
+  }
+
+  /* ===== 左右模块布局 ===== */
+  .cfg-layout { display: flex; gap: 16px; align-items: stretch; }
+  .cfg-left { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .cfg-right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  .panel {
+    border: 1px solid #e6ebf2; border-radius: 8px; background: #fff;
+    display: flex; flex-direction: column; flex: 1; min-height: 480px;
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    border-bottom: 1px solid #eef1f6; flex-wrap: wrap; flex-shrink: 0;
+  }
+  .panel-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .panel-hint { font-size: 12.5px; color: #8a94a3; }
+  .panel-head .spacer { margin-left: auto; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 10px; }
+
+  .btn {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472;
+    padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 13px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { background: #3da1f3; color: #fff; }
+
+  /* 左侧作业类型列表 */
+  .type-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 12px; border-radius: 6px; cursor: pointer; font-size: 13.5px;
+    color: #333; border: 1px solid transparent; margin-bottom: 4px;
+  }
+  .type-row:hover { background: #f5f9ff; }
+  .type-row.active { background: #eaf4fe; border-color: #b7d9fa; color: #1f8ef1; font-weight: 600; }
+  .type-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .type-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* 右侧工器具表格 */
+  table.tool-grid { width: 100%; border-collapse: collapse; }
+  table.tool-grid th, table.tool-grid td {
+    border: 1px solid #e6ebf2; padding: 10px 12px; font-size: 13px; text-align: center;
+  }
+  table.tool-grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+  table.tool-grid td.tool-name { text-align: left; color: #333; }
+  .st-tag { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 3px; }
+  .st-on { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
+  .st-off { color: #8a94a3; background: #f5f5f5; border: 1px solid #d9d9d9; }
+  .op-link { color: #1f8ef1; cursor: pointer; margin: 0 6px; }
+  .op-link:hover { text-decoration: underline; }
+  .op-link.warn { color: #d46b08; }
+  .op-link.danger { color: #e64340; }
+  .empty-tip { color: #a0a8b4; text-align: center; padding: 40px 0; font-size: 13px; }
+
+  /* 新增/编辑弹窗 */
+  .m-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+  }
+  .m-mask.show { display: flex; }
+  .m-dialog {
+    width: 420px; background: #fff; border-radius: 10px; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .m-head {
+    display: flex; align-items: center; padding: 14px 18px;
+    border-bottom: 1px solid #eef1f6;
+  }
+  .m-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .m-close { margin-left: auto; color: #5a6472; font-size: 17px; cursor: pointer; }
+  .m-body { padding: 18px; }
+  .m-label { font-size: 13.5px; color: #333; margin-bottom: 8px; }
+  .m-input {
+    width: 100%; height: 36px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 0 10px; font-size: 13.5px; outline: none;
+  }
+  .m-input:focus { border-color: #1f8ef1; }
+  .m-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 0 18px 16px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- 平台头部 -->
+<div class="platform-head">
+  <div class="ph-logo">
+    <div class="mark"></div>
+    <div>
+      <div class="t1">EHSS数字化管控平台</div>
+      <div class="t2">I-SHEM Platform</div>
+    </div>
+  </div>
+  <span class="ph-title">特殊作业</span>
+  <div class="ph-right"><span class="uavatar">沈</span> 沈青荣 ⌄</div>
+</div>
+
+<!-- 页签栏 -->
+<div class="tabs-bar">
+  <span class="fold">☰</span>
+  <span class="fold">‹</span>
+  <span class="chip">作业统计 <span class="x">✕</span></span>
+  <span class="chip">作业台账 <span class="x">✕</span></span>
+  <span class="chip">作业工作流 <span class="x">✕</span></span>
+  <span class="chip">作业预约清单 <span class="x">✕</span></span>
+  <span class="chip">高处作业 <span class="x">✕</span></span>
+  <span class="chip">盲板抽堵作业 <span class="x">✕</span></span>
+  <span class="chip">安全措施 <span class="x">✕</span></span>
+  <span class="chip" onclick="location.href='guardian-config.html'">监护项配置 <span class="x">✕</span></span>
+  <span class="chip active">工器具配置 <span class="x">✕</span></span>
+</div>
+
+<div class="layout">
+  <!-- 左侧菜单 -->
+  <div class="side-menu">
+    <div class="sm-item"><span class="ic">⚙</span>作业设置 <span class="exp">⌄</span></div>
+    <div class="sm-sub">作业工作流</div>
+    <div class="sm-sub">作业有效期</div>
+    <div class="sm-sub">风险辨识选项</div>
+    <div class="sm-sub">安全措施</div>
+    <div class="sm-sub" onclick="location.href='guardian-config.html'">监护项配置</div>
+    <div class="sm-sub active">工器具配置</div>
+    <div class="sm-sub" onclick="location.href='special-period.html'">特殊时段配置</div>
+    <div class="sm-sub">安全作业方案</div>
+    <div class="sm-sub">JSA工作安全分析</div>
+    <div class="sm-sub">JSA分析库</div>
+    <div class="sm-sub">流程标识</div>
+    <div class="sm-sub" onclick="location.href='gas-analysis.html'">气体分析设置</div>
+    <div class="sm-sub">项目审批流</div>
+    <div class="sm-sub">动火方式设置</div>
+    <div class="sm-sub">JSA审批流</div>
+    <div class="sm-sub">安全作业方案审批流</div>
+    <div class="sm-sub">登高作业方式设置</div>
+  </div>
+
+  <!-- 主区域 -->
+  <div class="content">
+    <div class="pane-box">
+      <div class="cfg-layout">
+        <!-- 左模块：特殊作业类型 -->
+        <div class="cfg-left">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">特殊作业类型</span>
+              <span class="panel-hint">选择作业类型配置工器具</span>
+            </div>
+            <div class="panel-body" id="toolLeftBody"></div>
+          </div>
+        </div>
+
+        <!-- 右模块：工器具列表 -->
+        <div class="cfg-right">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">工器具</span>
+              <span class="panel-hint" id="toolHint"></span>
+              <span class="spacer"></span>
+              <button class="btn primary" onclick="openToolModal('add')">＋ 新增</button>
+            </div>
+            <div class="panel-body" id="toolRightBody"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 新增/编辑工器具弹窗 ============ -->
+<div class="m-mask" id="toolMask">
+  <div class="m-dialog">
+    <div class="m-head">
+      <span class="m-title" id="toolModalTitle">新增工器具</span>
+      <span class="m-close" onclick="closeToolModal()">✕</span>
+    </div>
+    <div class="m-body">
+      <div class="m-label">工器具名称</div>
+      <input class="m-input" id="toolNameInput" placeholder="请输入工器具名称">
+      <div class="m-label" style="margin-top:14px;">排序</div>
+      <input class="m-input" id="toolSortInput" type="number" placeholder="数字越小越靠前" value="1">
+    </div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeToolModal()">取 消</button>
+      <button class="btn primary" onclick="saveTool()">保 存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ================= 作业类型与配色 ================= */
+  var allTypes = ['受限空间作业', '动火作业', '高处作业', '动土作业', '盲板抽堵作业',
+                  '吊装作业', '临时用电作业', '断路作业', '冷工作业'];
+  var tagPalette = [
+    { color: '#1677ff' }, { color: '#389e0d' }, { color: '#d46b08' }, { color: '#722ed1' },
+    { color: '#08979c' }, { color: '#c41d7f' }, { color: '#cf1322' }, { color: '#ad6800' },
+    { color: '#595959' }
+  ];
+  function typeColor(type) {
+    return tagPalette[allTypes.indexOf(type) % tagPalette.length].color;
+  }
+
+  /* ================= 数据（localStorage 持久化） ================= */
+  var STORE_KEY = 'tool_config_items';
+  var toolData = loadTool();
+  var currentType = allTypes[0]; // 默认选中第一个：受限空间作业
+
+  function defaultToolData() {
+    var empty = function () { return []; };
+    var data = {};
+    allTypes.forEach(function (t) { data[t] = empty(); });
+    data['受限空间作业'] = [
+      { id: 1, name: '便携式气体检测仪', sort: 1, status: '启用' },
+      { id: 2, name: '强制通风设备', sort: 2, status: '启用' },
+      { id: 3, name: '三脚架（救援支架）', sort: 3, status: '启用' },
+      { id: 4, name: '正压式空气呼吸器', sort: 4, status: '启用' },
+      { id: 5, name: '全身式安全带及安全绳', sort: 5, status: '启用' },
+      { id: 6, name: '防爆对讲机', sort: 6, status: '停用' }
+    ];
+    data['动火作业'] = [
+      { id: 7, name: '手提式干粉灭火器', sort: 1, status: '启用' },
+      { id: 8, name: '防火毯', sort: 2, status: '启用' },
+      { id: 9, name: '可燃气体检测仪', sort: 3, status: '启用' }
+    ];
+    return data;
+  }
+  function loadTool() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* 忽略损坏数据，使用默认 */ }
+    return defaultToolData();
+  }
+  function saveToolData() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(toolData));
+  }
+  function curTools() {
+    return toolData[currentType] || [];
+  }
+  function findTool(id) {
+    var all = [];
+    Object.keys(toolData).forEach(function (t) { all = all.concat(toolData[t]); });
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+    return null;
+  }
+  function nextToolId() {
+    var max = 0;
+    Object.keys(toolData).forEach(function (t) {
+      toolData[t].forEach(function (i) { if (i.id > max) max = i.id; });
+    });
+    return max + 1;
+  }
+
+  /* ================= 左模块：特殊作业类型 ================= */
+  function renderToolLeft() {
+    document.getElementById('toolLeftBody').innerHTML = allTypes.map(function (t) {
+      return '<div class="type-row' + (t === currentType ? ' active' : '') + '" onclick="selectToolType(\'' + t + '\')">' +
+        '<span class="type-dot" style="background:' + typeColor(t) + '"></span>' +
+        '<span class="type-name">' + t + '</span>' +
+      '</div>';
+    }).join('');
+  }
+  function selectToolType(t) {
+    currentType = t;
+    renderToolLeft();
+    renderToolRight();
+  }
+
+  /* ================= 右模块：工器具列表 ================= */
+  function renderToolRight() {
+    document.getElementById('toolHint').textContent = '当前作业类型：' + currentType;
+    var box = document.getElementById('toolRightBody');
+    var list = curTools().slice().sort(function (a, b) { return a.sort - b.sort; });
+    if (!list.length) {
+      box.innerHTML = '<div class="empty-tip">该作业类型暂未配置工器具，请点击右上角"新增"</div>';
+      return;
+    }
+    box.innerHTML = '<table class="tool-grid"><thead><tr>' +
+      '<th style="width:60px">序号</th>' +
+      '<th>工器具名称</th>' +
+      '<th style="width:70px">排序</th>' +
+      '<th style="width:90px">状态</th>' +
+      '<th style="width:190px">操作</th>' +
+      '</tr></thead><tbody>' +
+      list.map(function (it, i) {
+        var isOn = it.status === '启用';
+        return '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td class="tool-name">' + it.name + '</td>' +
+          '<td>' + it.sort + '</td>' +
+          '<td><span class="st-tag ' + (isOn ? 'st-on' : 'st-off') + '">' + it.status + '</span></td>' +
+          '<td>' +
+            '<span class="op-link" onclick="openToolModal(\'edit\',' + it.id + ')">编辑</span>' +
+            '<span class="op-link warn" onclick="toggleToolStatus(' + it.id + ')">' + (isOn ? '停用' : '启用') + '</span>' +
+            '<span class="op-link danger" onclick="delTool(' + it.id + ')">删除</span>' +
+          '</td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  /* ================= 新增 / 编辑 ================= */
+  var toolEditId = null;
+  function openToolModal(mode, id) {
+    toolEditId = mode === 'edit' ? id : null;
+    document.getElementById('toolModalTitle').textContent = mode === 'edit' ? '编辑工器具' : '新增工器具';
+    if (mode === 'edit') {
+      var it = findTool(id);
+      document.getElementById('toolNameInput').value = it.name;
+      document.getElementById('toolSortInput').value = it.sort;
+    } else {
+      document.getElementById('toolNameInput').value = '';
+      document.getElementById('toolSortInput').value = curTools().length + 1;
+    }
+    document.getElementById('toolMask').classList.add('show');
+    setTimeout(function () { document.getElementById('toolNameInput').focus(); }, 50);
+  }
+  function closeToolModal() { document.getElementById('toolMask').classList.remove('show'); }
+  document.getElementById('toolMask').addEventListener('click', function (e) {
+    if (e.target === this) closeToolModal();
+  });
+
+  function saveTool() {
+    var name = document.getElementById('toolNameInput').value.trim();
+    var sort = parseInt(document.getElementById('toolSortInput').value, 10);
+    if (!name) { toast('请输入工器具名称'); return; }
+    if (isNaN(sort)) { toast('请输入正确的排序数字'); return; }
+    if (toolEditId) {
+      var it = findTool(toolEditId);
+      it.name = name;
+      it.sort = sort;
+      toast('已保存');
+    } else {
+      curTools().push({ id: nextToolId(), name: name, sort: sort, status: '启用' });
+      toast('已新增');
+    }
+    saveToolData();
+    closeToolModal();
+    renderToolRight();
+  }
+
+  /* ================= 启用 / 停用 / 删除 ================= */
+  function toggleToolStatus(id) {
+    var it = findTool(id);
+    if (!it) return;
+    it.status = it.status === '启用' ? '停用' : '启用';
+    saveToolData();
+    renderToolRight();
+    toast('已' + it.status);
+  }
+  function delTool(id) {
+    var it = findTool(id);
+    if (!it) return;
+    if (!confirm('确定删除工器具"' + it.name + '"吗？')) return;
+    toolData[currentType] = curTools().filter(function (x) { return x.id !== id; });
+    saveToolData();
+    renderToolRight();
+    toast('已删除');
+  }
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+
+  /* ================= 初始化 ================= */
+  renderToolLeft();
+  renderToolRight();
+</script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>我的</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f6fa;
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 顶部蓝色区域 ===== */
+  .header {
+    position: relative;
+    background: linear-gradient(180deg, #2f7ef6 0%, #4a90f5 100%);
+    padding: 14px 16px 70px;
+    color: #fff;
+  }
+  .header-title {
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 26px;
+  }
+  .user-info { display: flex; align-items: center; gap: 14px; }
+  .avatar {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: #e8ecf3;
+    overflow: hidden;
+    flex-shrink: 0;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, .85);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .user-name { font-size: 19px; font-weight: 600; letter-spacing: 1px; }
+  .user-company { font-size: 14px; opacity: .92; margin-top: 6px; }
+
+  /* ===== 白色卡片列表 ===== */
+  .card {
+    position: relative;
+    margin: -46px 12px 0;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(31, 45, 92, .06);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .cell {
+    display: flex;
+    align-items: center;
+    padding: 16px 16px;
+    font-size: 15.5px;
+    color: #222;
+    cursor: pointer;
+    user-select: none;
+  }
+  .cell + .cell { border-top: 1px solid #f0f1f5; }
+  .cell:active { background: #f7f8fa; }
+  .cell-icon {
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+    color: #333;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cell-icon svg { width: 20px; height: 20px; }
+  .cell-value {
+    margin-left: auto;
+    color: #999;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cell-arrow { width: 16px; height: 16px; color: #c3c6cf; }
+
+  /* ===== 退出登录 ===== */
+  .logout-wrap { margin-top: auto; padding: 24px 12px 18px; }
+  .logout-btn {
+    width: 100%;
+    height: 50px;
+    border: none;
+    border-radius: 25px;
+    background: linear-gradient(90deg, #3d86f8, #2f7ef6);
+    color: #fff;
+    font-size: 16.5px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(47, 126, 246, .3);
+  }
+  .logout-btn:active { opacity: .88; }
+
+  /* ===== 底部 Tab 栏 ===== */
+  .tabbar {
+    display: flex;
+    background: #fff;
+    border-top: 1px solid #eceef2;
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    color: #9a9ea9;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .tab svg { width: 24px; height: 24px; display: block; margin: 0 auto 2px; }
+  .tab.active { color: #2f7ef6; }
+
+  /* ===== 头像弹窗 ===== */
+  .mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .mask.show { display: flex; }
+  .dialog {
+    width: 78%;
+    max-width: 340px;
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    animation: pop .18s ease;
+  }
+  @keyframes pop {
+    from { transform: scale(.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .dialog-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 18px 0 6px;
+    color: #222;
+  }
+  .dialog-preview {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    margin: 16px auto;
+    background: #eef1f6;
+    overflow: hidden;
+    border: 1px solid #e4e7ee;
+  }
+  .dialog-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dialog-actions { border-top: 1px solid #f0f1f5; }
+  .dialog-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 0;
+    text-align: center;
+    font-size: 16px;
+    color: #2f7ef6;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+  }
+  .dialog-btn + .dialog-btn { border-top: 1px solid #f0f1f5; }
+  .dialog-btn:active { background: #f5f6f8; }
+  .dialog-btn.cancel { color: #666; }
+  .dialog-btn.danger { color: #e64340; }
+  #fileInput { display: none; }
+</style>
+</head>
+<body>
+
+  <!-- 顶部 -->
+  <div class="header">
+    <div class="header-title">我的</div>
+    <div class="user-info">
+      <div class="avatar" id="avatarBox" title="点击更换头像">
+        <img id="avatarImg" alt="头像">
+      </div>
+      <div>
+        <div class="user-name">沈青荣</div>
+        <div class="user-company">福建中沙石化有限公司</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 功能列表 -->
+  <div class="card">
+    <div class="cell">
+      <span class="cell-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v5"/><circle cx="12" cy="7.8" r=".6" fill="currentColor"/></svg>
+      </span>
+      版本号
+      <span class="cell-value">Version-/</span>
+    </div>
+    <div class="cell">
+      <span class="cell-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      </span>
+      修改密码
+      <span class="cell-value"><svg class="cell-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </div>
+    <div class="cell">
+      <span class="cell-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 17.5h2"/></svg>
+      </span>
+      IMEI
+      <span class="cell-value"><svg class="cell-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </div>
+    <div class="cell">
+      <span class="cell-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20l1-4L15.5 5.5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/></svg>
+      </span>
+      我的电子签
+      <span class="cell-value"><svg class="cell-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </div>
+    <div class="cell">
+      <span class="cell-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h4l1.5 4.5L9 9a13 13 0 0 0 6 6l1.5-2.5L21 14v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z"/></svg>
+      </span>
+      手机号绑定
+      <span class="cell-value"><svg class="cell-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </div>
+  </div>
+
+  <!-- 退出登录 -->
+  <div class="logout-wrap">
+    <button class="logout-btn" onclick="alert('已退出登录（示例）')">退出登录</button>
+  </div>
+
+  <!-- 底部 Tab -->
+  <div class="tabbar">
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><circle cx="9" cy="12" r=".8" fill="currentColor"/><circle cx="13" cy="12" r=".8" fill="currentColor"/><circle cx="17" cy="12" r=".8" fill="currentColor"/></svg>
+      消息
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>
+      工作台
+    </div>
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+      我的
+    </div>
+  </div>
+
+  <!-- 头像弹窗 -->
+  <div class="mask" id="avatarMask">
+    <div class="dialog">
+      <div class="dialog-title">更换头像</div>
+      <div class="dialog-preview"><img id="previewImg" alt="预览"></div>
+      <div class="dialog-actions">
+        <button class="dialog-btn" id="btnUpload">上传头像</button>
+        <button class="dialog-btn danger" id="btnReset">恢复默认头像</button>
+        <button class="dialog-btn cancel" id="btnCancel">取消</button>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="fileInput" accept="image/*">
+
+<script>
+  // 默认头像（灰色人形占位图，内联 SVG）
+  var DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+    '<rect width="100" height="100" fill="#e8ecf3"/>' +
+    '<circle cx="50" cy="38" r="16" fill="#c9cfd9"/>' +
+    '<ellipse cx="50" cy="78" rx="26" ry="18" fill="#c9cfd9"/>' +
+    '</svg>'
+  );
+
+  var STORAGE_KEY = 'user_avatar';
+  var avatarImg = document.getElementById('avatarImg');
+  var previewImg = document.getElementById('previewImg');
+  var mask = document.getElementById('avatarMask');
+  var fileInput = document.getElementById('fileInput');
+
+  // 初始化：读取本地缓存的头像，没有则用默认
+  function getSavedAvatar() {
+    try { return localStorage.getItem(STORAGE_KEY) || DEFAULT_AVATAR; }
+    catch (e) { return DEFAULT_AVATAR; }
+  }
+  avatarImg.src = getSavedAvatar();
+
+  // 点击头像 → 打开弹窗
+  document.getElementById('avatarBox').addEventListener('click', function () {
+    previewImg.src = avatarImg.src;
+    mask.classList.add('show');
+  });
+
+  // 点击遮罩空白处关闭
+  mask.addEventListener('click', function (e) {
+    if (e.target === mask) mask.classList.remove('show');
+  });
+
+  // 上传头像：触发文件选择
+  document.getElementById('btnUpload').addEventListener('click', function () {
+    fileInput.click();
+  });
+
+  // 选中图片后预览
+  fileInput.addEventListener('change', function () {
+    var file = fileInput.files[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { alert('请选择图片文件'); return; }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      previewImg.src = e.target.result;   // 弹窗内先预览
+      avatarImg.src = e.target.result;    // 同时更新页面头像
+      try { localStorage.setItem(STORAGE_KEY, e.target.result); } catch (err) {}
+      mask.classList.remove('show');      // 选好即生效并关闭，无需提示
+    };
+    reader.readAsDataURL(file);
+    fileInput.value = ''; // 允许重复选同一张图
+  });
+
+  // 恢复默认头像
+  document.getElementById('btnReset').addEventListener('click', function () {
+    avatarImg.src = DEFAULT_AVATAR;
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    mask.classList.remove('show');
+  });
+
+  // 取消
+  document.getElementById('btnCancel').addEventListener('click', function () {
+    mask.classList.remove('show');
+  });
+</script>
+</body>
+</html>

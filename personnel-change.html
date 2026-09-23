@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作业详情 - 作业台账</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9;
+    color: #333;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 平台头部 ===== */
+  .platform-head {
+    height: 54px; flex-shrink: 0;
+    background: linear-gradient(90deg, #16233f 0%, #1d3054 60%, #243a66 100%);
+    display: flex; align-items: center; padding: 0 20px;
+  }
+  .ph-logo { display: flex; align-items: center; gap: 10px; }
+  .ph-logo .mark {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: conic-gradient(from 200deg, #f7c948, #2f9df4, #16233f);
+  }
+  .ph-logo .t1 { color: #fff; font-size: 17px; font-weight: 600; letter-spacing: 1px; }
+  .ph-logo .t2 { color: rgba(255,255,255,.45); font-size: 11px; }
+  .ph-title { color: #fff; font-size: 16px; font-weight: 600; margin-left: 26px; }
+  .ph-right { margin-left: auto; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.85); cursor: pointer; }
+  .ph-right .uavatar {
+    width: 28px; height: 28px; border-radius: 50%; background: #3a517c;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px;
+  }
+
+  /* ===== 页签栏 ===== */
+  .tabs-bar {
+    height: 42px; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+  }
+  .tabs-bar .fold { color: #5a6472; cursor: pointer; padding: 4px 8px; font-size: 15px; }
+  .chip {
+    border: 1px solid #d8e0ea; border-radius: 4px; padding: 5px 10px;
+    color: #5a6472; font-size: 13px; cursor: pointer; background: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip.active { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .chip .x { color: #a0a8b4; font-size: 12px; }
+  .chip .x:hover { color: #e64340; }
+
+  .layout { flex: 1; display: flex; min-height: 0; }
+
+  /* ===== 左侧菜单 ===== */
+  .side-menu {
+    width: 200px; flex-shrink: 0; overflow-y: auto;
+    background: linear-gradient(180deg, #1c2c4e 0%, #1f3a63 100%);
+    padding: 10px 0;
+  }
+  .sm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px;
+  }
+  .sm-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sm-item .ic { width: 16px; text-align: center; opacity: .8; }
+  .sm-item .exp { margin-left: auto; font-size: 11px; opacity: .6; }
+  .sm-sub { padding-left: 44px; color: rgba(255,255,255,.65); font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+  .sm-sub:hover { color: #fff; }
+  .sm-sub.active {
+    color: #fff; background: linear-gradient(90deg, #2f9df4, transparent);
+    border-left: 3px solid #f7c948; padding-left: 41px;
+  }
+
+  /* ===== 主区域 ===== */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px 40px; min-width: 0; }
+  .inner-tabs {
+    display: flex; background: #fff; border: 1px solid #e6ebf2; border-radius: 6px 6px 0 0;
+    overflow: hidden; margin-bottom: 14px;
+  }
+  .inner-tab {
+    padding: 12px 26px; cursor: pointer; color: #333; font-size: 14.5px;
+    border-right: 1px solid #eef1f6; user-select: none;
+  }
+  .inner-tab.active { color: #1f8ef1; font-weight: 600; box-shadow: inset 0 2px 0 #1f8ef1; }
+  .page-close { margin-left: auto; padding: 12px 18px; color: #5a6472; cursor: pointer; font-size: 16px; }
+
+  /* 操作按钮区 */
+  .action-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px; }
+  .btn {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472;
+    padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 13.5px;
+  }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { background: #3da1f3; }
+
+  /* 流程进度条 */
+  .flow {
+    background: #fff; border-radius: 8px; padding: 26px 20px 20px; margin-bottom: 16px;
+    overflow-x: auto;
+  }
+  .flow-track { display: flex; min-width: 860px; }
+  .flow-node { flex: 1; text-align: center; position: relative; }
+  .flow-node::before {
+    content: ''; position: absolute; top: 11px; left: -50%; width: 100%; height: 2px; background: #52c41a;
+  }
+  .flow-node:first-child::before { display: none; }
+  .flow-dot {
+    width: 22px; height: 22px; border-radius: 50%; background: #52c41a; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
+    position: relative; z-index: 1;
+  }
+  .flow-label { margin-top: 8px; font-size: 13px; color: #52c41a; }
+
+  /* 信息区块 */
+  .block { background: #fff; border-radius: 8px; margin-bottom: 16px; }
+  .block-head {
+    display: flex; align-items: center; padding: 14px 18px; cursor: pointer; user-select: none;
+  }
+  .block-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .block-meta { margin-left: auto; color: #8a94a3; font-size: 12.5px; }
+  .block-meta b { color: #1f8ef1; font-weight: 500; }
+  .block-arrow { margin-left: 14px; color: #8a94a3; font-size: 12px; }
+  .sub-title {
+    padding: 10px 18px; font-size: 14px; font-weight: 600; color: #1f8ef1;
+    border-top: 1px solid #f0f1f5;
+  }
+  table.info { width: calc(100% - 36px); margin: 0 18px 18px; border-collapse: collapse; }
+  table.info th, table.info td {
+    border: 1px solid #e6ebf2; padding: 12px 14px; font-size: 13px; text-align: left;
+  }
+  table.info th { background: #f7f9fc; color: #5a6472; font-weight: 500; width: 110px; }
+  table.info td { color: #333; }
+
+  /* ===== 人员变更记录弹窗 ===== */
+  .r-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 100;
+    display: none; align-items: center; justify-content: center;
+  }
+  .r-mask.show { display: flex; }
+  .r-dialog {
+    width: min(880px, 94vw); max-height: 86vh; background: #f4f6fa;
+    border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .r-head {
+    display: flex; align-items: center; padding: 16px 20px; background: #fff;
+    border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .r-title { font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .r-close { margin-left: auto; color: #5a6472; font-size: 18px; cursor: pointer; }
+  .r-body { overflow-y: auto; padding: 16px 20px; }
+  .r-summary { color: #8a94a3; font-size: 13px; margin-bottom: 12px; }
+  .r-filter { display: flex; gap: 10px; margin-bottom: 14px; }
+  .r-chip {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472; padding: 6px 16px;
+    border-radius: 16px; cursor: pointer; font-size: 13px;
+  }
+  .r-chip.active { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+
+  .rc-card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  .rc-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .rc-type { font-size: 12px; padding: 3px 10px; border-radius: 3px; }
+  .rc-type.guardian { color: #d46b08; background: #fff7e6; border: 1px solid #ffd591; }
+  .rc-type.worker { color: #1f8ef1; background: #eaf4fe; border: 1px solid #b7d9fa; }
+  .rc-time { margin-left: auto; color: #8a94a3; font-size: 12.5px; }
+  .rc-persons { display: flex; align-items: center; gap: 14px; }
+  .rc-person {
+    flex: 1; display: flex; gap: 10px; align-items: center;
+    background: #f7f9fc; border-radius: 8px; padding: 10px 12px; min-width: 0;
+  }
+  .rc-arrow { color: #8a94a3; font-size: 18px; flex-shrink: 0; }
+  .rc-avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: #16233f; color: #fff; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rc-pname { font-size: 14px; font-weight: 600; color: #1f2d3d; }
+  .rc-psub { font-size: 12px; color: #8a94a3; margin-top: 3px; }
+  .rc-tag-old { font-size: 11px; color: #a0a8b4; border: 1px solid #d8e0ea; border-radius: 3px; padding: 1px 6px; margin-left: 8px; }
+  .rc-tag-new { font-size: 11px; color: #389e0d; border: 1px solid #b7eb8f; border-radius: 3px; padding: 1px 6px; margin-left: 8px; }
+
+  /* 监护人变更：交接信息区 */
+  .rc-handover { margin-top: 14px; border-top: 1px dashed #e6ebf2; padding-top: 12px; }
+  .rc-ho-title { font-size: 13.5px; font-weight: 600; color: #333; margin-bottom: 8px; display: flex; align-items: center; }
+  .rc-ho-title::before { content: ''; width: 3px; height: 13px; background: #f5a623; border-radius: 2px; margin-right: 7px; }
+  .rc-checks { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 12.5px; color: #5a6472; }
+  .rc-checks span::before { content: '✓ '; color: #52c41a; font-weight: 600; }
+  .rc-media { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+  .rc-mlabel { font-size: 12.5px; color: #8a94a3; }
+  .rc-thumb {
+    width: 44px; height: 44px; border-radius: 4px; background: #eef1f6;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px;
+    border: 1px solid #e6ebf2;
+  }
+  .rc-thumb:hover { border-color: #1f8ef1; }
+  .rc-vchip {
+    font-size: 12px; color: #1f8ef1; background: #eaf4fe; border-radius: 4px;
+    padding: 4px 10px; cursor: pointer;
+  }
+  .rc-operator { margin-top: 12px; font-size: 12.5px; color: #8a94a3; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+<style>
+  /* ===== Web 端左下角：切换移动端 ===== */
+  .float-mobile-btn {
+    position: fixed; left: 24px; bottom: 24px; z-index: 300;
+    background: none; border: none; color: #1296db;
+    font-size: 15px; cursor: pointer; padding: 4px;
+  }
+  .float-mobile-btn:hover { text-decoration: underline; }
+
+  /* ===== 页签栏 ===== */
+  .tabs-bar {
+    height: 42px; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+  }
+  .tabs-bar .fold { color: #5a6472; cursor: pointer; padding: 4px 8px; font-size: 15px; }
+  .chip {
+    border: 1px solid #d8e0ea; border-radius: 4px; padding: 5px 10px;
+    color: #5a6472; font-size: 13px; cursor: pointer; background: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip.active { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .chip .x { color: #a0a8b4; font-size: 12px; }
+  .chip .x:hover { color: #e64340; }
+
+  .layout { flex: 1; display: flex; min-height: 0; }
+
+  /* ===== 左侧菜单 ===== */
+  .side-menu {
+    width: 200px; flex-shrink: 0; overflow-y: auto;
+    background: linear-gradient(180deg, #1c2c4e 0%, #1f3a63 100%);
+    padding: 10px 0;
+  }
+  .sm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px;
+  }
+  .sm-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sm-item .ic { width: 16px; text-align: center; opacity: .8; }
+  .sm-item .exp { margin-left: auto; font-size: 11px; opacity: .6; }
+  .sm-sub { padding-left: 44px; color: rgba(255,255,255,.65); font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+  .sm-sub:hover { color: #fff; }
+  .sm-sub.active {
+    color: #fff; background: linear-gradient(90deg, #2f9df4, transparent);
+    border-left: 3px solid #f7c948; padding-left: 41px;
+  }
+
+  /* ===== 主区域 ===== */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px 40px; min-width: 0; }
+
+  /* 页内页签 */
+  .inner-tabs {
+    display: flex; background: #fff; border: 1px solid #e6ebf2; border-radius: 6px 6px 0 0;
+    overflow: hidden; margin-bottom: 14px;
+  }
+  .inner-tab {
+    padding: 12px 26px; cursor: pointer; color: #333; font-size: 14.5px;
+    border-right: 1px solid #eef1f6; user-select: none;
+  }
+  .inner-tab:hover { color: #1f8ef1; }
+  .inner-tab.active { color: #1f8ef1; font-weight: 600; box-shadow: inset 0 2px 0 #1f8ef1; }
+
+  .module {
+    background: #fff; border-radius: 8px; padding: 18px; margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
+  }
+  .module-title { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
+  .empty-box {
+    border: 1px solid #e6ebf2; color: #a0a8b4; text-align: center; padding: 26px 0;
+  }
+
+  /* 查询区 */
+  .search-bar { display: flex; align-items: center; gap: 10px; margin: 14px 0; flex-wrap: wrap; }
+  .search-bar label { color: #5a6472; }
+  .input, .select {
+    height: 34px; border: 1px solid #d8e0ea; border-radius: 4px; padding: 0 10px;
+    font-size: 13.5px; color: #333; outline: none; background: #fff;
+  }
+  .input:focus, .select:focus { border-color: #1f8ef1; }
+  .input { width: 200px; }
+  .select { width: 220px; }
+
+  .btn {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472;
+    padding: 7px 16px; border-radius: 4px; cursor: pointer; font-size: 13.5px;
+  }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { background: #3da1f3; }
+  .btn.outline { color: #1f8ef1; border-color: #1f8ef1; background: #fff; }
+
+  /* 表格 */
+  table.grid { width: 100%; border-collapse: collapse; }
+  table.grid th, table.grid td {
+    border: 1px solid #e6ebf2; padding: 10px 12px; text-align: center; font-size: 13.5px;
+  }
+  table.grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+
+  /* 分页 */
+  .pager { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 14px; color: #5a6472; font-size: 13px; }
+  .pager .page-btn { min-width: 30px; height: 30px; border: 1px solid #d8e0ea; background: #fff; border-radius: 4px; cursor: pointer; color: #5a6472; }
+  .pager .page-btn.cur { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .pager .page-input { width: 46px; height: 30px; text-align: center; border: 1px solid #d8e0ea; border-radius: 4px; }
+  .pager .page-size {
+    height: 30px; border: 1px solid #d8e0ea; border-radius: 4px; background: #fff;
+    color: #5a6472; padding: 0 8px; font-size: 13px;
+  }
+
+  /* 视频监控 */
+  .monitor-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+  /* ===== 监控画面弹窗（Web 端大图） ===== */
+  .mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 100;
+    display: none; align-items: center; justify-content: center;
+  }
+  .mask.show { display: flex; }
+  .cam-dialog {
+    width: min(800px, 94vw); background: #fff; border-radius: 12px; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .cam-head { display: flex; align-items: flex-start; padding: 18px 18px 12px; }
+  .cam-name { font-size: 17px; font-weight: 600; color: #1f2d3d; }
+  .cam-loc { font-size: 13px; color: #8a94a3; margin-top: 5px; }
+  .cam-close { margin-left: auto; color: #333; font-size: 19px; cursor: pointer; line-height: 1; }
+  .cam-body { background: #16233f; padding: 14px 16px 18px; }
+  .cam-screen {
+    background: #000; border-radius: 10px; height: 400px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #8a94a3; gap: 14px;
+  }
+  .cam-screen .cam-ic { font-size: 60px; }
+  .cam-screen .t1 { color: #cfd6e2; font-size: 18px; font-weight: 600; }
+  .cam-screen .t2 { font-size: 14px; }
+  .cam-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .cam-actions button {
+    height: 44px; border-radius: 22px; font-size: 14.5px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-playback {
+    border: none; color: #fff;
+    background: linear-gradient(90deg, #2ba4f0, #1f8ef1);
+    box-shadow: 0 2px 8px rgba(31, 142, 241, .4);
+  }
+  .btn-playback:active { opacity: .88; }
+  .btn-refresh { border: none; background: #fff; color: #333; }
+  .btn-refresh:active { background: #f0f2f5; }
+
+  /* ===== 移动端视图：作业许可 ===== */
+  .mobile-view {
+    display: none; position: fixed; inset: 0; background: #dfe3ea; z-index: 200;
+    overflow-y: auto;
+  }
+  .mobile-view.show { display: block; }
+  .mobile-page {
+    max-width: 430px; margin: 0 auto; min-height: 100vh;
+    background: #f4f6fa; display: flex; flex-direction: column;
+    box-shadow: 0 0 24px rgba(0, 0, 0, .25);
+  }
+  .m-head {
+    height: 48px; background: #fff; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; font-size: 16px; font-weight: 600; color: #1f2d3d;
+  }
+  .m-head .back { position: absolute; left: 14px; font-size: 20px; color: #333; cursor: pointer; }
+  .m-tabs { display: flex; background: #fff; }
+  .m-tab {
+    flex: 1; text-align: center; padding: 12px 0; color: #5a6472;
+    font-size: 15px; cursor: pointer; position: relative; user-select: none;
+  }
+  .m-tab.active { color: #1f8ef1; font-weight: 600; }
+  .m-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 44px; height: 3px; background: #1f8ef1; border-radius: 2px;
+  }
+  .m-filter { display: flex; gap: 8px; padding: 12px 12px 0; }
+  .m-filter .f-item {
+    flex: 1; background: #fff; border: 1px solid #e6ebf2; border-radius: 6px;
+    padding: 9px 10px; color: #a0a8b4; font-size: 12.5px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .m-query-row { display: flex; gap: 10px; padding: 12px; }
+  .m-query-row button { flex: 1; height: 38px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .m-btn-query { background: #1f8ef1; color: #fff; border: none; }
+  .m-btn-query:active { opacity: .88; }
+  .m-btn-reset { background: #fff; color: #5a6472; border: 1px solid #d8e0ea; }
+  .m-web-link {
+    margin-top: auto; padding: 12px 16px; color: #1296db;
+    font-size: 15px; cursor: pointer; background: #f4f6fa; flex-shrink: 0;
+  }
+
+  .m-card { background: #fff; border-radius: 10px; margin: 0 12px 12px; padding: 14px; }
+  .m-card-title-row { display: flex; align-items: center; margin-bottom: 6px; }
+  .m-card-title { font-size: 16.5px; font-weight: 600; color: #1f2d3d; }
+  .m-draft {
+    margin-left: auto; background: #8a94a3; color: #fff; font-size: 12px;
+    padding: 4px 12px; border-radius: 12px; display: flex; align-items: center; gap: 4px;
+  }
+  .m-row { display: flex; align-items: center; padding: 8px 0; font-size: 13.5px; border-bottom: 1px solid #f5f6f9; }
+  .m-row .lb { color: #8a94a3; width: 130px; flex-shrink: 0; }
+  .m-row .val { margin-left: auto; color: #333; text-align: right; }
+  .m-more-link { text-align: right; color: #1f8ef1; font-size: 13px; padding-top: 8px; cursor: pointer; }
+  .m-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .m-actions button {
+    flex: 1; height: 38px; border: none; border-radius: 6px; color: #fff;
+    font-size: 13.5px; cursor: pointer;
+  }
+  .m-actions button:active { opacity: .88; }
+  .m-act-blue { background: #8ca0cc; }
+  .m-act-orange { background: #f5a623; }
+
+  /* 更多下拉（朝上弹出） */
+  .more-wrap { position: relative; flex: 1; }
+  .more-menu {
+    position: absolute; bottom: calc(100% + 8px); right: 0; width: 128px;
+    background: #fff; border-radius: 8px; box-shadow: 0 -2px 14px rgba(0, 0, 0, .16);
+    display: none; z-index: 60; overflow: hidden;
+  }
+  .more-menu.show { display: block; }
+  .more-item {
+    padding: 12px 16px; font-size: 14px; color: #333; cursor: pointer; text-align: center;
+  }
+  .more-item:active { background: #f5f6f9; }
+  .more-item + .more-item { border-top: 1px solid #f0f1f5; }
+
+  /* ===== 移动端弹窗通用 ===== */
+  .m-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 400;
+    display: none; align-items: center; justify-content: center;
+  }
+  .m-mask.show { display: flex; }
+
+  /* 监控画面列表弹窗 430×850 */
+  .mon-dialog {
+    width: min(430px, 96vw); height: min(850px, 92vh); background: #f4f6fa;
+    border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .mon-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px; background: #fff; border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .mon-title { font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .mon-close { color: #a0a8b4; font-size: 17px; cursor: pointer; }
+  .mon-body { flex: 1; overflow-y: auto; padding: 14px; }
+  .mon-info { background: #fff; border-radius: 10px; padding: 4px 14px; margin-bottom: 14px; }
+  .mon-cam {
+    background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .06);
+  }
+  .mon-cam:active { background: #f8fafd; }
+  .mon-cam .ci { font-size: 22px; }
+  .mon-cam-name { font-size: 14.5px; font-weight: 600; color: #1f2d3d; flex: 1; }
+  .cam-state { font-size: 12.5px; padding: 2px 12px; border-radius: 3px; }
+  .cam-state.on { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
+  .cam-state.off { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
+
+  /* 移动端摄像头画面弹窗（图2） */
+  .mcam-dialog {
+    width: min(380px, 92vw); background: #fff; border-radius: 12px; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .mcam-dialog .cam-body { padding: 12px 14px 16px; }
+  .mcam-dialog .cam-screen { height: 280px; gap: 12px; }
+  .mcam-dialog .cam-screen .cam-ic { font-size: 46px; }
+  .mcam-dialog .cam-screen .t1 { font-size: 15.5px; }
+  .mcam-dialog .cam-screen .t2 { font-size: 13px; }
+
+  /* ===== 监控画面卡片弹窗（1000×800） ===== */
+  .camlist-dialog {
+    width: min(1000px, 96vw); height: min(800px, 92vh); background: #f4f6fa;
+    border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .camlist-head {
+    display: flex; align-items: center; padding: 16px 20px; background: #fff;
+    border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .camlist-title { font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .camlist-close { margin-left: auto; color: #5a6472; font-size: 18px; cursor: pointer; }
+  .camlist-body {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .cam-card {
+    background: #fff; border: 1px solid #e6ebf2; border-radius: 10px;
+    padding: 16px 18px; cursor: pointer;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .cam-card:hover { border-color: #1f8ef1; box-shadow: 0 2px 10px rgba(31, 142, 241, .12); }
+  .cam-card-main { display: flex; align-items: center; gap: 10px; min-width: 0; flex-shrink: 0; }
+  .cam-card-loc { color: #5a6472; font-size: 13.5px; white-space: nowrap; }
+  .cam-card-name { font-size: 15px; font-weight: 600; color: #1f2d3d; white-space: nowrap; }
+  .cam-card-state { font-size: 12px; padding: 2px 10px; border-radius: 3px; flex-shrink: 0; }
+  .cam-card-state.on { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
+  .cam-card-state.off { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
+  .cam-card-info { font-size: 13px; color: #8a94a3; white-space: nowrap; }
+  .cam-card-view {
+    margin-left: auto; color: #1f8ef1; cursor: pointer; font-size: 13.5px;
+    flex-shrink: 0; padding: 4px 10px; border-radius: 4px;
+  }
+  .cam-card-view:hover { background: #eaf4fe; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- 平台头部 -->
+<div class="platform-head">
+  <div class="ph-logo">
+    <div class="mark"></div>
+    <div>
+      <div class="t1">EHSS数字化管控平台</div>
+      <div class="t2">I-SHEM Platform</div>
+    </div>
+  </div>
+  <span class="ph-title">特殊作业</span>
+  <div class="ph-right"><span class="uavatar">沈</span> 沈青荣 ⌄</div>
+</div>
+
+<!-- 页签栏 -->
+<div class="tabs-bar">
+  <span class="fold">☰</span>
+  <span class="fold">‹</span>
+  <span class="chip">作业统计 <span class="x">✕</span></span>
+  <span class="chip active">作业台账 <span class="x">✕</span></span>
+  <span class="chip">作业工作流 <span class="x">✕</span></span>
+  <span class="chip">作业预约清单 <span class="x">✕</span></span>
+  <span class="chip">高处作业 <span class="x">✕</span></span>
+  <span class="chip">盲板抽堵作业 <span class="x">✕</span></span>
+</div>
+
+<div class="layout">
+  <!-- 左侧菜单 -->
+  <div class="side-menu">
+    <div class="sm-item"><span class="ic">▤</span>基础信息 <span class="exp">›</span></div>
+    <div class="sm-item"><span class="ic">▦</span>作业台账 <span class="exp">⌄</span></div>
+    <div class="sm-sub active">作业台账</div>
+    <div class="sm-sub">督察记录</div>
+    <div class="sm-sub">票证管理</div>
+    <div class="sm-item"><span class="ic">▧</span>作业许可管理 <span class="exp">⌄</span></div>
+    <div class="sm-item"><span class="ic">◷</span>作业预约管理 <span class="exp">⌄</span></div>
+    <div class="sm-sub">作业日历</div>
+    <div class="sm-sub">作业预约清单</div>
+    <div class="sm-sub">监管项目</div>
+    <div class="sm-item"><span class="ic">▤</span>作业票申请 <span class="exp">⌄</span></div>
+    <div class="sm-sub">一般作业许可证 <span style="opacity:.6">›</span></div>
+    <div class="sm-sub" style="padding-left:60px">热工作业</div>
+    <div class="sm-sub" style="padding-left:60px">冷工作业</div>
+    <div class="sm-sub" style="padding-left:60px">受限空间作业</div>
+  </div>
+
+  <!-- 主区域 -->
+  <div class="content">
+    <!-- 页内页签 -->
+    <div class="inner-tabs">
+      <div class="inner-tab active">作业详情</div>
+      <div class="inner-tab">作业过程</div>
+      <div class="inner-tab">流程状态</div>
+      <div class="inner-tab">定位信息</div>
+      <span class="page-close">✕</span>
+    </div>
+
+    <!-- 操作按钮区 -->
+    <div class="action-bar">
+      <button class="btn primary" onclick="openChangeRecords()">人员变更记录</button>
+      <button class="btn primary" onclick="toast('采样分析记录（示例）')">采样分析记录</button>
+      <button class="btn primary" onclick="toast('下载PDF（示例）')">下载PDF</button>
+    </div>
+
+    <!-- 流程进度条 -->
+    <div class="flow">
+      <div class="flow-track" id="flowTrack"></div>
+    </div>
+
+    <!-- 作业申请 -->
+    <div class="block">
+      <div class="block-head" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+        <span class="block-title">作业申请</span>
+        <span class="block-meta">操作人：<b>李佳峻</b> | 操作时间：2026-09-11 10:30:31</span>
+        <span class="block-arrow">▲</span>
+      </div>
+      <div>
+        <div class="sub-title">人员信息</div>
+        <table class="info">
+          <tr>
+            <th>作业申请单位</th><td>福建中沙石化有限公司</td>
+            <th>申请人</th><td>李佳峻</td>
+            <th>作业单位</th><td>0908测试审批流程、cs、新增测试、测试260908-01</td>
+          </tr>
+          <tr>
+            <th>作业人</th><td>111111</td>
+            <th>业主方作业负责人</th><td>李小龙</td>
+            <th>监护人</th><td>叶双双</td>
+          </tr>
+          <tr>
+            <th>签发人</th><td>jsy</td>
+            <th>接收人</th><td>李佳峻</td>
+            <th>组织人</th><td></td>
+          </tr>
+        </table>
+        <div class="sub-title">作业信息</div>
+        <table class="info">
+          <tr>
+            <th>作业编号</th><td>WAH-20260911-0004</td>
+            <th>作业区域</th><td>福建古雷中沙石化</td>
+            <th>设备/地点</th><td>高处作业测承包商作业督察高处作业测承包商作业督察</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 人员变更记录弹窗 ============ -->
+<div class="r-mask" id="rMask">
+  <div class="r-dialog">
+    <div class="r-head">
+      <span class="r-title">人员变更记录</span>
+      <span class="r-close" onclick="closeChangeRecords()">✕</span>
+    </div>
+    <div class="r-body">
+      <div class="r-summary" id="rSummary"></div>
+      <div class="r-filter">
+        <span class="r-chip active" data-type="all" onclick="filterRecords(this)">全部</span>
+        <span class="r-chip" data-type="guardian" onclick="filterRecords(this)">监护人变更</span>
+        <span class="r-chip" data-type="worker" onclick="filterRecords(this)">作业人员变更</span>
+      </div>
+      <div id="rList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ================= 流程进度条 ================= */
+  var flowNodes = ['作业申请', '待评估', '待审批', '待验票', '作业暂停中', '作业修订', '作业重启中', '作业结束', '作业验收'];
+  document.getElementById('flowTrack').innerHTML = flowNodes.map(function (n) {
+    return '<div class="flow-node"><span class="flow-dot">✓</span><div class="flow-label">' + n + '</div></div>';
+  }).join('');
+
+  /* ================= 人员变更记录弹窗 ================= */
+  // 两类变更：guardian（监护人变更，含交接确认项与交接资料）；worker（作业人员变更，仅人员替换）
+  var changeRecords = [
+    {
+      type: 'guardian', time: '2026-09-12 09:30:15', operator: '王强',
+      from: { name: '赵磊', dept: '安环部', phone: '138****5566' },
+      to: { name: '李敏', dept: '安环部', phone: '138****7788' },
+      checks: ['已向新监护人交底当前风险情况', '已确认现场安全措施状态', '新监护人已知晓当前作业进度', '新监护人已到岗'],
+      photos: 2, videos: 1
+    },
+    {
+      type: 'worker', time: '2026-09-13 14:05:22', operator: 'hsk',
+      from: { name: '张强', dept: '设备部', phone: '139****1122' },
+      to: { name: '郑磊', dept: '设备部', phone: '139****9900' }
+    },
+    {
+      type: 'guardian', time: '2026-09-14 08:40:51', operator: 'hsk',
+      from: { name: '李敏', dept: '安环部', phone: '138****7788' },
+      to: { name: '王强', dept: '生产一部', phone: '138****2345' },
+      checks: ['已向新监护人交底当前风险情况', '已确认现场安全措施状态', '新监护人已到岗', '已核对新监护人监护资质证书'],
+      photos: 1, videos: 0
+    }
+  ];
+
+  function renderRecords(type) {
+    var list = changeRecords.filter(function (r) { return type === 'all' || r.type === type; });
+    var gCount = changeRecords.filter(function (r) { return r.type === 'guardian'; }).length;
+    var wCount = changeRecords.length - gCount;
+    document.getElementById('rSummary').textContent =
+      '共 ' + changeRecords.length + ' 条变更记录（监护人变更 ' + gCount + ' 条，作业人员变更 ' + wCount + ' 条）';
+
+    document.getElementById('rList').innerHTML = list.map(function (r) {
+      var isGuardian = r.type === 'guardian';
+      var thumbs = '', chips = '';
+      if (isGuardian) {
+        for (var i = 0; i < r.photos; i++) {
+          thumbs += '<span class="rc-thumb" title="点击查看照片" onclick="toast(\'查看照片（示例）\')">🖼</span>';
+        }
+        for (var j = 0; j < r.videos; j++) {
+          chips += '<span class="rc-vchip" onclick="toast(\'播放视频（示例）\')">▶ 交接视频' + (j + 1) + '</span>';
+        }
+      }
+      return '<div class="rc-card">' +
+        '<div class="rc-head">' +
+          '<span class="rc-type ' + r.type + '">' + (isGuardian ? '监护人变更' : '作业人员变更') + '</span>' +
+          '<span class="rc-time">变更时间：' + r.time + '</span>' +
+        '</div>' +
+        '<div class="rc-persons">' +
+          '<div class="rc-person">' +
+            '<span class="rc-avatar">' + r.from.name.charAt(0) + '</span>' +
+            '<div><div class="rc-pname">' + r.from.name + '<span class="rc-tag-old">原人员</span></div>' +
+            '<div class="rc-psub">' + r.from.dept + ' | ' + r.from.phone + '</div></div>' +
+          '</div>' +
+          '<span class="rc-arrow">➜</span>' +
+          '<div class="rc-person">' +
+            '<span class="rc-avatar">' + r.to.name.charAt(0) + '</span>' +
+            '<div><div class="rc-pname">' + r.to.name + '<span class="rc-tag-new">新人员</span></div>' +
+            '<div class="rc-psub">' + r.to.dept + ' | ' + r.to.phone + '</div></div>' +
+          '</div>' +
+        '</div>' +
+        (isGuardian
+          ? '<div class="rc-handover">' +
+              '<div class="rc-ho-title">交接信息</div>' +
+              '<div class="rc-checks">' + r.checks.map(function (c) { return '<span>' + c + '</span>'; }).join('') + '</div>' +
+              '<div class="rc-media">' +
+                '<span class="rc-mlabel">交接资料：</span>' + thumbs + chips +
+                '<span class="rc-mlabel" style="margin-left:4px">照片 ' + r.photos + ' 张 / 视频 ' + r.videos + ' 个</span>' +
+              '</div>' +
+            '</div>'
+          : '') +
+        '<div class="rc-operator">操作人：' + r.operator + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function filterRecords(el) {
+    document.querySelectorAll('.r-chip').forEach(function (c) { c.classList.remove('active'); });
+    el.classList.add('active');
+    renderRecords(el.getAttribute('data-type'));
+  }
+
+  function openChangeRecords() {
+    renderRecords('all');
+    document.getElementById('rMask').classList.add('show');
+    // 固定弹窗高度：切换筛选（如只看作业人员变更）时弹窗大小不变，剩余位置留空白
+    var dlg = document.querySelector('.r-dialog');
+    if (!dlg.style.height) {
+      dlg.style.height = dlg.offsetHeight + 'px';
+    }
+  }
+  function closeChangeRecords() { document.getElementById('rMask').classList.remove('show'); }
+  document.getElementById('rMask').addEventListener('click', function (e) {
+    if (e.target === this) closeChangeRecords();
+  });
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+</script>
+<!-- Web 端左下角：切换移动端 -->
+<button class="float-mobile-btn" id="floatMobileBtn" onclick="showMobile()">移动端</button>
+
+<!-- ============ 移动端视图：作业许可 ============ -->
+<div class="mobile-view" id="mobileView">
+  <div class="mobile-page">
+    <div class="m-head">
+      <span class="back" onclick="showWeb()">‹</span>
+      作业许可
+    </div>
+    <div class="m-tabs">
+      <div class="m-tab">作业流转</div>
+      <div class="m-tab active">我的作业</div>
+    </div>
+    <div class="m-filter">
+      <div class="f-item">选择作业类型 <span style="color:#c3c6cf">›</span></div>
+      <div class="f-item">选择作业状态 <span style="color:#c3c6cf">›</span></div>
+      <div class="f-item">选择时间 <span style="color:#c3c6cf">›</span></div>
+    </div>
+    <div class="m-query-row">
+      <button class="m-btn-query" onclick="toast('查询（示例）')">查询</button>
+      <button class="m-btn-reset" onclick="toast('已重置（示例）')">重置</button>
+    </div>
+
+    <!-- 作业卡片 -->
+    <div class="m-card">
+      <div class="m-card-title-row">
+        <span class="m-card-title">热工作业</span>
+        <span class="m-draft">✎ 草稿</span>
+      </div>
+      <div class="m-row"><span class="lb">作业编号:</span><span class="val">HW-20260910-0004</span></div>
+      <div class="m-row"><span class="lb">申请时间:</span><span class="val">2026-09-10 16:00:47</span></div>
+      <div class="m-row"><span class="lb">作业接收人:</span><span class="val">hsk</span></div>
+      <div class="m-row"><span class="lb">作业监护人:</span><span class="val">hsk、jsy</span></div>
+      <div class="m-row"><span class="lb">作业内容:</span><span class="val">作业内容</span></div>
+      <div class="m-row"><span class="lb">作业位置:</span><span class="val">热工地点及部位</span></div>
+      <div class="m-row"><span class="lb">计划实施开始时间:</span><span class="val"></span></div>
+      <div class="m-row"><span class="lb">计划实施结束时间:</span><span class="val"></span></div>
+      <div class="m-row"><span class="lb">作业耗时:</span><span class="val"></span></div>
+      <div class="m-row"><span class="lb">气体分析过期倒计时:</span><span class="val"></span></div>
+      <div class="m-row"><span class="lb">气体分析人员:</span><span class="val">当前为【首次气体分析员】</span></div>
+      <div class="m-actions">
+        <button class="m-act-blue" onclick="toast('作废（示例）')">作废</button>
+        <button class="m-act-blue" onclick="toast('编辑（示例）')">编辑</button>
+        <button class="m-act-blue" onclick="toast('复制（示例）')">复制</button>
+        <button class="m-act-orange" onclick="toast('查看进展（示例）')">查看进展</button>
+        <div class="more-wrap" style="display:flex;align-items:center;justify-content:center;">
+          <span style="color:#1f8ef1;font-size:13.5px;cursor:pointer;" onclick="toggleMore(event)">更多</span>
+          <div class="more-menu" id="moreMenu">
+            <div class="more-item" onclick="openMon()">监控画面</div>
+            <div class="more-item" onclick="openPersonChange()">人员变更</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移动端左下角：返回 Web 端 -->
+    <div class="m-web-link" onclick="showWeb()">web端</div>
+  </div>
+</div>
+
+<!-- ============ 监控画面列表弹窗（430×850） ============ -->
+<div class="m-mask" id="monMask">
+  <div class="mon-dialog">
+    <div class="p-head">
+      <span class="p-back" onclick="closeMon()">返回</span>
+      <span class="p-title">监控画面</span>
+      <span class="p-close" onclick="closeMon()">✕</span>
+    </div>
+    <div class="mon-body">
+      <div class="mon-info">
+        <div class="m-row"><span class="lb">作业名称:</span><span class="val">热工作业</span></div>
+        <div class="m-row"><span class="lb">作业编号:</span><span class="val">HW-20260910-0004</span></div>
+        <div class="m-row"><span class="lb">作业状态:</span><span class="val">草稿</span></div>
+      </div>
+      <div class="mon-cam" onclick="openMCam('北侧云台', '装置A/作业区北侧')">
+        <span class="ci">📷</span>
+        <span class="mon-cam-name">北侧云台</span>
+        <span class="cam-state on">在线</span>
+      </div>
+      <div class="mon-cam" onclick="openMCam('南侧枪机', '装置A/作业区南侧')">
+        <span class="ci">📷</span>
+        <span class="mon-cam-name">南侧枪机</span>
+        <span class="cam-state on">在线</span>
+      </div>
+      <div class="mon-cam" onclick="openMCam('罐区全景', '1号罐区/西侧')">
+        <span class="ci">📷</span>
+        <span class="mon-cam-name">罐区全景</span>
+        <span class="cam-state off">掉线</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 移动端摄像头画面弹窗（图2） ============ -->
+<div class="m-mask" id="mcamMask">
+  <div class="mcam-dialog">
+    <div class="cam-head">
+      <div>
+        <div class="cam-name" id="mcamTitle">北侧云台</div>
+        <div class="cam-loc" id="mcamLoc">装置A/作业区北侧</div>
+      </div>
+      <span class="cam-close" onclick="closeMCam()">✕</span>
+    </div>
+    <div class="cam-body">
+      <div class="cam-screen">
+        <span class="cam-ic">📹</span>
+        <span class="t1">实时监控画面</span>
+        <span class="t2">摄像头：<span id="mcamName">北侧云台</span></span>
+      </div>
+      <div class="cam-actions">
+        <button class="btn-playback" onclick="toast('查看回放（示例）')">🎙 查看回放</button>
+        <button class="btn-refresh" onclick="toast('画面已刷新（示例）')">🎙 刷新画面</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 监控画面卡片弹窗（1000×800） ============ -->
+<div class="mask" id="camListMask">
+  <div class="camlist-dialog">
+    <div class="camlist-head">
+      <span class="camlist-title">监控画面</span>
+      <span class="camlist-close" onclick="closeCamList()">✕</span>
+    </div>
+    <div class="camlist-body" id="camCardBox"></div>
+  </div>
+</div>
+
+<!-- ============ Web 端监控画面弹窗 ============ -->
+<div class="mask" id="camMask">
+  <div class="cam-dialog">
+    <div class="cam-head">
+      <div>
+        <div class="cam-name" id="camTitle">北侧云台</div>
+        <div class="cam-loc" id="camLoc">装置A/作业区北侧</div>
+      </div>
+      <span class="cam-close" onclick="closeCam()">✕</span>
+    </div>
+    <div class="cam-body">
+      <div class="cam-screen">
+        <span class="cam-ic">📹</span>
+        <span class="t1">实时监控画面</span>
+        <span class="t2">摄像头：<span id="camName">北侧云台</span></span>
+      </div>
+      <div class="cam-actions">
+        <button class="btn-playback" onclick="toast('查看回放（示例）')">🎙 查看回放</button>
+        <button class="btn-refresh" onclick="toast('画面已刷新（示例）')">🎙 刷新画面</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+  /* ================= Web / 移动端切换 ================= */
+  function showMobile() {
+    document.getElementById('mobileView').classList.add('show');
+    document.getElementById('floatMobileBtn').style.display = 'none';
+  }
+  function showWeb() {
+    document.getElementById('mobileView').classList.remove('show');
+    document.getElementById('floatMobileBtn').style.display = '';
+    // 关闭移动端所有弹层
+    ['monMask', 'mcamMask', 'pMask', 'dMask', 'gMask', 'wMask', 'pvMask'].forEach(function (id) {
+      document.getElementById(id).classList.remove('show');
+    });
+    document.getElementById('moreMenu').classList.remove('show');
+  }
+
+  /* ================= 更多下拉（朝上） ================= */
+  function toggleMore(e) {
+    e.stopPropagation();
+    document.getElementById('moreMenu').classList.toggle('show');
+  }
+  document.addEventListener('click', function (e) {
+    var menu = document.getElementById('moreMenu');
+    if (menu && !menu.contains(e.target)) menu.classList.remove('show');
+  });
+
+  /* ================= 监控画面列表弹窗（430×850） ================= */
+  function openMon() {
+    document.getElementById('moreMenu').classList.remove('show');
+    document.getElementById('monMask').classList.add('show');
+  }
+  function closeMon() { document.getElementById('monMask').classList.remove('show'); }
+  document.getElementById('monMask').addEventListener('click', function (e) {
+    if (e.target === this) closeMon();
+  });
+
+  /* ================= 移动端摄像头画面弹窗（图2） ================= */
+  function openMCam(name, loc) {
+    document.getElementById('mcamTitle').textContent = name;
+    document.getElementById('mcamName').textContent = name;
+    document.getElementById('mcamLoc').textContent = loc;
+    document.getElementById('mcamMask').classList.add('show');
+  }
+  function closeMCam() { document.getElementById('mcamMask').classList.remove('show'); }
+  document.getElementById('mcamMask').addEventListener('click', function (e) {
+    if (e.target === this) closeMCam();
+  });
+
+  /* ================= 监控画面卡片弹窗（1000×800） ================= */
+  var camCards = [
+    { loc: '装置A/区域1', name: '北侧云台', state: '在线', area: '作业面', time: '2026-02-03 11:36:41', mapLoc: '装置A/作业区北侧' },
+    { loc: '装置A/区域1', name: '南侧枪机', state: '在线', area: '作业面', time: '2026-02-03 11:30:02', mapLoc: '装置A/作业区南侧' },
+    { loc: '1号罐区/西侧', name: '罐区全景', state: '掉线', area: '罐区', time: '2026-02-02 22:10:45', mapLoc: '1号罐区/西侧' },
+    { loc: '1号罐区/罐口', name: '罐口云台', state: '在线', area: '罐口', time: '2026-02-03 11:28:17', mapLoc: '1号罐区/T-101罐口' },
+    { loc: '1号罐区/入口', name: '出入口枪机', state: '在线', area: '出入口', time: '2026-02-03 11:15:50', mapLoc: '1号罐区/T-101入口' },
+    { loc: '装置A/区域2', name: '东侧球机', state: '掉线', area: '东侧通道', time: '2026-02-01 08:42:33', mapLoc: '装置A/作业区东侧' }
+  ];
+  function renderCamCards() {
+    document.getElementById('camCardBox').innerHTML = camCards.map(function (c, i) {
+      var on = c.state === '在线';
+      return '<div class="cam-card" onclick="openCamFromCard(' + i + ')">' +
+        '<div class="cam-card-main">' +
+          '<span class="cam-card-loc">' + c.loc + '</span>' +
+          '<span class="cam-card-name">' + c.name + '</span>' +
+          '<span class="cam-card-state ' + (on ? 'on' : 'off') + '">' + c.state + '</span>' +
+        '</div>' +
+        '<span class="cam-card-info">作业区域：' + c.area + '</span>' +
+        '<span class="cam-card-info">最后更新：' + c.time + '</span>' +
+        '<span class="cam-card-view">查看画面</span>' +
+      '</div>';
+    }).join('');
+  }
+  function openCamList() {
+    renderCamCards();
+    document.getElementById('camListMask').classList.add('show');
+  }
+  function closeCamList() { document.getElementById('camListMask').classList.remove('show'); }
+  document.getElementById('camListMask').addEventListener('click', function (e) {
+    if (e.target === this) closeCamList();
+  });
+  /* 点击卡片 → 弹出原有监控画面弹窗 */
+  function openCamFromCard(i) {
+    var c = camCards[i];
+    openCam(c.name, c.mapLoc);
+  }
+
+  /* ================= Web 端监控画面弹窗 ================= */
+  function openCam(name, loc) {
+    if (name) {
+      document.getElementById('camTitle').textContent = name;
+      document.getElementById('camName').textContent = name;
+    }
+    if (loc) document.getElementById('camLoc').textContent = loc;
+    document.getElementById('camMask').classList.add('show');
+  }
+  function closeCam() { document.getElementById('camMask').classList.remove('show'); }
+  document.getElementById('camMask').addEventListener('click', function (e) {
+    if (e.target === this) closeCam();
+  });
+
+  /* ================= 直播画面列表（已清空，列表数据不再展示） ================= */
+  var camData = [];
+  function renderCam(list) {
+    var tbody = document.getElementById('camTbody');
+    document.getElementById('camTotal').textContent = list.length;
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="color:#a0a8b4;padding:26px 0">暂无数据</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(function (c) {
+      return '<tr>' +
+        '<td>' + c.name + '</td>' +
+        '<td>' + c.code + '</td>' +
+        '<td><span style="color:#1f8ef1;cursor:pointer" onclick="openCam(\'' + c.name + '\',\'' + c.loc + '\')">监控画面</span></td>' +
+      '</tr>';
+    }).join('');
+  }
+  function queryCam() {
+    var n = document.getElementById('camNameInput').value.trim();
+    var c = document.getElementById('camCodeInput').value.trim();
+    renderCam(camData.filter(function (x) {
+      return (!n || x.name.indexOf(n) > -1) && (!c || x.code.indexOf(c) > -1);
+    }));
+  }
+  function resetCam() {
+    document.getElementById('camNameInput').value = '';
+    document.getElementById('camCodeInput').value = '';
+    
+  }
+  
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+</script>
+<style>
+  /* ===== 人员变更弹窗（图1） ===== */
+  .p-dialog {
+    width: min(430px, 96vw); height: min(880px, 94vh); background: #f4f6fa;
+    border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .p-head {
+    display: flex; align-items: center; padding: 16px; background: #fff;
+    border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .p-back { color: #1f8ef1; font-size: 14.5px; cursor: pointer; width: 44px; flex-shrink: 0; }
+  .p-close {
+    width: 44px; flex-shrink: 0; text-align: right;
+    color: #333; font-size: 18px; cursor: pointer; line-height: 1;
+  }
+  .p-title { flex: 1; text-align: center; font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .p-head .placeholder { width: 44px; flex-shrink: 0; }
+  .p-body { flex: 1; overflow-y: auto; padding: 14px; }
+  .p-info {
+    background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 14px;
+    display: flex; font-size: 13.5px; color: #333;
+  }
+  .p-info span { flex: 1; }
+  .p-sec-title { font-size: 15px; font-weight: 600; color: #1f2d3d; padding: 4px 2px 10px; }
+  .p-role { color: #5a6472; font-size: 13.5px; padding: 6px 2px 10px; }
+  .person-card {
+    background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
+  }
+  .person-avatar {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    background: #16233f; color: #fff; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .person-info { flex: 1; min-width: 0; }
+  .person-name { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .person-sub { font-size: 12.5px; color: #8a94a3; margin-top: 4px; }
+  .person-ops { display: flex; flex-direction: column; gap: 12px; align-items: center; flex-shrink: 0; }
+  .person-op { color: #1f8ef1; font-size: 13.5px; cursor: pointer; }
+
+  /* ===== 人员详情弹窗（图2） ===== */
+  .d-dialog {
+    width: min(430px, 96vw); height: min(880px, 94vh); background: #f4f6fa;
+    border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .d-body { flex: 1; overflow-y: auto; padding: 14px; }
+  .d-section { background: #fff; border-radius: 10px; padding: 4px 14px; margin-bottom: 12px; }
+  .d-sec-title { font-weight: 600; font-size: 14.5px; color: #1f2d3d; padding: 12px 0 4px; }
+  .d-row { display: flex; align-items: center; padding: 9px 0; font-size: 13.5px; }
+  .d-row .lb { color: #8a94a3; }
+  .d-row .val { margin-left: auto; color: #333; font-weight: 500; text-align: right; }
+  .d-row .val.link { color: #1f8ef1; font-weight: 400; }
+  .d-badge {
+    color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f;
+    padding: 2px 12px; border-radius: 3px; font-size: 12.5px; display: inline-block;
+  }
+  .d-notice {
+    background: #fffbe6; border: 1px solid #ffe58f; color: #ad6800;
+    font-size: 12.5px; border-radius: 6px; padding: 8px 12px; margin: 8px 0;
+  }
+  .cert-card { border: 1px solid #e6ebf2; border-radius: 8px; padding: 12px; margin: 10px 0 14px; }
+  .cert-title { font-weight: 600; font-size: 14px; color: #1f2d3d; display: flex; justify-content: space-between; align-items: center; }
+  .cert-row { font-size: 12.5px; color: #5a6472; margin-top: 7px; }
+  .cert-link { color: #1f8ef1; font-size: 13px; cursor: pointer; }
+</style>
+
+<!-- ============ 人员变更弹窗（图1） ============ -->
+<div class="m-mask" id="pMask">
+  <div class="p-dialog">
+    <div class="p-head">
+      <span class="p-back" onclick="closePersonChange()">返回</span>
+      <span class="p-title">人员变更</span>
+      <span class="p-close" onclick="closePersonChange()">✕</span>
+    </div>
+    <div class="p-body">
+      <div class="p-info">
+        <span>票号：WP-20260205-001</span>
+        <span>地点：装置A/区域1</span>
+      </div>
+
+      <div class="p-sec-title">角色区</div>
+
+      <div class="p-role">作业负责人 (1)</div>
+      <div class="person-card">
+        <div class="person-avatar">王</div>
+        <div class="person-info">
+          <div class="person-name">王强</div>
+          <div class="person-sub">生产一部 | —<br>138****2345</div>
+        </div>
+        <div class="person-ops">
+          <span class="person-op" onclick="openPersonDetail()">查看</span>
+        </div>
+      </div>
+
+      <div class="p-role">监护人 (2)</div>
+      <div class="person-card">
+        <div class="person-avatar">赵</div>
+        <div class="person-info">
+          <div class="person-name">赵磊</div>
+          <div class="person-sub">安环部 | —<br>138****5566</div>
+        </div>
+        <div class="person-ops">
+          <span class="person-op" onclick="openPersonDetail()">查看</span>
+          <span class="person-op" onclick="openGuardianChange()">变更</span>
+        </div>
+      </div>
+      <div class="person-card">
+        <div class="person-avatar">李</div>
+        <div class="person-info">
+          <div class="person-name">李敏</div>
+          <div class="person-sub">安环部 | —<br>138****7788</div>
+        </div>
+        <div class="person-ops">
+          <span class="person-op" onclick="openPersonDetail()">查看</span>
+          <span class="person-op" onclick="openGuardianChange()">变更</span>
+        </div>
+      </div>
+
+      <div class="p-role">作业人员 (3)</div>
+      <div class="person-card">
+        <div class="person-avatar">张</div>
+        <div class="person-info">
+          <div class="person-name">张强</div>
+          <div class="person-sub">设备部 | XX承包商<br>139****1122</div>
+        </div>
+        <div class="person-ops">
+          <span class="person-op" onclick="openPersonDetail()">查看</span>
+          <span class="person-op" onclick="openWorkerChange()">变更</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 人员详情弹窗（图2） ============ -->
+<div class="m-mask" id="dMask">
+  <div class="d-dialog">
+    <div class="p-head">
+      <span class="p-back" onclick="closePersonDetail()">返回</span>
+      <span class="p-title">人员详情</span>
+      <span class="placeholder"></span>
+    </div>
+    <div class="d-body">
+      <div class="d-section">
+        <div class="d-sec-title">顶部信息区</div>
+        <div class="d-row"><span class="lb">姓名</span><span class="val">张强</span></div>
+        <div class="d-row"><span class="lb">工号</span><span class="val">C30111</span></div>
+        <div class="d-row"><span class="lb">岗位</span><span class="val">作业人员</span></div>
+        <div class="d-row"><span class="lb">联系方式</span><span class="val link">139****1122</span></div>
+      </div>
+
+      <div class="d-section">
+        <div class="d-sec-title">资质合规区</div>
+        <div class="d-badge">合规</div>
+        <div class="d-notice">动火作业证匹配且有效</div>
+        <div class="cert-card">
+          <div class="cert-title">
+            <span>焊工证（动火作业）</span>
+            <span class="d-badge">匹配</span>
+          </div>
+          <div class="cert-row">证书编号：HG******8871</div>
+          <div class="cert-row">有效期：2025-01-01 至 2026-12-31 | 剩余 326 天</div>
+          <div class="cert-row">发证机构：职业技能鉴定中心</div>
+          <div class="cert-row">证照附件：<span class="cert-link">证书照片（2）</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ================= 人员变更弹窗 ================= */
+  function openPersonChange() {
+    document.getElementById('moreMenu').classList.remove('show');
+    document.getElementById('pMask').classList.add('show');
+  }
+  function closePersonChange() {
+    document.getElementById('pMask').classList.remove('show');
+    closePersonDetail();
+  }
+  document.getElementById('pMask').addEventListener('click', function (e) {
+    if (e.target === this) closePersonChange();
+  });
+
+  /* ================= 人员详情弹窗 ================= */
+  function openPersonDetail() { document.getElementById('dMask').classList.add('show'); }
+  function closePersonDetail() { document.getElementById('dMask').classList.remove('show'); }
+  document.getElementById('dMask').addEventListener('click', function (e) {
+    if (e.target === this) closePersonDetail();
+  });
+</script>
+
+<style>
+  /* ===== 监护人变更弹窗 ===== */
+  .g-dialog {
+    width: min(430px, 96vw); height: min(880px, 94vh); background: #f4f6fa;
+    border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .g-body { flex: 1; overflow-y: auto; padding: 14px; }
+  .g-card { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .g-card-title { font-size: 14.5px; font-weight: 600; color: #1f2d3d; margin-bottom: 6px; }
+  .g-row { display: flex; font-size: 13px; padding: 5px 0; color: #333; }
+  .g-row .lb { color: #8a94a3; width: 92px; flex-shrink: 0; }
+  .g-select {
+    width: 100%; height: 38px; border: 1px solid #1f8ef1; border-radius: 6px;
+    padding: 0 10px; color: #333; font-size: 13.5px; background: #fff; outline: none;
+  }
+  .g-check { display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 13.5px; color: #333; cursor: pointer; }
+  .g-item { padding: 4px 0 8px; border-bottom: 1px dashed #eceff3; }
+  .g-item:last-child { border-bottom: none; }
+  .g-item-head { display: flex; align-items: center; justify-content: space-between; }
+  .g-item-head .g-check { flex: 1; }
+  .g-check input { width: 16px; height: 16px; accent-color: #1f8ef1; }
+  .g-evi-btns { display: flex; gap: 10px; margin-top: 6px; }
+  .g-evi-btns button {
+    flex: 1; height: 36px; border: 1px solid #d8e0ea; background: #fff;
+    border-radius: 6px; font-size: 13px; color: #333; cursor: pointer;
+  }
+  .g-evi-btns button:active { background: #f5f6f9; }
+  .g-count { font-size: 12.5px; color: #8a94a3; padding: 6px 0; }
+  .g-error {
+    display: flex; align-items: center; gap: 8px; background: #fff1f0;
+    border: 1px solid #ffa39e; color: #cf1322; font-size: 12.5px;
+    border-radius: 8px; padding: 10px 12px; margin: 4px 0 14px;
+  }
+  .g-confirm {
+    flex-shrink: 0; margin: 0 14px calc(14px + env(safe-area-inset-bottom));
+    height: 44px; border: none; border-radius: 22px; background: #1f8ef1;
+    color: #fff; font-size: 15px; cursor: pointer;
+  }
+  .g-confirm:active { opacity: .88; }
+  .g-custom-add { color: #1f8ef1; font-size: 13.5px; padding: 8px 0 2px; cursor: pointer; }
+  .g-custom-input { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+  .g-custom-input .g-cb { width: 16px; height: 16px; accent-color: #1f8ef1; flex-shrink: 0; }
+  .g-custom-text {
+    flex: 1; height: 34px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 0 10px; font-size: 13px; color: #333; outline: none; min-width: 0;
+  }
+  .g-custom-text:focus { border-color: #1f8ef1; }
+  .g-del { color: #e64340; font-size: 16px; cursor: pointer; flex-shrink: 0; padding: 0 4px; }
+  .g-media-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; flex-wrap: wrap; }
+  .g-media-row .g-count { flex-shrink: 0; padding: 0; }
+  .g-media-list { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .g-thumb {
+    width: 40px; height: 40px; border-radius: 4px; object-fit: cover;
+    cursor: pointer; border: 1px solid #e6ebf2;
+  }
+  .g-vchip {
+    font-size: 12px; color: #1f8ef1; background: #eaf4fe; border-radius: 4px;
+    padding: 3px 8px; cursor: pointer; max-width: 150px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* 证据预览弹窗 */
+  .pv-dialog {
+    width: min(380px, 92vw); background: #fff; border-radius: 12px; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  .pv-body { background: #000; padding: 10px; }
+</style>
+
+<!-- ============ 监护人变更弹窗 ============ -->
+<div class="m-mask" id="gMask">
+  <div class="g-dialog">
+    <div class="p-head">
+      <span class="p-back" onclick="closeGuardianChange()">返回</span>
+      <span class="p-title">监护人变更</span>
+      <span class="p-close" onclick="closeGuardianChange()">✕</span>
+    </div>
+    <div class="g-body">
+      <div class="g-card">
+        <div class="g-card-title">当前监护信息</div>
+        <div class="g-row"><span class="lb">当前监护人:</span>赵磊</div>
+        <div class="g-row"><span class="lb">证书类型:</span>监护资格证</div>
+        <div class="g-row"><span class="lb">证书有效期:</span>2026-12-31</div>
+        <div class="g-row"><span class="lb">已监护时长:</span>4小时20分</div>
+      </div>
+
+      <div class="g-card">
+        <div class="g-card-title">新监护人选择</div>
+        <select class="g-select">
+          <option value="">请选择新监护人</option>
+          <option>李敏</option>
+          <option>王强</option>
+        </select>
+      </div>
+
+      <div class="g-card">
+        <div class="g-card-title">交接确认项</div>
+        <div id="confirmItems"></div>
+        <div class="g-custom-input" id="customInputRow" style="display:none;">
+          <input type="checkbox" class="g-cb" checked disabled>
+          <input type="text" class="g-custom-text" id="customText" placeholder="请输入确认项内容">
+          <span class="g-del" onclick="confirmCustom()" title="确定添加">✔</span>
+          <span class="g-del" onclick="removeCustom()" title="取消">🗑</span>
+        </div>
+        <div class="g-custom-add" onclick="addCustom()">＋自定义添加</div>
+        <input type="file" id="photoInput" accept="image/*" multiple hidden>
+        <input type="file" id="videoInput" accept="video/*" multiple hidden>
+      </div>
+
+      <div class="g-error">⊘ 审批状态不允许监护人变更</div>
+    </div>
+    <button class="g-confirm" onclick="toast('确认变更（示例）')">确认变更</button>
+  </div>
+</div>
+
+<script>
+  /* ================= 监护人变更弹窗 ================= */
+  function openGuardianChange() { document.getElementById('gMask').classList.add('show'); }
+  function closeGuardianChange() { document.getElementById('gMask').classList.remove('show'); }
+  document.getElementById('gMask').addEventListener('click', function (e) {
+    if (e.target === this) closeGuardianChange();
+  });
+
+  /* 自定义确认项：点击“＋自定义添加”出现输入行，确定后追加为一条确认项 */
+  function addCustom() {
+    document.getElementById('customInputRow').style.display = 'flex';
+    document.getElementById('customText').focus();
+  }
+  function confirmCustom() {
+    var txt = document.getElementById('customText').value.trim();
+    if (!txt) { toast('请输入确认项内容'); return; }
+    confirmItems.push({ text: txt, checked: false, custom: true, photos: [], videos: [] });
+    document.getElementById('customText').value = '';
+    document.getElementById('customInputRow').style.display = 'none';
+    renderConfirmItems();
+  }
+  function removeCustom() {
+    document.getElementById('customInputRow').style.display = 'none';
+    document.getElementById('customText').value = '';
+  }
+  function removeItem(i) {
+    confirmItems.splice(i, 1);
+    renderConfirmItems();
+  }
+
+  /* ================= 交接确认项：每项独立拍照/录像留证 ================= */
+  var confirmItems = [
+    { text: '已向新监护人交底当前风险情况', checked: true, photos: [], videos: [] },
+    { text: '已确认现场安全措施状态', checked: false, photos: [], videos: [] },
+    { text: '新监护人已知晓当前作业进度', checked: false, photos: [], videos: [] },
+    { text: '新监护人已到岗', checked: false, photos: [], videos: [] },
+    { text: '已核对新监护人监护资质证书', checked: false, photos: [], videos: [] }
+  ];
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function renderConfirmItems() {
+    document.getElementById('confirmItems').innerHTML = confirmItems.map(function (it, i) {
+      return '<div class="g-item">' +
+        '<div class="g-item-head">' +
+          '<label class="g-check"><input type="checkbox" ' + (it.checked ? 'checked' : '') + ' onchange="confirmItems[' + i + '].checked=this.checked">' + esc(it.text) + '</label>' +
+          (it.custom ? '<span class="g-del" onclick="removeItem(' + i + ')" title="删除">🗑</span>' : '') +
+        '</div>' +
+        '<div class="g-evi-btns">' +
+          '<button onclick="pickMedia(' + i + ',\'photo\')">拍 照</button>' +
+          '<button onclick="pickMedia(' + i + ',\'video\')">上传视频</button>' +
+        '</div>' +
+        '<div class="g-media-row">' +
+          '<span class="g-count">照片：<b>' + it.photos.length + '</b> 张</span>' +
+          '<span class="g-media-list">' + it.photos.map(function (p, j) {
+            return '<img class="g-thumb" src="' + p.url + '" title="' + esc(p.name) + '" onclick="previewMedia(\'photo\',' + i + ',' + j + ')">';
+          }).join('') + '</span>' +
+        '</div>' +
+        '<div class="g-media-row">' +
+          '<span class="g-count">视频：<b>' + it.videos.length + '</b> 个</span>' +
+          '<span class="g-media-list">' + it.videos.map(function (v, j) {
+            return '<span class="g-vchip" title="' + esc(v.name) + '" onclick="previewMedia(\'video\',' + i + ',' + j + ')">▶ ' + esc(v.name) + '</span>';
+          }).join('') + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+  renderConfirmItems();
+
+  var curItemIdx = 0; /* 当前正在为哪一条确认项选择媒体 */
+  function pickMedia(i, kind) {
+    curItemIdx = i;
+    document.getElementById(kind === 'photo' ? 'photoInput' : 'videoInput').click();
+  }
+  document.getElementById('photoInput').addEventListener('change', function () {
+    for (var i = 0; i < this.files.length; i++) {
+      (function (f) {
+        var r = new FileReader();
+        r.onload = function (e) {
+          confirmItems[curItemIdx].photos.push({ name: f.name, url: e.target.result });
+          renderConfirmItems();
+        };
+        r.readAsDataURL(f);
+      })(this.files[i]);
+    }
+    this.value = '';
+  });
+  document.getElementById('videoInput').addEventListener('change', function () {
+    for (var i = 0; i < this.files.length; i++) {
+      (function (f) {
+        var r = new FileReader();
+        r.onload = function (e) {
+          confirmItems[curItemIdx].videos.push({ name: f.name, url: e.target.result });
+          renderConfirmItems();
+        };
+        r.readAsDataURL(f);
+      })(this.files[i]);
+    }
+    this.value = '';
+  });
+  function previewMedia(kind, itemIdx, fileIdx) {
+    var box = document.getElementById('pvContent');
+    if (kind === 'photo') {
+      box.innerHTML = '<img src="' + confirmItems[itemIdx].photos[fileIdx].url + '" style="width:100%;border-radius:8px;display:block">';
+    } else {
+      box.innerHTML = '<video src="' + confirmItems[itemIdx].videos[fileIdx].url + '" controls autoplay style="width:100%;border-radius:8px;display:block"></video>';
+    }
+    document.getElementById('pvMask').classList.add('show');
+  }
+  function closePreview() {
+    document.getElementById('pvMask').classList.remove('show');
+    document.getElementById('pvContent').innerHTML = ''; // 停止视频播放
+  }
+  document.getElementById('pvMask').addEventListener('click', function (e) {
+    if (e.target === this) closePreview();
+  });
+</script>
+
+<!-- ============ 证据预览弹窗 ============ -->
+<div class="m-mask" id="pvMask">
+  <div class="pv-dialog">
+    <div class="p-head" style="background:#fff;">
+      <span class="p-title" style="text-align:left;">预览</span>
+      <span class="p-close" onclick="closePreview()">✕</span>
+    </div>
+    <div class="pv-body" id="pvContent"></div>
+  </div>
+</div>
+
+<style>
+  /* ===== 人员变更底部滑出弹窗 ===== */
+  .sheet-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 500;
+    display: none;
+  }
+  .sheet-mask.show { display: block; }
+  .sheet {
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: min(430px, 100vw); background: #fff; border-radius: 12px 12px 0 0;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    animation: slideUp .22s ease;
+  }
+  @keyframes slideUp { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }
+  .sheet-head { display: flex; align-items: center; margin-bottom: 16px; }
+  .sheet-close { color: #333; font-size: 18px; cursor: pointer; width: 30px; flex-shrink: 0; }
+  .sheet-title { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
+  .sheet-label { font-size: 13.5px; color: #333; margin: 12px 0 6px; }
+  .sheet-input {
+    width: 100%; height: 38px; border: 1px solid #e6ebf2; border-radius: 6px;
+    padding: 0 10px; font-size: 13.5px; background: #f7f8fa; color: #333;
+  }
+  .sheet-select {
+    width: 100%; height: 38px; border: 1px solid #1f8ef1; border-radius: 6px;
+    padding: 0 10px; font-size: 13.5px; background: #fff; color: #333; outline: none;
+  }
+  .sheet-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .sheet-btns button {
+    height: 38px; border-radius: 6px; font-size: 13.5px; cursor: pointer; padding: 0 20px;
+  }
+  .sheet-cancel { border: 1px solid #d8e0ea; background: #fff; color: #333; }
+  .sheet-ok { border: none; background: #1f8ef1; color: #fff; }
+  .sheet-ok:active { opacity: .88; }
+</style>
+
+<!-- ============ 人员变更底部滑出弹窗 ============ -->
+<div class="sheet-mask" id="wMask">
+  <div class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-close" onclick="closeWorkerChange()">✕</span>
+      <span class="sheet-title">人员变更</span>
+    </div>
+    <div class="sheet-label">变更角色</div>
+    <input class="sheet-input" value="作业人员" disabled>
+    <div class="sheet-label">原人员</div>
+    <input class="sheet-input" value="张强" disabled>
+    <div class="sheet-label">替换为</div>
+    <select class="sheet-select">
+      <option>郑磊（139****9900）</option>
+      <option>李敏（138****7788）</option>
+      <option>王强（138****2345）</option>
+    </select>
+    <div class="sheet-btns">
+      <button class="sheet-cancel" onclick="closeWorkerChange()">取 消</button>
+      <button class="sheet-ok" onclick="confirmWorkerChange()">确认变更</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ================= 人员变更底部滑出弹窗 ================= */
+  function openWorkerChange() { document.getElementById('wMask').classList.add('show'); }
+  function closeWorkerChange() { document.getElementById('wMask').classList.remove('show'); }
+  function confirmWorkerChange() {
+    closeWorkerChange();
+    toast('变更成功（示例）');
+  }
+  document.getElementById('wMask').addEventListener('click', function (e) {
+    if (e.target === this) closeWorkerChange();
+  });
+</script>
+
+</body>
+</html>

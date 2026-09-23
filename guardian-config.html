@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>监护项配置 - 特殊作业</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9;
+    color: #333;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 平台头部 ===== */
+  .platform-head {
+    height: 54px; flex-shrink: 0;
+    background: linear-gradient(90deg, #16233f 0%, #1d3054 60%, #243a66 100%);
+    display: flex; align-items: center; padding: 0 20px;
+  }
+  .ph-logo { display: flex; align-items: center; gap: 10px; }
+  .ph-logo .mark {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: conic-gradient(from 200deg, #f7c948, #2f9df4, #16233f);
+  }
+  .ph-logo .t1 { color: #fff; font-size: 17px; font-weight: 600; letter-spacing: 1px; }
+  .ph-logo .t2 { color: rgba(255,255,255,.45); font-size: 11px; }
+  .ph-title { color: #fff; font-size: 16px; font-weight: 600; margin-left: 26px; }
+  .ph-right { margin-left: auto; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.85); cursor: pointer; }
+  .ph-right .uavatar {
+    width: 28px; height: 28px; border-radius: 50%; background: #3a517c;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px;
+  }
+
+  /* ===== 页签栏 ===== */
+  .tabs-bar {
+    height: 42px; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+  }
+  .tabs-bar .fold { color: #5a6472; cursor: pointer; padding: 4px 8px; font-size: 15px; }
+  .chip {
+    border: 1px solid #d8e0ea; border-radius: 4px; padding: 5px 10px;
+    color: #5a6472; font-size: 13px; cursor: pointer; background: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip.active { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .chip .x { color: #a0a8b4; font-size: 12px; }
+  .chip .x:hover { color: #e64340; }
+
+  .layout { flex: 1; display: flex; min-height: 0; }
+
+  /* ===== 左侧菜单 ===== */
+  .side-menu {
+    width: 200px; flex-shrink: 0; overflow-y: auto;
+    background: linear-gradient(180deg, #1c2c4e 0%, #1f3a63 100%);
+    padding: 10px 0;
+  }
+  .sm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px;
+  }
+  .sm-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sm-item .ic { width: 16px; text-align: center; opacity: .8; }
+  .sm-item .exp { margin-left: auto; font-size: 11px; opacity: .6; }
+  .sm-sub { padding-left: 44px; color: rgba(255,255,255,.65); font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+  .sm-sub:hover { color: #fff; }
+  .sm-sub.active {
+    color: #fff; background: linear-gradient(90deg, #2f9df4, transparent);
+    border-left: 3px solid #f7c948; padding-left: 41px;
+  }
+
+  /* ===== 主区域 ===== */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px 40px; min-width: 0; }
+
+  /* 页面级 tab（左上角） */
+  .page-tabs {
+    display: flex; gap: 4px; background: #fff; border: 1px solid #e6ebf2;
+    border-radius: 6px 6px 0 0; padding: 0 8px; margin-bottom: 0;
+  }
+  .page-tab {
+    padding: 12px 22px; cursor: pointer; color: #5a6472; font-size: 14.5px;
+    position: relative; user-select: none;
+  }
+  .page-tab.active { color: #1f8ef1; font-weight: 600; }
+  .page-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 40px; height: 3px; background: #1f8ef1; border-radius: 2px;
+  }
+
+  .tab-pane-wrap {
+    background: #fff; border: 1px solid #e6ebf2; border-top: none;
+    border-radius: 0 0 6px 6px; padding: 16px; min-height: calc(100vh - 190px);
+  }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ===== 视觉聚焦单选 ===== */
+  .focus-bar {
+    display: flex; align-items: center; gap: 22px; margin-bottom: 14px;
+    padding: 2px 4px;
+  }
+  .focus-label { font-size: 14px; font-weight: 600; color: #1f2d3d; }
+  .radio-item {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13.5px; color: #333; cursor: pointer; user-select: none;
+  }
+  .radio-item input { width: 15px; height: 15px; accent-color: #1f8ef1; cursor: pointer; }
+
+  /* ===== 左右模块布局 ===== */
+  .cfg-layout { display: flex; gap: 16px; align-items: stretch; }
+  .cfg-left { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .cfg-right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  .panel {
+    border: 1px solid #e6ebf2; border-radius: 8px; background: #fff;
+    display: flex; flex-direction: column; flex: 1; min-height: 480px;
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    border-bottom: 1px solid #eef1f6; flex-wrap: wrap; flex-shrink: 0;
+  }
+  .panel-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .panel-hint { font-size: 12.5px; color: #8a94a3; }
+  .panel-head .spacer { margin-left: auto; }
+
+  .input {
+    height: 32px; border: 1px solid #d8e0ea; border-radius: 4px; padding: 0 10px;
+    font-size: 13px; color: #333; outline: none; background: #fff;
+  }
+  .input:focus { border-color: #1f8ef1; }
+  .btn {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472;
+    padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 13px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { background: #3da1f3; color: #fff; }
+
+  .panel-body { flex: 1; overflow-y: auto; padding: 10px; }
+
+  /* 通用列表行（交接事项 / 作业类型共用） */
+  .item-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 12px; border-radius: 6px; cursor: pointer; font-size: 13.5px;
+    color: #333; border: 1px solid transparent; margin-bottom: 4px;
+  }
+  .item-row:hover { background: #f5f9ff; }
+  .item-row.active { background: #eaf4fe; border-color: #b7d9fa; color: #1f8ef1; font-weight: 600; }
+  .item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-ops { display: none; align-items: center; gap: 10px; flex-shrink: 0; }
+  .item-row:hover .item-ops, .item-row.active .item-ops { display: flex; }
+  .item-op { font-size: 13px; cursor: pointer; }
+  .item-op.edit { color: #1f8ef1; }
+  .item-op.del { color: #e64340; }
+  .type-dot {
+    width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+  }
+  .empty-tip { color: #a0a8b4; text-align: center; padding: 40px 0; font-size: 13px; }
+
+  /* 作业类型标签（截图2样式：浅色底+边框+彩色文字） */
+  .type-tags { display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; }
+  .type-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; padding: 6px 12px; border-radius: 4px;
+    border: 1px solid; cursor: default; user-select: none;
+  }
+  .type-tag .tag-x {
+    cursor: pointer; font-size: 13px; line-height: 1; opacity: .75;
+    width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+  }
+  .type-tag .tag-x:hover { opacity: 1; background: rgba(0,0,0,.08); }
+
+  /* 添加作业类型弹层 */
+  .add-pop {
+    position: absolute; top: calc(100% + 6px); right: 0; width: 300px;
+    background: #fff; border: 1px solid #e6ebf2; border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.14); z-index: 60; display: none;
+  }
+  .add-pop.show { display: block; }
+  .add-pop-head {
+    padding: 10px 14px; font-size: 13.5px; font-weight: 600; color: #1f2d3d;
+    border-bottom: 1px solid #eef1f6;
+  }
+  .add-pop-body { max-height: 260px; overflow-y: auto; padding: 6px 8px; }
+  .add-pop-row {
+    display: flex; align-items: center; gap: 8px; padding: 8px 8px;
+    font-size: 13.5px; color: #333; cursor: pointer; border-radius: 4px;
+  }
+  .add-pop-row:hover { background: #f5f9ff; }
+  .add-pop-row input { width: 15px; height: 15px; accent-color: #1f8ef1; }
+  .add-pop-foot {
+    display: flex; justify-content: flex-end; gap: 8px; padding: 10px 12px;
+    border-top: 1px solid #eef1f6;
+  }
+
+  /* 新增/编辑交接事项弹窗 */
+  .m-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+  }
+  .m-mask.show { display: flex; }
+  .m-dialog {
+    width: 420px; background: #fff; border-radius: 10px; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .m-head {
+    display: flex; align-items: center; padding: 14px 18px;
+    border-bottom: 1px solid #eef1f6;
+  }
+  .m-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .m-close { margin-left: auto; color: #5a6472; font-size: 17px; cursor: pointer; }
+  .m-body { padding: 18px; }
+  .m-label { font-size: 13.5px; color: #333; margin-bottom: 8px; }
+  .m-input {
+    width: 100%; height: 36px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 0 10px; font-size: 13.5px; outline: none;
+  }
+  .m-input:focus { border-color: #1f8ef1; }
+  .m-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 0 18px 16px; }
+
+  /* ===== 监护检查事项配置 ===== */
+  .acc-level-tabs {
+    display: flex; gap: 4px; padding: 10px 14px 0;
+    border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .acc-level-tab {
+    padding: 8px 20px; cursor: pointer; font-size: 13.5px; color: #5a6472;
+    position: relative; user-select: none; border-radius: 6px 6px 0 0;
+  }
+  .acc-level-tab:hover { color: #1f8ef1; }
+  .acc-level-tab.active { color: #1f8ef1; font-weight: 600; background: #f5f9ff; }
+  .acc-level-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 24px; height: 2px; background: #1f8ef1; border-radius: 2px;
+  }
+  table.acc-grid { width: 100%; border-collapse: collapse; }
+  table.acc-grid th, table.acc-grid td {
+    border: 1px solid #e6ebf2; padding: 10px 12px; font-size: 13px; text-align: center;
+  }
+  table.acc-grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+  table.acc-grid td.acc-name { text-align: left; color: #333; }
+  .st-tag { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 3px; }
+  .st-on { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
+  .st-off { color: #8a94a3; background: #f5f5f5; border: 1px solid #d9d9d9; }
+  .img-tag { color: #1677ff; background: #eaf4fe; border: 1px solid #91caff; font-size: 12px; padding: 2px 10px; border-radius: 3px; display: inline-block; }
+  .img-none { color: #a0a8b4; }
+  .op-link { color: #1f8ef1; cursor: pointer; margin: 0 6px; }
+  .op-link:hover { text-decoration: underline; }
+  .op-link.warn { color: #d46b08; }
+  .op-link.danger { color: #e64340; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- 平台头部 -->
+<div class="platform-head">
+  <div class="ph-logo">
+    <div class="mark"></div>
+    <div>
+      <div class="t1">EHSS数字化管控平台</div>
+      <div class="t2">I-SHEM Platform</div>
+    </div>
+  </div>
+  <span class="ph-title">特殊作业</span>
+  <div class="ph-right"><span class="uavatar">沈</span> 沈青荣 ⌄</div>
+</div>
+
+<!-- 页签栏 -->
+<div class="tabs-bar">
+  <span class="fold">☰</span>
+  <span class="fold">‹</span>
+  <span class="chip">作业统计 <span class="x">✕</span></span>
+  <span class="chip">作业台账 <span class="x">✕</span></span>
+  <span class="chip">作业工作流 <span class="x">✕</span></span>
+  <span class="chip">作业预约清单 <span class="x">✕</span></span>
+  <span class="chip">高处作业 <span class="x">✕</span></span>
+  <span class="chip">盲板抽堵作业 <span class="x">✕</span></span>
+  <span class="chip">安全措施 <span class="x">✕</span></span>
+  <span class="chip">风险辨识选项 <span class="x">✕</span></span>
+  <span class="chip active">监护项配置 <span class="x">✕</span></span>
+</div>
+
+<div class="layout">
+  <!-- 左侧菜单 -->
+  <div class="side-menu">
+    <div class="sm-item"><span class="ic">⚙</span>作业设置 <span class="exp">⌄</span></div>
+    <div class="sm-sub">作业工作流</div>
+    <div class="sm-sub">作业有效期</div>
+    <div class="sm-sub">风险辨识选项</div>
+    <div class="sm-sub">安全措施</div>
+    <div class="sm-sub active">监护项配置</div>
+    <div class="sm-sub" onclick="location.href='tool-config.html'">工器具配置</div>
+    <div class="sm-sub" onclick="location.href='special-period.html'">特殊时段配置</div>
+    <div class="sm-sub">安全作业方案</div>
+    <div class="sm-sub">JSA工作安全分析</div>
+    <div class="sm-sub">JSA分析库</div>
+    <div class="sm-sub">流程标识</div>
+    <div class="sm-sub" onclick="location.href='gas-analysis.html'">气体分析设置</div>
+    <div class="sm-sub">项目审批流</div>
+    <div class="sm-sub">动火方式设置</div>
+    <div class="sm-sub">JSA审批流</div>
+    <div class="sm-sub">安全作业方案审批流</div>
+    <div class="sm-sub">登高作业方式设置</div>
+  </div>
+
+  <!-- 主区域 -->
+  <div class="content">
+    <!-- 页面级 tab（左上角） -->
+    <div class="page-tabs">
+      <div class="page-tab active" data-pane="pane1" onclick="switchPane(this)">监护变更交接配置</div>
+      <div class="page-tab" data-pane="pane2" onclick="switchPane(this)">监护检查事项配置</div>
+    </div>
+
+    <div class="tab-pane-wrap">
+      <!-- ============ 第一个 tab：监护变更交接配置 ============ -->
+      <div class="tab-pane active" id="pane1">
+
+        <!-- 视觉聚焦单选 -->
+        <div class="focus-bar">
+          <span class="focus-label">视觉聚焦：</span>
+          <label class="radio-item">
+            <input type="radio" name="focusMode" value="item" checked onchange="switchFocus(this.value)">以交接事项聚焦
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="focusMode" value="type" onchange="switchFocus(this.value)">以作业类型聚焦
+          </label>
+        </div>
+
+        <div class="cfg-layout">
+          <!-- 左模块（按聚焦模式渲染：交接事项 / 作业类型） -->
+          <div class="cfg-left">
+            <div class="panel">
+              <div class="panel-head" id="leftHead"></div>
+              <div class="panel-body" id="leftBody"></div>
+            </div>
+          </div>
+
+          <!-- 右模块（按聚焦模式渲染：适用作业类型 / 所属交接事项） -->
+          <div class="cfg-right">
+            <div class="panel">
+              <div class="panel-head" id="rightHead"></div>
+              <div class="panel-body" id="rightBody"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============ 第二个 tab：监护检查事项配置 ============ -->
+      <div class="tab-pane" id="pane2">
+        <div class="cfg-layout">
+          <!-- 左模块：作业类型 -->
+          <div class="cfg-left">
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-title">作业类型</span>
+                <span class="panel-hint">选择作业类型配置监护检查事项</span>
+              </div>
+              <div class="panel-body" id="accLeftBody"></div>
+            </div>
+          </div>
+
+          <!-- 右模块：监护检查事项（有级别时按级别 tab 切换） -->
+          <div class="cfg-right">
+            <div class="panel">
+              <div class="panel-head">
+                <span class="panel-title">监护检查事项</span>
+                <span class="panel-hint" id="accHint"></span>
+                <span class="spacer"></span>
+                <button class="btn primary" onclick="openAccModal('add')">＋ 新增</button>
+              </div>
+              <div class="acc-level-tabs" id="accLevelTabs" style="display:none;"></div>
+              <div class="panel-body" id="accRightBody"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 新增/编辑交接事项弹窗 ============ -->
+<div class="m-mask" id="itemMask">
+  <div class="m-dialog">
+    <div class="m-head">
+      <span class="m-title" id="itemModalTitle">新增交接事项</span>
+      <span class="m-close" onclick="closeItemModal()">✕</span>
+    </div>
+    <div class="m-body">
+      <div class="m-label" id="itemModalLabel">事项名称</div>
+      <input class="m-input" id="itemNameInput" placeholder="请输入交接事项名称">
+    </div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeItemModal()">取 消</button>
+      <button class="btn primary" onclick="saveItem()">保 存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ 新增/编辑监护检查事项弹窗 ============ -->
+<div class="m-mask" id="accMask">
+  <div class="m-dialog">
+    <div class="m-head">
+      <span class="m-title" id="accModalTitle">新增监护检查事项</span>
+      <span class="m-close" onclick="closeAccModal()">✕</span>
+    </div>
+    <div class="m-body">
+      <div class="m-label">监护检查事项</div>
+      <input class="m-input" id="accNameInput" placeholder="请输入监护检查事项内容">
+      <div class="m-label" style="margin-top:14px;">是否需要图片</div>
+      <div style="display:flex;gap:22px;">
+        <label class="radio-item"><input type="radio" name="accImg" value="1">是</label>
+        <label class="radio-item"><input type="radio" name="accImg" value="0" checked>否</label>
+      </div>
+      <div class="m-label" style="margin-top:14px;">排序</div>
+      <input class="m-input" id="accSortInput" type="number" placeholder="数字越小越靠前" value="1">
+    </div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeAccModal()">取 消</button>
+      <button class="btn primary" onclick="saveAcc()">保 存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ================= 作业类型与配色 ================= */
+  var allTypes = ['动火作业票', '受限空间作业票', '高处作业票', '动土作业票', '盲板抽堵作业票',
+                  '吊装作业票', '临时用电作业票', '断路作业票', '冷工作业票'];
+  // 每种作业类型固定一种浅色（底色/边框/文字），全页保持一致
+  var tagPalette = [
+    { bg: '#eaf4fe', border: '#91caff', color: '#1677ff' },
+    { bg: '#f6ffed', border: '#b7eb8f', color: '#389e0d' },
+    { bg: '#fff7e6', border: '#ffd591', color: '#d46b08' },
+    { bg: '#f9f0ff', border: '#d3adf7', color: '#722ed1' },
+    { bg: '#e6fffb', border: '#87e8de', color: '#08979c' },
+    { bg: '#fff0f6', border: '#ffadd2', color: '#c41d7f' },
+    { bg: '#fff1f0', border: '#ffa39e', color: '#cf1322' },
+    { bg: '#fffbe6', border: '#ffe58f', color: '#ad6800' },
+    { bg: '#f5f5f5', border: '#d9d9d9', color: '#595959' }
+  ];
+  function typeStyle(type) {
+    return tagPalette[allTypes.indexOf(type) % tagPalette.length];
+  }
+
+  /* ================= 数据（localStorage 持久化） ================= */
+  var STORE_KEY = 'guardian_handover_items';
+  var ALL = allTypes.slice();
+  var defaultItems = [
+    { id: 1, name: '已向新监护人交底当前风险情况', types: ALL.slice() },
+    { id: 2, name: '已确认现场安全措施状态', types: ALL.slice() },
+    { id: 3, name: '新监护人已知晓当前作业进度', types: ALL.slice() },
+    { id: 4, name: '新监护人已到岗', types: ALL.slice() },
+    { id: 5, name: '已核对新监护人监护资质证书', types: ['动火作业票', '受限空间作业票', '高处作业票', '盲板抽堵作业票'] }
+  ];
+
+  var items = loadItems();
+
+  function loadItems() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length) return arr;
+      }
+    } catch (e) { /* 忽略损坏数据，使用默认 */ }
+    return JSON.parse(JSON.stringify(defaultItems));
+  }
+  function saveItems() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(items));
+  }
+  function getItem(id) {
+    for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
+    return null;
+  }
+
+  /* ================= 页面状态 ================= */
+  var focusMode = 'item';        // 'item' 以交接事项聚焦 | 'type' 以作业类型聚焦
+  var currentId = items.length ? items[0].id : null;  // 事项聚焦：当前选中事项
+  var currentType = allTypes[0];                      // 类型聚焦：当前选中作业类型
+
+  /* ================= 页面 tab 切换 ================= */
+  function switchPane(el) {
+    document.querySelectorAll('.page-tab').forEach(function (t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById(el.getAttribute('data-pane')).classList.add('active');
+  }
+
+  /* ================= 视觉聚焦切换 ================= */
+  function switchFocus(mode) {
+    if (focusMode === mode) return;
+    focusMode = mode;
+    closeAddPop();
+    renderAll();
+  }
+
+  function renderAll() {
+    renderLeftHead();
+    renderLeftBody();
+    renderRightHead();
+    renderRightBody();
+  }
+
+  /* ================= 左模块 ================= */
+  function renderLeftHead() {
+    var head = document.getElementById('leftHead');
+    if (focusMode === 'item') {
+      head.innerHTML =
+        '<span class="panel-title">交接事项</span>' +
+        '<span class="panel-hint">点击事项查看适用作业类型</span>' +
+        '<span class="spacer"></span>' +
+        '<input class="input" id="itemSearch" placeholder="搜索交接事项" style="width:140px">' +
+        '<button class="btn primary" onclick="openItemModal(\'add\')">＋ 新增</button>';
+      var search = document.getElementById('itemSearch');
+      search.addEventListener('input', renderLeftBody);
+    } else {
+      head.innerHTML =
+        '<span class="panel-title">作业类型</span>' +
+        '<span class="panel-hint">点击作业类型查看所属交接事项</span>';
+    }
+  }
+
+  function renderLeftBody() {
+    var box = document.getElementById('leftBody');
+    if (focusMode === 'item') {
+      var kwEl = document.getElementById('itemSearch');
+      var kw = kwEl ? kwEl.value.trim() : '';
+      var list = items.filter(function (it) { return !kw || it.name.indexOf(kw) > -1; });
+      if (!list.length) {
+        box.innerHTML = '<div class="empty-tip">' + (kw ? '未找到匹配的交接事项' : '暂无交接事项，请点击右上角"新增"') + '</div>';
+        return;
+      }
+      box.innerHTML = list.map(function (it) {
+        return '<div class="item-row' + (it.id === currentId ? ' active' : '') + '" onclick="selectItem(' + it.id + ')">' +
+          '<span class="item-name">' + it.name + '</span>' +
+          '<span class="item-ops">' +
+            '<span class="item-op edit" title="编辑" onclick="event.stopPropagation();openItemModal(\'edit\',' + it.id + ')">✎</span>' +
+            '<span class="item-op del" title="删除" onclick="event.stopPropagation();delItem(' + it.id + ')">🗑</span>' +
+          '</span>' +
+        '</div>';
+      }).join('');
+    } else {
+      // 类型聚焦：全部作业类型固定列表，不可增删
+      box.innerHTML = allTypes.map(function (t) {
+        var s = typeStyle(t);
+        return '<div class="item-row' + (t === currentType ? ' active' : '') + '" onclick="selectType(\'' + t + '\')">' +
+          '<span class="type-dot" style="background:' + s.color + '"></span>' +
+          '<span class="item-name">' + t + '</span>' +
+        '</div>';
+      }).join('');
+    }
+  }
+
+  function selectItem(id) {
+    currentId = id;
+    renderLeftBody();
+    renderRightHead();
+    renderRightBody();
+  }
+  function selectType(type) {
+    currentType = type;
+    renderLeftBody();
+    renderRightHead();
+    renderRightBody();
+  }
+
+  /* ================= 右模块 ================= */
+  function renderRightHead() {
+    var head = document.getElementById('rightHead');
+    if (focusMode === 'item') {
+      var it = currentId ? getItem(currentId) : null;
+      head.innerHTML =
+        '<span class="panel-title">适用作业类型</span>' +
+        '<span class="panel-hint">' + (it ? '当前事项：' + it.name : '请选择左侧交接事项') + '</span>' +
+        '<span class="spacer"></span>' +
+        '<div style="position:relative;">' +
+          '<button class="btn primary" onclick="toggleAddPop(event)">＋ 添加作业类型</button>' +
+          '<div class="add-pop" id="addPop">' +
+            '<div class="add-pop-head">选择要添加的作业类型</div>' +
+            '<div class="add-pop-body" id="addPopBody"></div>' +
+            '<div class="add-pop-foot">' +
+              '<button class="btn" onclick="closeAddPop()">取 消</button>' +
+              '<button class="btn primary" onclick="confirmAddTypes()">确 定</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    } else {
+      head.innerHTML =
+        '<span class="panel-title">所属交接事项</span>' +
+        '<span class="panel-hint">当前作业类型：' + currentType + '</span>' +
+        '<span class="spacer"></span>' +
+        '<button class="btn primary" onclick="openItemModal(\'add\')">＋ 新增事项</button>';
+    }
+  }
+
+  function renderRightBody() {
+    var box = document.getElementById('rightBody');
+    if (focusMode === 'item') {
+      var it = currentId ? getItem(currentId) : null;
+      if (!it) {
+        box.innerHTML = '<div class="empty-tip">先在左侧选择一个交接事项</div>';
+        return;
+      }
+      if (!it.types.length) {
+        box.innerHTML = '<div class="empty-tip">暂未配置适用作业类型，请点击右上角"添加作业类型"</div>';
+        return;
+      }
+      box.innerHTML = '<div class="type-tags">' + it.types.map(function (t) {
+        var s = typeStyle(t);
+        return '<span class="type-tag" style="background:' + s.bg + ';border-color:' + s.border + ';color:' + s.color + '">' +
+          t +
+          '<span class="tag-x" title="移除" onclick="removeType(\'' + t + '\')">✕</span>' +
+        '</span>';
+      }).join('') + '</div>';
+    } else {
+      // 类型聚焦：该作业类型所属的交接事项（可增删改）
+      var list = items.filter(function (i) { return i.types.indexOf(currentType) > -1; });
+      if (!list.length) {
+        box.innerHTML = '<div class="empty-tip">该作业类型暂未关联交接事项，请点击右上角"新增事项"</div>';
+        return;
+      }
+      box.innerHTML = list.map(function (i) {
+        return '<div class="item-row">' +
+          '<span class="item-name">' + i.name + '</span>' +
+          '<span class="item-ops" style="display:flex;">' +
+            '<span class="item-op edit" title="编辑" onclick="openItemModal(\'edit\',' + i.id + ')">✎</span>' +
+            '<span class="item-op del" title="删除" onclick="delItem(' + i.id + ')">🗑</span>' +
+          '</span>' +
+        '</div>';
+      }).join('');
+    }
+  }
+
+  /* ================= 交接事项：增删改 ================= */
+  var editId = null;
+  function openItemModal(mode, id) {
+    editId = mode === 'edit' ? id : null;
+    var title = document.getElementById('itemModalTitle');
+    var label = document.getElementById('itemModalLabel');
+    if (mode === 'edit') {
+      title.textContent = '编辑交接事项';
+      label.textContent = '事项名称';
+      document.getElementById('itemNameInput').value = getItem(id).name;
+    } else {
+      title.textContent = focusMode === 'type' ? '新增交接事项' : '新增交接事项';
+      label.textContent = focusMode === 'type' ? '事项名称（保存后将关联当前作业类型：' + currentType + '）' : '事项名称';
+      document.getElementById('itemNameInput').value = '';
+    }
+    document.getElementById('itemMask').classList.add('show');
+    setTimeout(function () { document.getElementById('itemNameInput').focus(); }, 50);
+  }
+  function closeItemModal() { document.getElementById('itemMask').classList.remove('show'); }
+
+  function saveItem() {
+    var name = document.getElementById('itemNameInput').value.trim();
+    if (!name) { toast('请输入事项名称'); return; }
+    if (editId) {
+      getItem(editId).name = name;
+      toast('已保存');
+    } else {
+      var nid = items.length ? Math.max.apply(null, items.map(function (i) { return i.id; })) + 1 : 1;
+      var newItem = { id: nid, name: name, types: [] };
+      if (focusMode === 'type') newItem.types.push(currentType); // 类型聚焦下新增自动关联当前类型
+      items.push(newItem);
+      currentId = nid;
+      toast(focusMode === 'type' ? '已新增并关联' + currentType : '已新增');
+    }
+    saveItems();
+    closeItemModal();
+    renderAll();
+  }
+
+  function delItem(id) {
+    var it = getItem(id);
+    if (!it) return;
+    if (!confirm('确定删除交接事项"' + it.name + '"吗？')) return;
+    items = items.filter(function (i) { return i.id !== id; });
+    if (currentId === id) currentId = items.length ? items[0].id : null;
+    saveItems();
+    renderAll();
+    toast('已删除');
+  }
+  document.getElementById('itemMask').addEventListener('click', function (e) {
+    if (e.target === this) closeItemModal();
+  });
+
+  /* ================= 适用作业类型：增删（事项聚焦的右侧） ================= */
+  function removeType(type) {
+    var it = getItem(currentId);
+    if (!it) return;
+    if (!confirm('确定将"' + type + '"从适用作业类型中移除吗？')) return;
+    it.types = it.types.filter(function (t) { return t !== type; });
+    saveItems();
+    renderRightBody();
+    toast('已移除');
+  }
+
+  function toggleAddPop(e) {
+    e.stopPropagation();
+    var pop = document.getElementById('addPop');
+    if (pop.classList.contains('show')) { pop.classList.remove('show'); return; }
+    if (!currentId) { toast('请先选择左侧交接事项'); return; }
+    var it = getItem(currentId);
+    var rest = allTypes.filter(function (t) { return it.types.indexOf(t) === -1; });
+    var body = document.getElementById('addPopBody');
+    if (!rest.length) {
+      body.innerHTML = '<div class="empty-tip">所有作业类型均已添加</div>';
+    } else {
+      body.innerHTML = rest.map(function (t) {
+        var s = typeStyle(t);
+        return '<label class="add-pop-row"><input type="checkbox" value="' + t + '">' +
+          '<span class="type-tag" style="background:' + s.bg + ';border-color:' + s.border + ';color:' + s.color + ';padding:2px 8px;font-size:12.5px">' + t + '</span>' +
+        '</label>';
+      }).join('');
+    }
+    pop.classList.add('show');
+  }
+  function closeAddPop() {
+    var pop = document.getElementById('addPop');
+    if (pop) pop.classList.remove('show');
+  }
+  function confirmAddTypes() {
+    var it = getItem(currentId);
+    var checked = document.querySelectorAll('#addPopBody input:checked');
+    if (!checked.length) { toast('请勾选要添加的作业类型'); return; }
+    checked.forEach(function (cb) { it.types.push(cb.value); });
+    saveItems();
+    closeAddPop();
+    renderRightBody();
+    toast('已添加 ' + checked.length + ' 种作业类型');
+  }
+  document.addEventListener('click', function (e) {
+    var pop = document.getElementById('addPop');
+    if (pop && pop.classList.contains('show') && !pop.contains(e.target) &&
+        !(e.target.tagName === 'BUTTON' && e.target.textContent.indexOf('添加作业类型') > -1)) {
+      closeAddPop();
+    }
+  });
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+
+  /* ================= 监护检查事项配置 ================= */
+  var ACC_KEY = 'guardian_acceptance_items';
+  var accData = loadAcc();
+  var accType = allTypes[0];   // 当前选中的作业类型
+  var accLevel = null;         // 当前选中的级别（无级别作业类型为 null）
+
+  function defaultAccData() {
+    var empty = function () { return { levels: null, items: { '_default': [] } }; };
+    var data = {
+      '动火作业票': {
+        levels: ['特级', '一级', '二级'],
+        items: {
+          '特级': [
+            { id: 1, name: '确认动火点及周边无残留火种、无阴燃现象', needImg: true, sort: 1, status: '启用' },
+            { id: 2, name: '动火设备、工具已全部撤离现场', needImg: false, sort: 2, status: '启用' },
+            { id: 3, name: '现场监火人员确认完毕并签字', needImg: true, sort: 3, status: '启用' }
+          ],
+          '一级': [
+            { id: 4, name: '确认动火点及周边无残留火种', needImg: true, sort: 1, status: '启用' },
+            { id: 5, name: '消防器材已归位、现场已清理', needImg: false, sort: 2, status: '停用' }
+          ],
+          '二级': [
+            { id: 6, name: '确认现场无残留火种', needImg: false, sort: 1, status: '启用' }
+          ]
+        }
+      },
+      '高处作业票': {
+        levels: ['一级', '二级', '三级'],
+        items: {
+          '一级': [
+            { id: 7, name: '脚手架、操作平台拆除完毕，现场清理完成', needImg: true, sort: 1, status: '启用' },
+            { id: 8, name: '预留孔洞、临边防护已恢复', needImg: true, sort: 2, status: '启用' }
+          ],
+          '二级': [
+            { id: 9, name: '作业下方警戒区域已解除', needImg: false, sort: 1, status: '启用' }
+          ],
+          '三级': []
+        }
+      },
+      '受限空间作业票': {
+        levels: null,
+        items: { '_default': [
+          { id: 10, name: '作业人员、工具已全部撤出，出入口已恢复', needImg: true, sort: 1, status: '启用' },
+          { id: 11, name: '空间内无遗留物，现场已封闭', needImg: false, sort: 2, status: '启用' }
+        ] }
+      },
+      '动土作业票': empty(),
+      '盲板抽堵作业票': empty(),
+      '吊装作业票': empty(),
+      '临时用电作业票': empty(),
+      '断路作业票': empty(),
+      '冷工作业票': empty()
+    };
+    return data;
+  }
+  function loadAcc() {
+    try {
+      var raw = localStorage.getItem(ACC_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* 忽略损坏数据，使用默认 */ }
+    return defaultAccData();
+  }
+  function saveAcc() {
+    localStorage.setItem(ACC_KEY, JSON.stringify(accData));
+  }
+
+  /* 当前级别对应的 items 键：有级别用级别名，无级别用 '_default' */
+  function accLevelKey() {
+    return accData[accType].levels ? accLevel : '_default';
+  }
+  function curAccItems() {
+    var d = accData[accType];
+    return d.items[accLevelKey()] || [];
+  }
+  function findAccItem(id) {
+    var all = [];
+    var map = accData[accType].items;
+    Object.keys(map).forEach(function (k) { all = all.concat(map[k]); });
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+    return null;
+  }
+  function nextAccId() {
+    var max = 0;
+    Object.keys(accData).forEach(function (t) {
+      Object.keys(accData[t].items).forEach(function (k) {
+        accData[t].items[k].forEach(function (i) { if (i.id > max) max = i.id; });
+      });
+    });
+    return max + 1;
+  }
+
+  /* ---------- 左模块：作业类型 ---------- */
+  function renderAccLeft() {
+    document.getElementById('accLeftBody').innerHTML = allTypes.map(function (t) {
+      var s = typeStyle(t);
+      return '<div class="item-row' + (t === accType ? ' active' : '') + '" onclick="selectAccType(\'' + t + '\')">' +
+        '<span class="type-dot" style="background:' + s.color + '"></span>' +
+        '<span class="item-name">' + t + '</span>' +
+      '</div>';
+    }).join('');
+  }
+  function selectAccType(t) {
+    accType = t;
+    var d = accData[t];
+    accLevel = d.levels ? d.levels[0] : null;
+    renderAccLeft();
+    renderAccRight();
+  }
+
+  /* ---------- 右模块：级别 tab + 监护检查事项表格 ---------- */
+  function renderAccRight() {
+    var d = accData[accType];
+    document.getElementById('accHint').textContent =
+      '当前作业类型：' + accType + (accLevel ? '（' + accLevel + '）' : '');
+
+    var tabs = document.getElementById('accLevelTabs');
+    if (d.levels) {
+      tabs.style.display = 'flex';
+      tabs.innerHTML = d.levels.map(function (lv) {
+        return '<div class="acc-level-tab' + (lv === accLevel ? ' active' : '') +
+          '" onclick="switchAccLevel(\'' + lv + '\')">' + lv + '</div>';
+      }).join('');
+    } else {
+      tabs.style.display = 'none';
+      tabs.innerHTML = '';
+    }
+
+    var box = document.getElementById('accRightBody');
+    var list = curAccItems().slice().sort(function (a, b) { return a.sort - b.sort; });
+    if (!list.length) {
+      box.innerHTML = '<div class="empty-tip">暂未配置监护检查事项，请点击右上角"新增"</div>';
+      return;
+    }
+    box.innerHTML = '<table class="acc-grid"><thead><tr>' +
+      '<th style="width:60px">序号</th>' +
+      '<th>监护检查事项</th>' +
+      '<th style="width:110px">是否需要图片</th>' +
+      '<th style="width:70px">排序</th>' +
+      '<th style="width:90px">状态</th>' +
+      '<th style="width:190px">操作</th>' +
+      '</tr></thead><tbody>' +
+      list.map(function (it, i) {
+        var isOn = it.status === '启用';
+        return '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td class="acc-name">' + it.name + '</td>' +
+          '<td>' + (it.needImg ? '<span class="img-tag">是</span>' : '<span class="img-none">否</span>') + '</td>' +
+          '<td>' + it.sort + '</td>' +
+          '<td><span class="st-tag ' + (isOn ? 'st-on' : 'st-off') + '">' + it.status + '</span></td>' +
+          '<td>' +
+            '<span class="op-link" onclick="openAccModal(\'edit\',' + it.id + ')">编辑</span>' +
+            '<span class="op-link warn" onclick="toggleAccStatus(' + it.id + ')">' + (isOn ? '停用' : '启用') + '</span>' +
+            '<span class="op-link danger" onclick="delAccItem(' + it.id + ')">删除</span>' +
+          '</td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+  function switchAccLevel(lv) {
+    accLevel = lv;
+    renderAccRight();
+  }
+
+  /* ---------- 新增 / 编辑 ---------- */
+  var accEditId = null;
+  function openAccModal(mode, id) {
+    accEditId = mode === 'edit' ? id : null;
+    document.getElementById('accModalTitle').textContent = mode === 'edit' ? '编辑监护检查事项' : '新增监护检查事项';
+    if (mode === 'edit') {
+      var it = findAccItem(id);
+      document.getElementById('accNameInput').value = it.name;
+      document.querySelector('input[name="accImg"][value="' + (it.needImg ? '1' : '0') + '"]').checked = true;
+      document.getElementById('accSortInput').value = it.sort;
+    } else {
+      document.getElementById('accNameInput').value = '';
+      document.querySelector('input[name="accImg"][value="0"]').checked = true;
+      document.getElementById('accSortInput').value = curAccItems().length + 1;
+    }
+    document.getElementById('accMask').classList.add('show');
+    setTimeout(function () { document.getElementById('accNameInput').focus(); }, 50);
+  }
+  function closeAccModal() { document.getElementById('accMask').classList.remove('show'); }
+  document.getElementById('accMask').addEventListener('click', function (e) {
+    if (e.target === this) closeAccModal();
+  });
+
+  function saveAcc() {
+    var name = document.getElementById('accNameInput').value.trim();
+    var sort = parseInt(document.getElementById('accSortInput').value, 10);
+    var needImg = document.querySelector('input[name="accImg"]:checked').value === '1';
+    if (!name) { toast('请输入监护检查事项内容'); return; }
+    if (isNaN(sort)) { toast('请输入正确的排序数字'); return; }
+    if (accEditId) {
+      var it = findAccItem(accEditId);
+      it.name = name;
+      it.needImg = needImg;
+      it.sort = sort;
+      toast('已保存');
+    } else {
+      curAccItems().push({ id: nextAccId(), name: name, needImg: needImg, sort: sort, status: '启用' });
+      toast('已新增');
+    }
+    saveAcc();
+    closeAccModal();
+    renderAccRight();
+  }
+
+  /* ---------- 启用 / 停用 / 删除 ---------- */
+  function toggleAccStatus(id) {
+    var it = findAccItem(id);
+    if (!it) return;
+    it.status = it.status === '启用' ? '停用' : '启用';
+    saveAcc();
+    renderAccRight();
+    toast('已' + it.status);
+  }
+  function delAccItem(id) {
+    var it = findAccItem(id);
+    if (!it) return;
+    if (!confirm('确定删除监护检查事项"' + it.name + '"吗？')) return;
+    var arr = curAccItems();
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].id === id) { arr.splice(i, 1); break; }
+    }
+    saveAcc();
+    renderAccRight();
+    toast('已删除');
+  }
+
+  /* ================= 初始化 ================= */
+  renderAll();
+  renderAccLeft();
+  renderAccRight();
+</script>
+</body>
+</html>

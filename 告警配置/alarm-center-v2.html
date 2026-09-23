@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>告警中心</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9; color: #333; font-size: 14px;
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  }
+  /* ===== 平台头部 ===== */
+  .platform-head {
+    height: 54px; flex-shrink: 0;
+    background: linear-gradient(90deg, #16233f 0%, #1d3054 60%, #243a66 100%);
+    display: flex; align-items: center; padding: 0 20px;
+  }
+  .ph-logo { display: flex; align-items: center; gap: 10px; }
+  .ph-logo .mark { width: 30px; height: 30px; border-radius: 50%; background: conic-gradient(from 200deg, #f7c948, #2f9df4, #16233f); }
+  .ph-logo .t1 { color: #fff; font-size: 17px; font-weight: 600; letter-spacing: 1px; }
+  .ph-logo .t2 { color: rgba(255,255,255,.45); font-size: 11px; }
+  .ph-title { color: #fff; font-size: 16px; font-weight: 600; margin-left: 26px; }
+  .ph-right { margin-left: auto; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.85); cursor: pointer; }
+  .ph-right .uavatar { width: 28px; height: 28px; border-radius: 50%; background: #3a517c; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; }
+  /* ===== 页签栏 ===== */
+  .tabs-bar { height: 42px; background: #fff; border-bottom: 1px solid #e6ebf2; display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0; }
+  .chip { border: 1px solid #d8e0ea; border-radius: 4px; padding: 5px 10px; color: #5a6472; font-size: 13px; cursor: pointer; background: #fff; display: flex; align-items: center; gap: 8px; }
+  .chip.active { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .layout { flex: 1; display: flex; min-height: 0; }
+  /* ===== 左侧菜单 ===== */
+  .side-menu { width: 200px; flex-shrink: 0; overflow-y: auto; background: linear-gradient(180deg, #1c2c4e 0%, #1f3a63 100%); padding: 10px 0; }
+  .sm-item { display: flex; align-items: center; gap: 10px; padding: 12px 18px; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px; }
+  .sm-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sm-item .exp { margin-left: auto; font-size: 11px; opacity: .6; }
+  .sm-sub { padding-left: 44px; color: rgba(255,255,255,.65); font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+  .sm-sub:hover { color: #fff; }
+  .sm-sub.active { color: #fff; background: linear-gradient(90deg, #2f9df4, transparent); border-left: 3px solid #f7c948; padding-left: 41px; }
+  /* ===== 主区域 ===== */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px 40px; min-width: 0; }
+
+  .btn { border: 1px solid #d8e0ea; background: #fff; color: #5a6472; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { background: #3da1f3; color: #fff; }
+  .input, .select { height: 34px; border: 1px solid #d8e0ea; border-radius: 4px; padding: 0 10px; font-size: 13.5px; color: #333; outline: none; background: #fff; }
+  .input:focus, .select:focus { border-color: #1f8ef1; }
+
+  /* ================= 告警规则配置：左右布局 ================= */
+  .cfg-layout { display: flex; gap: 14px; align-items: flex-start; }
+  /* 左侧分类 */
+  .cate-box { width: 230px; flex-shrink: 0; background: #fff; border: 1px solid #e6ebf2; border-radius: 8px; padding: 6px 0; }
+  .cate-item { display: flex; align-items: center; gap: 8px; padding: 11px 16px; cursor: pointer; font-size: 14px; color: #1f2d3d; }
+  .cate-item .arr { font-size: 11px; color: #8a94a3; width: 12px; }
+  .cate-item .cnt { margin-left: auto; color: #8a94a3; font-size: 13px; }
+  .cate-item.active { background: #eaf4fe; color: #1f8ef1; }
+  .cate-item.active .cnt { color: #1f8ef1; }
+  /* 右侧 */
+  .cfg-main { flex: 1; min-width: 0; }
+  .filter-bar { background: #fff; border: 1px solid #e6ebf2; border-radius: 8px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .filter-bar .fl { font-size: 13.5px; color: #1f2d3d; }
+  .filter-bar .kw { width: 280px; }
+  .filter-bar .spacer { margin-left: auto; }
+  .table-box { background: #fff; border: 1px solid #e6ebf2; border-radius: 8px; margin-top: 14px; }
+  .list-head { display: flex; align-items: center; padding: 14px 16px; }
+  .list-title { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
+  .list-note { margin-left: auto; color: #8a94a3; font-size: 12.5px; }
+  .batch-bar { display: flex; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #eef1f6; background: #fafbfd; border-radius: 8px 8px 0 0; }
+  table.grid { width: 100%; border-collapse: collapse; }
+  table.grid th, table.grid td { border-bottom: 1px solid #eef1f6; padding: 12px; text-align: center; font-size: 13.5px; }
+  table.grid th { background: #fff; color: #5a6472; font-weight: 500; }
+  table.grid td.tleft { text-align: left; }
+  table.grid tr:hover td { background: #f5f9ff; }
+  .link { color: #1f8ef1; cursor: pointer; }
+  .link:hover { text-decoration: underline; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 12.5px; cursor: pointer; user-select: none; }
+  .tag.on { color: #52a31c; background: #f0f9e8; border: 1px solid #c8e6a0; }
+  .tag.off { color: #8a94a3; background: #f2f4f7; border: 1px solid #d8dee6; }
+  .pager { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 12px 16px; color: #5a6472; font-size: 13px; }
+  .pager .pg { min-width: 30px; height: 30px; border: 1px solid #d8e0ea; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: #fff; }
+  .pager .pg.cur { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .empty { padding: 40px 0; color: #b0b8c4; text-align: center; }
+
+  /* 弹窗 */
+  .mask { position: fixed; inset: 0; background: rgba(15,25,45,.45); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .mask.show { display: flex; }
+  .dialog { width: 520px; background: #fff; border-radius: 8px; overflow: hidden; }
+  .dlg-head { display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid #eef1f6; }
+  .dlg-title { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
+  .dlg-x { margin-left: auto; cursor: pointer; color: #8a94a3; font-size: 18px; line-height: 1; }
+  .dlg-x:hover { color: #333; }
+  .dlg-body { padding: 20px 18px; }
+  .dlg-foot { display: flex; justify-content: center; gap: 12px; padding: 14px 18px 18px; }
+  .fi { display: flex; align-items: center; margin-bottom: 16px; }
+  .fi label { width: 110px; text-align: right; font-size: 13.5px; color: #1f2d3d; padding-right: 10px; flex-shrink: 0; }
+  .fi label .req { color: #e64340; margin-right: 2px; }
+  .fi .input { flex: 1; }
+  .radio-row { display: flex; gap: 20px; align-items: center; height: 34px; }
+  .radio-row label { width: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; color: #333; cursor: pointer; margin: 0; padding-right: 0; }
+  .radio-row input { width: 15px; height: 15px; accent-color: #1f8ef1; }
+  /* 弹窗分区 */
+  .dlg-sub { color: #8a94a3; font-size: 12.5px; margin: -2px 0 18px; }
+  .sec-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #1f2d3d; margin: 18px 0 14px; }
+  .sec-title:first-of-type { margin-top: 0; }
+  .sec-title::before { content: ''; width: 3px; height: 14px; background: #1f8ef1; border-radius: 2px; }
+  .fgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px 16px; }
+  .fgi label { display: block; font-size: 13px; color: #1f2d3d; margin-bottom: 6px; }
+  .fgi .input, .fgi .select { width: 100%; }
+  .fgi .msel { width: 100%; }
+  /* 阈值卡片 */
+  .th-card { width: 320px; border: 1px solid #e6ebf2; border-radius: 8px; padding: 14px 16px; background: #fafbfd; }
+  .th-card-head { display: flex; align-items: center; font-size: 13.5px; font-weight: 600; color: #1f2d3d; margin-bottom: 12px; }
+  .th-card-head .del { margin-left: auto; cursor: pointer; color: #8a94a3; font-size: 15px; padding: 0 4px; }
+  .th-card-head .del:hover { color: #e64340; }
+  .th-card .fi2 { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5a6472; }
+  .th-card .fi2 .input { flex: 1; }
+  /* 推送对象勾选行 */
+  .chk-row { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+  .chk-row label { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; color: #333; cursor: pointer; margin: 0; }
+  .chk-row input { width: 15px; height: 15px; accent-color: #1f8ef1; }
+  .cust-label { font-size: 13.5px; color: #333; margin-left: 6px; }
+  /* 动作目标类型：添加项链接 + 标签芯片 */
+  .nt-add-row { display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 4px 0; }
+  .nt-add { color: #1f8ef1; font-size: 13.5px; cursor: pointer; user-select: none; }
+  .nt-add:hover { text-decoration: underline; }
+  .nt-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .nt-chip { display: inline-flex; align-items: center; gap: 6px; background: #f5f9ff; border: 1px solid #d6e8fc; border-radius: 4px; padding: 3px 8px; font-size: 12.5px; }
+  .nt-chip select { border: none; background: transparent; font-size: 12.5px; color: #1f2d3d; outline: none; cursor: pointer; }
+  .nt-chip .x { color: #8a94a3; cursor: pointer; }
+  .nt-chip .x:hover { color: #e64340; }
+  /* 多选下拉 */
+  .msel { flex: 1; position: relative; }
+  .msel-box { min-height: 34px; border: 1px solid #d8e0ea; border-radius: 4px; padding: 3px 8px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; cursor: pointer; background: #fff; }
+  .msel-box:hover { border-color: #1f8ef1; }
+  .msel-box.locked { background: #f5f6f9; cursor: not-allowed; }
+  .msel-box.locked:hover { border-color: #d8e0ea; }
+  .msel-tag { background: #eaf4fe; color: #1f8ef1; border-radius: 3px; padding: 2px 6px; font-size: 12px; }
+  .msel-ph { color: #b0b8c4; font-size: 13px; }
+  .msel-arrow { margin-left: auto; color: #8a94a3; font-size: 12px; }
+  .msel-drop { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #d8e0ea; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.12); max-height: 210px; overflow-y: auto; display: none; z-index: 20; }
+  .msel-drop.show { display: block; }
+  .msel-opt { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 13.5px; cursor: pointer; }
+  .msel-opt:hover { background: #f5f9ff; }
+  .msel-opt input { width: 15px; height: 15px; accent-color: #1f8ef1; }
+
+  /* ================= 告警数据 ================= */
+  .stat-row { display: flex; gap: 14px; margin-bottom: 14px; }
+  .stat-card { flex: 1; background: #fff; border: 1px solid #e6ebf2; border-radius: 8px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; }
+  .stat-card:hover { border-color: #1f8ef1; }
+  .stat-card.on { border-color: #1f8ef1; box-shadow: 0 0 0 2px rgba(31, 142, 241, .18); }
+  .stat-card .ic { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .stat-card .num { font-size: 24px; font-weight: 700; color: #1f2d3d; }
+  .stat-card .lb { font-size: 13px; color: #8a94a3; margin-top: 2px; }
+  .lv3 { color: #e64340; background: #fdecea; }
+  .lv2 { color: #f26d1f; background: #fef3e8; }
+  .lv1 { color: #d4a017; background: #fdf8e6; }
+  .lvb { color: #1f8ef1; background: #eaf4fe; }
+  .st-tag { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 12.5px; }
+  .st-wait { color: #e64340; background: #fdecea; }
+  .st-doing { color: #f26d1f; background: #fef3e8; }
+  .st-done { color: #52a31c; background: #f0f9e8; }
+  .st-gray { color: #8a94a3; background: #f2f4f7; }
+  .detail-row { display: flex; margin-bottom: 12px; font-size: 13.5px; }
+  .detail-row .k { width: 100px; color: #8a94a3; flex-shrink: 0; text-align: right; padding-right: 12px; }
+  .detail-row .v { flex: 1; color: #1f2d3d; line-height: 1.7; }
+  .tline { border-left: 2px solid #e6ebf2; margin-left: 8px; padding-left: 16px; }
+  .tline .ti { position: relative; margin-bottom: 14px; font-size: 13px; color: #5a6472; line-height: 1.6; }
+  .tline .ti::before { content: ''; position: absolute; left: -21.5px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: #1f8ef1; border: 2px solid #fff; box-shadow: 0 0 0 1px #1f8ef1; }
+  .tline .ti .tt { color: #1f2d3d; font-weight: 500; }
+  .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.72); color: #fff; padding: 9px 22px; border-radius: 6px; font-size: 14px; z-index: 999; display: none; }
+</style>
+</head>
+<body>
+
+<div class="platform-head">
+  <div class="ph-logo"><div class="mark"></div><div><div class="t1">EHSS数字化管控平台</div><div class="t2">I-SHEM Platform</div></div></div>
+  <span class="ph-title">特殊作业</span>
+  <div class="ph-right"><span class="uavatar">沈</span> 沈青荣 ⌄</div>
+</div>
+
+<div class="tabs-bar">
+  <span class="chip">作业统计</span>
+  <span class="chip">作业台账</span>
+  <span class="chip active">告警中心</span>
+</div>
+
+<div class="layout">
+  <!-- ============ 主区域（菜单已迁移至 portal，此处全宽展示） ============ -->
+  <!-- ============ 主区域 ============ -->
+  <div class="content">
+
+    <!-- ================= 子菜单1：告警规则配置 ================= -->
+    <div id="paneRules">
+      <div class="cfg-layout">
+        <!-- 左：分类（按需求仅保留 特殊作业） -->
+        <div class="cate-box">
+          <div class="cate-item active" onclick="toast('当前分类：特殊作业')">
+            <span class="arr">▾</span>特殊作业<span class="cnt" id="cateCnt">(5)</span>
+          </div>
+        </div>
+
+        <!-- 右：规则列表 -->
+        <div class="cfg-main">
+          <div class="filter-bar">
+            <span class="fl">关键词</span>
+            <input class="input kw" id="fKw" placeholder="规则编号/名称/对象/测点">
+            <span class="fl">启用状态</span>
+            <select class="select" id="fStatus" style="width:180px">
+              <option value="">全部状态</option>
+              <option value="1">启用</option>
+              <option value="0">停用</option>
+            </select>
+            <button class="btn primary" onclick="queryRules()">🔍 查询</button>
+            <button class="btn" onclick="resetRules()">⟳ 重置</button>
+            <span class="spacer"></span>
+            <button class="btn primary" onclick="openRuleDlg()">＋ 新建运行规则</button>
+          </div>
+
+          <div class="table-box">
+            <div class="batch-bar">
+              <button class="btn" onclick="batchSet(true)">批量启用</button>
+              <button class="btn" onclick="batchSet(false)">批量停用</button>
+            </div>
+            <table class="grid">
+              <thead>
+                <tr>
+                  <th style="width:44px"><input type="checkbox" id="chkAll" onclick="toggleAll(this)"></th>
+                  <th>规则编号</th>
+                  <th>规则名称</th>
+                  <th>报警规则</th>
+                  <th>启用状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="ruleTbody"></tbody>
+            </table>
+            <div class="pager">
+              <span id="ruleTotal">共 5 条</span>
+              <span class="pg cur">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 子菜单2：告警数据 ================= -->
+    <div id="paneData" style="display:none">
+      <div class="stat-row" id="statRow"></div>
+
+      <div class="filter-bar">
+        <span class="fl">告警编号</span>
+        <input class="input" id="dId" placeholder="请输入告警编号" style="width:150px">
+        <span class="fl">关联作业票号</span>
+        <input class="input" id="dTicket" placeholder="请输入作业票号" style="width:160px">
+        <span class="fl">触发规则</span>
+        <select class="select" id="dClause" style="width:230px"></select>
+        <span class="fl">状态</span>
+        <select class="select" id="dStatus" style="width:110px">
+          <option value="">全部</option>
+          <option>待处置</option><option>已处置</option>
+        </select>
+        <span class="fl">触发时间</span>
+        <input type="date" class="input" id="dFrom" style="width:150px">
+        <span class="fl">至</span>
+        <input type="date" class="input" id="dTo" style="width:150px">
+        <button class="btn primary" onclick="queryAlarms()">🔍 查询</button>
+        <button class="btn" onclick="resetAlarms()">⟳ 重置</button>
+      </div>
+
+      <div class="table-box">
+        <div class="list-head">
+          <span class="list-title">告警列表</span>
+          <span class="list-note" id="alarmTotal"></span>
+        </div>
+        <table class="grid">
+          <thead>
+            <tr>
+              <th>告警编号</th>
+              <th>关联作业票号</th>
+              <th>触发规则（条款）</th>
+              <th>状态</th>
+              <th>触发时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="alarmTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= 子菜单3：移动端（420x900 手机框，内容与告警数据一致） ================= -->
+    <div id="paneMobile" style="display:none">
+      <style>
+        .mp-stage { display: flex; align-items: flex-start; justify-content: center; padding: 24px 0; background: #e9edf3; min-height: 100%; }
+        .mp-phone {
+          position: relative;
+          width: 420px; height: 900px; background: #f4f6fa; border-radius: 24px;
+          box-shadow: 0 8px 30px rgba(15, 30, 60, .18); overflow: hidden;
+          display: flex; flex-direction: column; border: 1px solid #dde3ec;
+        }
+        .mp-head {
+          flex-shrink: 0; background: #16233f; color: #fff; position: relative;
+          text-align: center; font-size: 16px; font-weight: 600; padding: 14px 0; letter-spacing: 1px;
+        }
+        .mp-head .mp-search-ic {
+          position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+          font-size: 16px; cursor: pointer; padding: 2px 4px; user-select: none;
+        }
+        .mp-body { flex: 1; overflow-y: auto; padding: 12px; }
+        .mp-stats { display: flex; gap: 8px; margin-bottom: 10px; }
+        .mp-stat {
+          flex: 1; background: #fff; border-radius: 10px; padding: 10px 6px; text-align: center;
+          cursor: pointer; box-shadow: 0 1px 4px rgba(31, 45, 92, .06);
+        }
+        .mp-stat.on { outline: 2px solid #1f8ef1; }
+        .mp-stat .n { font-size: 20px; font-weight: 700; color: #1f2d3d; }
+        .mp-stat .t { font-size: 11.5px; color: #8a94a3; margin-top: 2px; }
+        .mp-list-head { display: flex; align-items: baseline; padding: 2px 4px 8px; }
+        .mp-list-head .tt { font-size: 14.5px; font-weight: 600; color: #1f2d3d; }
+        .mp-list-head .nt { margin-left: auto; font-size: 11.5px; color: #8a94a3; }
+        .mp-card { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(31, 45, 92, .06); }
+        .mp-card .r1 { display: flex; align-items: center; gap: 8px; }
+        .mp-card .code { font-size: 14px; font-weight: 600; color: #1f2d3d; }
+        .mp-card .st-tag { margin-left: auto; }
+        .mp-card .r2 { font-size: 12.5px; color: #5a6472; margin-top: 6px; line-height: 1.6; }
+        .mp-card .ops { display: flex; gap: 16px; margin-top: 8px; font-size: 13.5px; }
+        .mp-empty { text-align: center; color: #b0b6c0; padding: 40px 0; font-size: 13px; }
+
+        /* 移动端：详情页（整页跳转，非弹窗） */
+        .mp-detail {
+          position: absolute; inset: 0; background: #f4f6fa; z-index: 30;
+          display: flex; flex-direction: column; transform: translateX(100%);
+          transition: transform .22s ease;
+        }
+        .mp-detail.show { transform: translateX(0); }
+        .mp-detail-head {
+          flex-shrink: 0; background: #16233f; color: #fff; display: flex; align-items: center;
+          padding: 13px 14px; font-size: 15.5px; font-weight: 600;
+        }
+        .mp-detail-head .bk { cursor: pointer; font-size: 17px; padding-right: 10px; user-select: none; }
+        .mp-detail-head .tt { flex: 1; text-align: center; }
+        .mp-detail-head .bk + .tt { padding-right: 24px; }
+        .mp-detail-body { flex: 1; overflow-y: auto; padding: 12px; }
+        .mp-sec { background: #fff; border-radius: 10px; padding: 4px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(31, 45, 92, .06); }
+        .mp-drow { display: flex; padding: 9px 0; font-size: 13.5px; border-bottom: 1px solid #f5f6f9; }
+        .mp-drow:last-child { border-bottom: none; }
+        .mp-drow .k { color: #8a94a3; width: 84px; flex-shrink: 0; }
+        .mp-drow .v { color: #333; flex: 1; word-break: break-all; }
+        .mp-tline { border-left: 2px solid #e3ebf5; padding-left: 12px; margin-top: 4px; }
+        .mp-tline .ti { padding: 5px 0; font-size: 12.5px; color: #5a6472; }
+        .mp-tline .tt2 { color: #9aa5b5; font-size: 11.5px; }
+        .mp-big-btn {
+          display: block; width: 100%; height: 42px; border: none; border-radius: 21px;
+          background: #1f8ef1; color: #fff; font-size: 15px; cursor: pointer; margin-top: 4px;
+        }
+
+        /* 移动端：底部滑出面板（处置 / 搜索共用） */
+        .mp-sheet-mask {
+          position: absolute; inset: 0; background: rgba(15, 25, 45, .45); z-index: 40;
+          opacity: 0; pointer-events: none; transition: opacity .2s ease;
+        }
+        .mp-sheet-mask.show { opacity: 1; pointer-events: auto; }
+        .mp-sheet {
+          position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; background: #fff;
+          border-radius: 16px 16px 0 0; max-height: 82%; display: flex; flex-direction: column;
+          transform: translateY(100%); transition: transform .24s ease;
+        }
+        .mp-sheet.show { transform: translateY(0); }
+        .mp-sheet-head {
+          flex-shrink: 0; display: flex; align-items: center; padding: 13px 16px;
+          border-bottom: 1px solid #f0f2f6; font-size: 15px; font-weight: 600; color: #1f2d3d;
+        }
+        .mp-sheet-head .x { margin-left: auto; color: #8a94a3; font-size: 16px; cursor: pointer; padding: 0 2px; }
+        .mp-sheet-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+        .mp-sheet-foot { flex-shrink: 0; display: flex; gap: 10px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid #f0f2f6; }
+        .mp-sheet-foot .btn { flex: 1; height: 40px; }
+        .mp-sheet-foot .btn.primary { background: #1f8ef1; color: #fff; border-color: #1f8ef1; }
+        .mp-frow { margin-bottom: 12px; }
+        .mp-frow .lb { font-size: 12.5px; color: #5a6472; margin-bottom: 5px; }
+        .mp-frow .select, .mp-frow .input, .mp-frow textarea { width: 100%; height: 36px; }
+        .mp-frow textarea { height: 88px; resize: none; border: 1px solid #d8e0ea; border-radius: 6px; padding: 8px 10px; font-size: 13.5px; outline: none; font-family: inherit; }
+        .mp-frow textarea:focus { border-color: #1f8ef1; }
+      </style>
+      <div class="mp-stage">
+        <div class="mp-phone">
+          <!-- 列表页 -->
+          <div class="mp-head">告警数据<span class="mp-search-ic" onclick="mOpenSearch()">🔍</span></div>
+          <div class="mp-body" id="mListBody">
+            <div class="mp-stats" id="mStatRow"></div>
+            <div class="mp-list-head">
+              <span class="tt">告警列表</span>
+              <span class="nt" id="mAlarmTotal"></span>
+            </div>
+            <div id="mAlarmList"></div>
+          </div>
+
+          <!-- 详情页（整页跳转） -->
+          <div class="mp-detail" id="mDetailPage">
+            <div class="mp-detail-head">
+              <span class="bk" onclick="mCloseDetail()">‹</span>
+              <span class="tt">告警详情</span>
+            </div>
+            <div class="mp-detail-body" id="mDetailBody"></div>
+          </div>
+
+          <!-- 处置底部面板 -->
+          <div class="mp-sheet-mask" id="mHandleMask" onclick="mCloseHandle()"></div>
+          <div class="mp-sheet" id="mHandleSheet">
+            <div class="mp-sheet-head">告警处置<span class="x" onclick="mCloseHandle()">✕</span></div>
+            <div class="mp-sheet-body" id="mHandleBody"></div>
+            <div class="mp-sheet-foot">
+              <button class="btn" onclick="mCloseHandle()">取 消</button>
+              <button class="btn primary" onclick="mFinishHandle()">处置完成</button>
+            </div>
+          </div>
+
+          <!-- 搜索底部面板 -->
+          <div class="mp-sheet-mask" id="mSearchMask" onclick="mCloseSearch()"></div>
+          <div class="mp-sheet" id="mSearchSheet">
+            <div class="mp-sheet-head">搜索条件<span class="x" onclick="mCloseSearch()">✕</span></div>
+            <div class="mp-sheet-body">
+              <div class="mp-frow"><div class="lb">告警编号</div><input class="input" id="mId" placeholder="请输入告警编号"></div>
+              <div class="mp-frow"><div class="lb">关联作业票号</div><input class="input" id="mTicket" placeholder="请输入作业票号"></div>
+              <div class="mp-frow"><div class="lb">触发规则</div><select class="select" id="mClause"></select></div>
+              <div class="mp-frow"><div class="lb">状态</div>
+                <select class="select" id="mStatus">
+                  <option value="">全部</option>
+                  <option>待处置</option><option>已处置</option>
+                </select>
+              </div>
+            </div>
+            <div class="mp-sheet-foot">
+              <button class="btn" onclick="mResetAlarms()">重 置</button>
+              <button class="btn primary" onclick="mDoSearch()">查 询</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 新建/编辑规则弹窗 ============ -->
+<div class="mask" id="ruleMask">
+  <div class="dialog" id="ruleDlg" style="width:1350px;height:850px;max-width:94vw;max-height:92vh;display:flex;flex-direction:column">
+    <div class="dlg-head" style="flex-shrink:0"><span class="dlg-title" id="ruleDlgTitle">新建运行规则</span><span class="dlg-x" onclick="closeRuleDlg()">✕</span></div>
+    <div style="flex:1;overflow-y:auto">
+    <div class="dlg-body">
+      <div class="dlg-sub">用于配置运行中心监测类规则，保存后可直接进入规则引擎。</div>
+
+      <div class="sec-title">基础信息</div>
+      <div class="fgrid">
+        <div class="fgi"><label><span class="req">*</span>规则编号</label><input class="input" id="rCode" placeholder="请输入规则编号"></div>
+        <div class="fgi"><label><span class="req">*</span>规则名称</label><input class="input" id="rName" placeholder="请输入规则名称"></div>
+      </div>
+
+      <div class="sec-title">规则配置</div>
+      <div class="fgrid">
+        <div class="fgi"><label><span class="req">*</span>报警规则</label>
+          <select class="select" id="rRuleId" onchange="onRuleChange()">
+            <option value="">请选择报警规则</option>
+          </select>
+        </div>
+        <div class="fgi"><label><span class="req">*</span>对象（可多选）</label>
+          <div class="msel">
+            <div class="msel-box" onclick="openTargetDrop(event)">
+              <span class="msel-ph" id="targetText">请选择作业票类型</span>
+              <span class="msel-arrow">▾</span>
+            </div>
+            <div class="msel-drop" id="targetDrop"></div>
+          </div>
+        </div>
+        <div class="fgi"><label><span class="req">*</span>运行状态</label>
+          <div class="radio-row">
+            <label><input type="radio" name="rEnable" value="0"> 关闭</label>
+            <label><input type="radio" name="rEnable" value="1" checked> 启用</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 规则附加参数（规则5：超时后报警宽限时长 / 规则8：交叉/关联作业票允许间隔时间 / 规则9：审批超时时限） -->
+      <div id="aprTip" style="display:none;margin-top:14px;color:#e02020;font-size:13px;line-height:1.6">
+        开发同事请注意：需要在作业票审批流程的每个节点加一个审批时长设置的字段，规定出每个审批环节的审批时长
+      </div>
+      <div id="graceBox" style="display:none;margin-top:14px">
+        <div class="fgi" style="max-width:520px;margin-bottom:0">
+          <label id="graceLabel"><span class="req">*</span>规则附加参数</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="input" id="graceMin" type="number" min="1" placeholder="请输入" style="width:220px" oninput="onGraceInput()">
+            <span id="graceUnit" style="color:#5a6472;font-size:13px">分钟</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中断超时阈值卡片（选择 作业中断超时未气体分析 时展示） -->
+      <div id="thBox" style="display:none">
+        <div class="sec-title">中断超时阈值配置</div>
+        <div id="thCards" style="display:flex;flex-wrap:wrap;gap:14px"></div>
+      </div>
+
+      <div class="sec-title">消息通知配置</div>
+      <div class="fgi" style="margin-bottom:0">
+        <label style="margin-bottom:8px"><span class="req">*</span>动作目标类型</label>
+        <select class="select" id="notifyType" style="max-width:360px" onchange="onNotifyType()">
+          <option value="">请选择动作目标类型</option>
+          <option>指定部门</option>
+          <option>申请部门</option>
+          <option>上一阶段自由选择</option>
+          <option>表单内人员</option>
+          <option>属地部门</option>
+          <option>申请部门及子部门</option>
+          <option>属地部门及子部门</option>
+        </select>
+        <div id="notifyBox" style="margin-top:10px"></div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" onclick="closeRuleDlg()">取 消</button>
+      <button class="btn primary" onclick="saveRule()">确 定</button>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 告警详情弹窗 ============ -->
+<div class="mask" id="alarmMask">
+  <div class="dialog" style="width:640px">
+    <div class="dlg-head"><span class="dlg-title" id="alarmDlgTitle">告警详情</span><span class="dlg-x" onclick="closeAlarmDlg()">✕</span></div>
+    <div class="dlg-body" id="alarmDlgBody"></div>
+    <div class="dlg-foot">
+      <button class="btn" onclick="closeAlarmDlg()">关 闭</button>
+      <button class="btn primary" id="handleDoneBtn" style="display:none" onclick="finishHandle()">处置完成</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ================= 通用 ================= */
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.style.display = 'block';
+    clearTimeout(t._tm); t._tm = setTimeout(function () { t.style.display = 'none'; }, 2200);
+  }
+  /* ================= 页签切换（由 portal 菜单通过 #rules / #data / #mobile 哈希调用） ================= */
+  function showPane(pane) {
+    document.getElementById('paneRules').style.display = pane === 'rules' ? 'block' : 'none';
+    document.getElementById('paneData').style.display = pane === 'data' ? 'block' : 'none';
+    document.getElementById('paneMobile').style.display = pane === 'mobile' ? 'block' : 'none';
+    if (pane === 'data') renderAlarmPage();
+    if (pane === 'mobile') renderMobilePage();
+  }
+
+  /* ================= 规则配置数据（localStorage 持久化） ================= */
+  var RULE_KEY = 'alarm_rules_v2';
+  /* 报警规则下拉选项（GB 30871-2022） */
+  var RULE_OPTIONS = [
+    { id: 1, name: '作业中断超时未气体分析' },
+    { id: 2, name: '受限空间未连续监测气体浓度' },
+    { id: 4, name: '受限空间超过2小时未记录' },
+    { id: 5, name: '作业票有效期超时' },
+    { id: 8, name: '交叉作业票未办全/未关联' },
+    { id: 9, name: '作业票超时未审批' }
+  ];
+  /* 对象多选项（作业票类型） */
+  var TARGET_TYPES = ['动火作业', '受限空间作业', '高处作业', '吊装作业', '临时用电作业', '动土作业', '断路作业', '盲板抽堵作业'];
+  /* 动作目标类型：各添加项可选内容（演示数据） */
+  var NOTIFY_POOLS = {
+    dept:   { label: '部门', options: ['生产一部', '生产二部', '安环部', '设备部', '储运部'] },
+    post:   { label: '岗位', options: ['班长', '副班长', '安全员', '工艺员', '设备员'] },
+    job:    { label: '职位', options: ['部门经理', '车间主任', '主管', '专员'] },
+    major:  { label: '专业', options: ['化工工艺', '电气', '仪表', '机械', '安全工程'] },
+    tag:    { label: '标签', options: ['高危作业', '夜间作业', '承包商', '关键装置', '重大危险源'] }
+  };
+  /* 表单内人员（可多选） */
+  var FORM_USERS = ['申请人', '监护人', '用电人', '动火人', '指挥人', '签发人', '接收人', '业主方', '作业负责人'];
+  /* 各动作目标类型对应的添加项配置 */
+  var NOTIFY_DEFS = {
+    '指定部门': { groups: ['dept', 'post', 'job', 'major', 'tag'] },
+    '申请部门': { groups: ['post', 'job', 'major', 'tag'] },
+    '上一阶段自由选择': { groups: [] },
+    '表单内人员': { formUsers: true },
+    '属地部门': { groups: ['post', 'job', 'major', 'tag'] },
+    '申请部门及子部门': { groups: ['post', 'job', 'major', 'tag'] },
+    '属地部门及子部门': { groups: ['post', 'job', 'major', 'tag'] }
+  };
+  function seedRules() {
+    return [
+      { code: '运规-025', name: '特殊作业超时规则-动火作业', ruleId: 5, targets: ['动火作业'], enabled: true,
+        notifyTarget: { type: '指定部门', dept: ['安环部'], post: ['安全员'], job: [], major: [], tag: [], formUsers: [] } },
+      { code: '运规-026', name: '受限空间未连续监测气体浓度规则', ruleId: 2, targets: ['动火作业', '受限空间作业'], enabled: true,
+        notifyTarget: { type: '表单内人员', dept: [], post: [], job: [], major: [], tag: [], formUsers: ['监护人', '作业负责人'] } },
+      { code: '运规-027', name: '受限空间连续检测规则', ruleId: 4, targets: ['受限空间作业', '动火作业'], enabled: true,
+        notifyTarget: { type: '属地部门', dept: [], post: ['班长'], job: [], major: [], tag: [], formUsers: [] } },
+      { code: 'RULE-FS-005', name: '受限空间超过2小时未记录预警', ruleId: 4, targets: ['受限空间作业'], enabled: true,
+        notifyTarget: { type: '表单内人员', dept: [], post: [], job: [], major: [], tag: [], formUsers: ['监护人'] } },
+      { code: '运规-029', name: '特殊作业审批超时规则', ruleId: 9, targets: TARGET_TYPES.slice(), enabled: true,
+        notifyTarget: { type: '申请部门及子部门', dept: [], post: [], job: ['主管'], major: [], tag: [], formUsers: [] } }
+    ];
+  }
+  var rules;
+  try { rules = JSON.parse(localStorage.getItem(RULE_KEY) || 'null') || seedRules(); } catch (e) { rules = seedRules(); }
+  /* 旧版本数据迁移：补齐缺失字段 */
+  rules.forEach(function (r) {
+    if (r.ruleId === undefined) r.ruleId = '';
+    /* 已下架的报警规则（1/3/6/7）置空，需重新选择 */
+    if (r.ruleId !== '' && !RULE_OPTIONS.some(function (o) { return o.id === r.ruleId; })) r.ruleId = '';
+    if (!r.targets) r.targets = [];
+    if (!r.thresholds) r.thresholds = [];
+    if (r.overGraceMinutes === undefined) r.overGraceMinutes = '';
+    if (r.crossIntervalMinutes === undefined) r.crossIntervalMinutes = '';
+    if (r.approveTimeout === undefined) r.approveTimeout = '';
+    delete r.locOffset; delete r.graceMinutes;
+    if (!r.notifyTarget || !NOTIFY_DEFS[r.notifyTarget.type]) {
+      /* 旧版推送对象数据迁移为“表单内人员” */
+      var oldUsers = (r.pushRoles || []).concat(r.customUsers || []);
+      var fu = oldUsers.filter(function (u) { return FORM_USERS.indexOf(u) >= 0; });
+      r.notifyTarget = { type: '表单内人员', dept: [], post: [], job: [], major: [], tag: [], formUsers: fu.length ? fu : ['作业负责人'] };
+    }
+    delete r.pushRoles; delete r.customUsers;
+  });
+  function saveRules() { localStorage.setItem(RULE_KEY, JSON.stringify(rules)); }
+
+  function queryRules() {
+    var kw = document.getElementById('fKw').value.trim();
+    var st = document.getElementById('fStatus').value;
+    var list = rules.filter(function (r) {
+      if (kw && r.code.indexOf(kw) < 0 && r.name.indexOf(kw) < 0) return false;
+      if (st !== '' && String(r.enabled ? 1 : 0) !== st) return false;
+      return true;
+    });
+    renderRules(list);
+  }
+  function resetRules() {
+    document.getElementById('fKw').value = '';
+    document.getElementById('fStatus').value = '';
+    renderRules(rules);
+  }
+  function renderRules(list) {
+    list = list || rules;
+    var tb = document.getElementById('ruleTbody');
+    document.getElementById('cateCnt').textContent = '(' + rules.length + ')';
+    document.getElementById('ruleTotal').textContent = '共 ' + list.length + ' 条';
+    document.getElementById('chkAll').checked = false;
+    if (!list.length) { tb.innerHTML = '<tr><td colspan="6"><div class="empty">暂无数据</div></td></tr>'; return; }
+    tb.innerHTML = list.map(function (r) {
+      var alarmRule = (RULE_OPTIONS.filter(function (o) { return o.id === r.ruleId; })[0] || {}).name || '-';
+      return '<tr>' +
+        '<td><input type="checkbox" class="rchk" value="' + r.code + '"></td>' +
+        '<td>' + r.code + '</td>' +
+        '<td class="tleft">' + r.name + '</td>' +
+        '<td class="tleft">' + alarmRule + '</td>' +
+        '<td><span class="tag ' + (r.enabled ? 'on' : 'off') + '" onclick="toggleRule(\'' + r.code + '\')">' + (r.enabled ? '启用' : '停用') + '</span></td>' +
+        '<td><span class="link" onclick="openRuleDlg(\'' + r.code + '\')">编辑</span></td>' +
+      '</tr>';
+    }).join('');
+  }
+  function toggleAll(chk) {
+    document.querySelectorAll('.rchk').forEach(function (c) { c.checked = chk.checked; });
+  }
+  function toggleRule(code) {
+    var r = rules.filter(function (x) { return x.code === code; })[0];
+    r.enabled = !r.enabled; saveRules(); queryRules();
+    toast('规则[' + code + ']已' + (r.enabled ? '启用' : '停用'));
+  }
+  function batchSet(enable) {
+    var codes = Array.prototype.map.call(document.querySelectorAll('.rchk:checked'), function (c) { return c.value; });
+    if (!codes.length) { toast('请先勾选规则'); return; }
+    rules.forEach(function (r) { if (codes.indexOf(r.code) >= 0) r.enabled = enable; });
+    saveRules(); queryRules();
+    toast('已批量' + (enable ? '启用' : '停用') + ' ' + codes.length + ' 条规则');
+  }
+
+  /* 新建/编辑弹窗 */
+  var editCode = null;
+  var selTargets = [];
+  function initRuleDlg() {
+    /* 报警规则下拉 */
+    document.getElementById('rRuleId').innerHTML = '<option value="">请选择报警规则</option>' +
+      RULE_OPTIONS.map(function (o) { return '<option value="' + o.id + '">' + o.name + '</option>'; }).join('');
+    /* 对象多选下拉 */
+    document.getElementById('targetDrop').innerHTML = TARGET_TYPES.map(function (t) {
+      return '<label class="msel-opt"><input type="checkbox" value="' + t + '" onchange="onTargetChk()"> ' + t + '</label>';
+    }).join('');
+  }
+  function toggleMsel(e, dropId) {
+    e.stopPropagation();
+    document.getElementById(dropId).classList.toggle('show');
+  }
+  /* ================= 对象多选 + 中断超时阈值卡片联动 ================= */
+  var TH_RULE_ID = 1; /* 作业中断超时未气体分析 */
+  var OVER_RULE_ID = 5; /* 作业票有效期超时 */
+  var APR_RULE_ID = 9; /* 作业票超时未审批 */
+  var GRACE_DEFS = {
+    5: { label: '超时后报警宽限时长', unit: '分钟', field: 'overGraceMinutes' },
+    8: { label: '交叉/关联作业票允许间隔时间', unit: '分钟', field: 'crossIntervalMinutes' },
+    9: { label: '审批超时时限', unit: '分钟', field: 'approveTimeout' }
+  };
+  var thCards = [];   /* 当前弹窗内的阈值卡片 [{type,level,minutes}] */
+  var prevTargets = [];
+  var graceVals = {}; /* 各规则附加参数会话值：{2:分钟, 5:分钟, 9:分钟} */
+
+  function graceRuleId() {
+    var rid = Number(document.getElementById('rRuleId').value);
+    return GRACE_DEFS[rid] ? rid : 0;
+  }
+  function updateGraceBox() {
+    var rid = graceRuleId();
+    var box = document.getElementById('graceBox');
+    document.getElementById('aprTip').style.display = (rid === APR_RULE_ID) ? 'block' : 'none';
+    if (!rid) { box.style.display = 'none'; return; }
+    var def = GRACE_DEFS[rid];
+    box.style.display = 'block';
+    document.getElementById('graceLabel').innerHTML = '<span class="req">*</span>' + def.label;
+    document.getElementById('graceUnit').textContent = def.unit;
+    document.getElementById('graceMin').value = graceVals[rid] || '';
+  }
+  function onGraceInput() {
+    var rid = graceRuleId();
+    if (rid) graceVals[rid] = document.getElementById('graceMin').value;
+  }
+
+  function onRuleChange() {
+    var ruleId = Number(document.getElementById('rRuleId').value);
+    var locked = isTargetLocked();
+    var opts = ruleId === TH_RULE_ID ? ['动火作业', '受限空间作业'] : TARGET_TYPES;
+    if (locked) opts = ['受限空间作业']; /* 受限空间类规则：对象固定 */
+    document.getElementById('targetDrop').innerHTML = opts.map(function (t) {
+      return '<label class="msel-opt"><input type="checkbox" value="' + t + '" ' +
+        (locked ? 'checked disabled' : '') + ' onchange="onTargetChk()"> ' + t + '</label>';
+    }).join('');
+    prevTargets = []; /* 选项重建后，按全新勾选状态生成卡片 */
+    onTargetChk();
+    updateGraceBox();
+  }
+  function defaultCardsFor(type) {
+    if (type === '动火作业') {
+      return [{ type: '动火作业', level: '特级' }, { type: '动火作业', level: '一级' }, { type: '动火作业', level: '二级' }];
+    }
+    if (type === '受限空间作业') {
+      return [{ type: '受限空间作业', level: '受限空间' }];
+    }
+    return [];
+  }
+  function hasCard(type, level) {
+    return thCards.some(function (c) { return c.type === type && c.level === level; });
+  }
+  /* 受限空间类规则（2/4）：对象固定为受限空间作业，不允许修改 */
+  var LOCKED_TARGET_RULES = [2, 4];
+  function isTargetLocked() {
+    return LOCKED_TARGET_RULES.indexOf(Number(document.getElementById('rRuleId').value)) >= 0;
+  }
+  function openTargetDrop(e) {
+    if (isTargetLocked()) { toast('该报警规则的对象固定为「受限空间作业」，不可修改'); return; }
+    toggleMsel(e, 'targetDrop');
+  }
+  function onTargetChk() {
+    var newSel = isTargetLocked() ? ['受限空间作业'] : Array.prototype.map.call(
+      document.querySelectorAll('#targetDrop input:checked'), function (c) { return c.value; });
+    var ruleId = Number(document.getElementById('rRuleId').value);
+    if (ruleId === TH_RULE_ID) {
+      /* 勾选 动火/受限空间 时补充默认卡片；取消勾选时移除对应卡片 */
+      newSel.forEach(function (t) {
+        if (prevTargets.indexOf(t) < 0) {
+          defaultCardsFor(t).forEach(function (d) {
+            if (!hasCard(d.type, d.level)) thCards.push({ type: d.type, level: d.level, minutes: '' });
+          });
+        }
+      });
+      thCards = thCards.filter(function (c) { return newSel.indexOf(c.type) >= 0; });
+    } else {
+      thCards = [];
+    }
+    prevTargets = newSel.slice();
+    selTargets = newSel;
+    renderTargetText();
+    renderThCards();
+  }
+  function renderThCards() {
+    var ruleId = Number(document.getElementById('rRuleId').value);
+    var box = document.getElementById('thBox');
+    if (ruleId !== TH_RULE_ID || !thCards.length) { box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    document.getElementById('thCards').innerHTML = thCards.map(function (c, i) {
+      var title = c.type === '动火作业' ? '作业级别：' + c.level : '受限空间';
+      var label = c.type === '动火作业' ? '中断超时阈值' : '受限空间中断超时阈值';
+      return '<div class="th-card">' +
+        '<div class="th-card-head">' + title + '<span class="del" title="删除" onclick="deleteThCard(' + i + ')">✕</span></div>' +
+        '<div class="fi2">' + label + '<input class="input" type="number" min="1" value="' + (c.minutes === '' || c.minutes === undefined ? '' : c.minutes) + '" oninput="onThInput(' + i + ',this.value)">分钟</div>' +
+      '</div>';
+    }).join('');
+  }
+  function onThInput(i, v) { thCards[i].minutes = v; }
+  function deleteThCard(i) { thCards.splice(i, 1); renderThCards(); }
+  function setTargets(arr) {
+    selTargets = arr || [];
+    document.querySelectorAll('#targetDrop input').forEach(function (c) { c.checked = selTargets.indexOf(c.value) >= 0; });
+    onTargetChk();
+  }
+  function renderTargetText() {
+    var el = document.getElementById('targetText');
+    var box = el.closest('.msel-box');
+    if (isTargetLocked()) {
+      el.className = ''; el.textContent = '受限空间作业（该规则固定，不可修改）';
+      box.classList.add('locked');
+      return;
+    }
+    box.classList.remove('locked');
+    if (!selTargets.length) {
+      el.className = 'msel-ph'; el.textContent = '请选择作业票类型';
+    } else {
+      el.className = ''; el.textContent = '已选 ' + selTargets.length + ' 种：' + selTargets.join('、');
+    }
+  }
+  /* ================= 动作目标类型：联动渲染 ================= */
+  var notifyState = null; /* {type, dept:[], post:[], job:[], major:[], tag:[], formUsers:[]} */
+  function blankNotify(type) {
+    return { type: type || '', dept: [], post: [], job: [], major: [], tag: [], formUsers: [] };
+  }
+  function onNotifyType() {
+    notifyState = blankNotify(document.getElementById('notifyType').value);
+    renderNotifyBox();
+  }
+  function renderNotifyBox() {
+    var box = document.getElementById('notifyBox');
+    if (!notifyState || !notifyState.type) { box.innerHTML = ''; return; }
+    var def = NOTIFY_DEFS[notifyState.type];
+    if (!def) { box.innerHTML = ''; return; }
+    /* 表单内人员：多选勾选 */
+    if (def.formUsers) {
+      box.innerHTML = '<div class="chk-row">' + FORM_USERS.map(function (u) {
+        return '<label><input type="checkbox" value="' + u + '" ' +
+          (notifyState.formUsers.indexOf(u) >= 0 ? 'checked' : '') +
+          ' onchange="onFormUserChk(this)"> ' + u + '</label>';
+      }).join('') + '</div>';
+      return;
+    }
+    /* 部门类：+添加项 链接 + 已选芯片 */
+    var html = '<div class="nt-add-row">' + def.groups.map(function (g) {
+      return '<span class="nt-add" onclick="addNotifyChip(\'' + g + '\')">＋添加' + NOTIFY_POOLS[g].label + '</span>';
+    }).join('') + '</div>';
+    def.groups.forEach(function (g) {
+      html += '<div class="nt-chips">' + notifyState[g].map(function (v, i) {
+        var opts = NOTIFY_POOLS[g].options.map(function (o) {
+          return '<option ' + (o === v ? 'selected' : '') + '>' + o + '</option>';
+        }).join('');
+        return '<span class="nt-chip"><select onchange="notifyState[\'' + g + '\'][' + i + ']=this.value">' + opts + '</select>' +
+          '<span class="x" onclick="delNotifyChip(\'' + g + '\',' + i + ')">✕</span></span>';
+      }).join('') + '</div>';
+    });
+    box.innerHTML = html;
+  }
+  function onFormUserChk(el) {
+    var i = notifyState.formUsers.indexOf(el.value);
+    if (el.checked && i < 0) notifyState.formUsers.push(el.value);
+    if (!el.checked && i >= 0) notifyState.formUsers.splice(i, 1);
+  }
+  function addNotifyChip(g) {
+    notifyState[g].push(NOTIFY_POOLS[g].options[0]);
+    renderNotifyBox();
+  }
+  function delNotifyChip(g, i) {
+    notifyState[g].splice(i, 1);
+    renderNotifyBox();
+  }
+  function setNotify(nt) {
+    notifyState = nt && NOTIFY_DEFS[nt.type] ? JSON.parse(JSON.stringify(nt)) : blankNotify('');
+    document.getElementById('notifyType').value = notifyState.type;
+    renderNotifyBox();
+  }
+  function getNotify() { return notifyState || blankNotify(''); }
+  function openRuleDlg(code) {
+    /* 按屏幕缩放比折算，保证弹窗物理尺寸严格为 1350x850（1 CSS px = devicePixelRatio 物理 px） */
+    var dpr = window.devicePixelRatio || 1;
+    var dlg = document.getElementById('ruleDlg');
+    dlg.style.width = (1350 / dpr) + 'px';
+    dlg.style.height = (850 / dpr) + 'px';
+    editCode = code || null;
+    document.getElementById('ruleDlgTitle').textContent = code ? '编辑运行规则' : '新建运行规则';
+    document.getElementById('targetDrop').classList.remove('show');
+    if (code) {
+      var r = rules.filter(function (x) { return x.code === code; })[0];
+      document.getElementById('rCode').value = r.code;
+      document.getElementById('rCode').disabled = true;
+      document.getElementById('rName').value = r.name;
+      document.getElementById('rRuleId').value = String(r.ruleId);
+      setRadio('rEnable', String(r.enabled ? 1 : 0));
+      thCards = (r.thresholds || []).map(function (c) { return { type: c.type, level: c.level, minutes: c.minutes }; });
+      prevTargets = (r.targets || []).slice(); /* 已选对象不重复生成默认卡片，保留删除状态 */
+      setTargets(r.targets);
+      setNotify(r.notifyTarget);
+      graceVals = {};
+      graceVals[OVER_RULE_ID] = r.overGraceMinutes || '';
+      graceVals[8] = r.crossIntervalMinutes || '';
+      graceVals[APR_RULE_ID] = r.approveTimeout || '';
+      updateGraceBox();
+    } else {
+      document.getElementById('rCode').disabled = false;
+      document.getElementById('rCode').value = '';
+      document.getElementById('rName').value = '';
+      document.getElementById('rRuleId').value = '';
+      setRadio('rEnable', '1');
+      thCards = [];
+      prevTargets = [];
+      setTargets([]);
+      setNotify(null);
+      graceVals = {};
+      updateGraceBox();
+    }
+    document.getElementById('ruleMask').classList.add('show');
+  }
+  function closeRuleDlg() { document.getElementById('ruleMask').classList.remove('show'); }
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('.msel-drop').forEach(function (d) {
+      if (d.classList.contains('show') && !d.parentNode.contains(e.target)) d.classList.remove('show');
+    });
+  });
+  function setRadio(name, val) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach(function (i) { i.checked = (i.value === val); });
+  }
+  function getRadio(name) {
+    var v = '';
+    document.querySelectorAll('input[name="' + name + '"]').forEach(function (i) { if (i.checked) v = i.value; });
+    return v;
+  }
+  function saveRule() {
+    var name = document.getElementById('rName').value.trim();
+    if (!name) { toast('请输入规则名称'); return; }
+    var ruleId = document.getElementById('rRuleId').value;
+    if (!ruleId) { toast('请选择报警规则'); return; }
+    if (!selTargets.length) { toast('请至少选择一种作业票类型'); return; }
+    /* 动作目标类型校验 */
+    var nt = getNotify();
+    if (!nt.type) { toast('请选择动作目标类型'); return; }
+    var ntDef = NOTIFY_DEFS[nt.type];
+    if (ntDef.formUsers && !nt.formUsers.length) { toast('请勾选表单内人员（至少一项）'); return; }
+    if (ntDef.groups && ntDef.groups.length && !ntDef.groups.some(function (g) { return nt[g].length; })) {
+      toast('请至少添加一项（' + ntDef.groups.map(function (g) { return NOTIFY_POOLS[g].label; }).join('/') + '）'); return;
+    }
+    /* 规则附加参数校验（规则5/8/9） */
+    var extra = { overGraceMinutes: '', crossIntervalMinutes: '', approveTimeout: '' };
+    var grId = graceRuleId();
+    if (grId) {
+      var def = GRACE_DEFS[grId];
+      var gv = String(graceVals[grId] || '').trim();
+      var gm = parseInt(gv, 10);
+      if (!gm || gm <= 0 || String(gm) !== gv) { toast('请填写' + def.label + '（正整数' + def.unit + '）'); return; }
+      extra[def.field] = gm;
+    }
+    var enable = getRadio('rEnable') === '1';
+    /* 阈值卡片校验与归档 */
+    var thSave = [];
+    if (Number(ruleId) === TH_RULE_ID) {
+      if (!thCards.length) { toast('请至少保留一张超时阈值卡片，或取消对应作业类型'); return; }
+      for (var i = 0; i < thCards.length; i++) {
+        var m = parseInt(thCards[i].minutes, 10);
+        var who = thCards[i].type === '动火作业' ? '动火作业（' + thCards[i].level + '）' : '受限空间作业';
+        if (!m || m <= 0 || String(m) !== String(thCards[i].minutes).trim()) {
+          toast('请填写「' + who + '」的中断超时阈值（正整数分钟）'); return;
+        }
+        thSave.push({ type: thCards[i].type, level: thCards[i].level, minutes: m });
+      }
+    }
+    var payload = { name: name, ruleId: Number(ruleId), targets: selTargets.slice(),
+      thresholds: thSave,
+      overGraceMinutes: extra.overGraceMinutes,
+      crossIntervalMinutes: extra.crossIntervalMinutes,
+      approveTimeout: extra.approveTimeout,
+      notifyTarget: nt, enabled: enable };
+    if (editCode) {
+      var r = rules.filter(function (x) { return x.code === editCode; })[0];
+      for (var k in payload) r[k] = payload[k];
+      toast('规则[' + editCode + ']已更新');
+    } else {
+      var code = document.getElementById('rCode').value.trim();
+      if (!code) { toast('请输入规则编号'); return; }
+      if (rules.filter(function (x) { return x.code === code; }).length) { toast('规则编号[' + code + ']已存在，请更换'); return; }
+      payload.code = code;
+      rules.push(payload);
+      toast('规则[' + code + ']已创建');
+    }
+    saveRules(); closeRuleDlg(); queryRules();
+  }
+
+  /* ================= 告警数据（与 alarm-center.html 共用 alarm_list） ================= */
+  var RULES = [
+    { id: 1, clause: '5.9.1' }, { id: 2, clause: '5.9.2' }, { id: 4, clause: '5.9.4' },
+    { id: 5, clause: '5.9.5' }, { id: 8, clause: '5.9.8' }, { id: 9, clause: '5.9.9' }
+  ];
+  var NOW = new Date('2026-09-16 12:00:00');
+  var ALARM_KEY = 'alarm_list';
+  function seedAlarms() {
+    return [
+      { id: 'GJ20260916001', ticket: 'DH-20260916-0001', ruleId: 8, level: '三级告警', status: '待处置',
+        time: '2026-09-16 11:20:08', place: '装置B/区域2', type: '交叉作业',
+        reason: '系统校验：该作业勾选作业类型 2 种（动火作业、受限空间作业），关联作业票未全部创建，未完成跨票关联，禁止开工。',
+        logs: [{ t: '2026-09-16 11:20:08', txt: '规则[5.9.8]校验命中，告警生成并拦截开工' }, { t: '2026-09-16 11:20:09', txt: '推送至：作业负责人/属地管理员/安全管理员' }] },
+      { id: 'GJ20260916002', ticket: 'SX-20260916-0002', ruleId: 4, level: '二级告警', status: '待处置',
+        time: '2026-09-16 10:05:12', place: '1号罐区/T-102罐内部', type: '受限空间作业',
+        reason: '系统校验：作业进行中，最近一条气体检测记录时间为 2026-09-16 08:04:12，已超过连续检测周期阈值 2 小时。',
+        logs: [{ t: '2026-09-16 10:05:12', txt: '规则[5.9.4]定时轮询命中，告警生成' }, { t: '2026-09-16 10:05:13', txt: '推送至：监护人（APP消息/站内信）' }] },
+      { id: 'GJ20260915101', ticket: 'DH-20260915-0008', ruleId: 9, level: '二级告警', status: '待处置',
+        time: '2026-09-15 15:40:00', place: '装置A/区域1', type: '动火作业',
+        reason: '系统校验：作业票 [DH-20260915-0008] 状态=待审批，提交时间 2026-09-15 09:30:00，已超过审批时限 4 小时。',
+        logs: [{ t: '2026-09-15 15:40:00', txt: '规则[5.9.9]定时轮询命中，告警生成' }, { t: '2026-09-16 09:00:15', txt: '规则[5.9.9]定时轮询命中，告警生成（系统重推）' }] },
+      { id: 'GJ20260914102', ticket: 'HW-20260914-0002', ruleId: 5, level: '一级预警', status: '已处置',
+        time: '2026-09-14 16:02:11', place: '装置A/区域3', type: '动火作业',
+        reason: '系统校验：作业票计划结束时间 2026-09-14 17:00:00，将于 30 分钟后到期（提前预警）。',
+        logs: [{ t: '2026-09-14 16:02:11', txt: '规则[5.9.5]命中，预警生成' }, { t: '2026-09-14 16:45:30', txt: '王强 提交处置方案并处置完成，告警闭环' }] },
+      { id: 'GJ20260913101', ticket: 'SX-20260913-0001', ruleId: 1, level: '二级告警', status: '已处置',
+        time: '2026-09-13 11:30:00', place: '2号罐区/R-201', type: '受限空间作业',
+        reason: '系统校验：作业中断 70 分钟，超过阈值 60 分钟，且中断时段无新气体记录。',
+        logs: [{ t: '2026-09-13 11:30:00', txt: '规则[5.9.1]命中，告警生成' }, { t: '2026-09-13 11:58:41', txt: '新增合规气体分析记录，系统自动比对通过，即时销号' }] }
+    ];
+  }
+  var alarms;
+  try { alarms = JSON.parse(localStorage.getItem(ALARM_KEY) || 'null') || seedAlarms(); } catch (e) { alarms = seedAlarms(); }
+  /* 存量数据迁移：去掉复核环节；过滤已下架规则（3/6/7）产生的告警；补回规则1的告警记录 */
+  var REMOVED_RULE_IDS = [3, 6, 7];
+  alarms = alarms.filter(function (a) { return REMOVED_RULE_IDS.indexOf(a.ruleId) < 0; });
+  if (!alarms.some(function (a) { return a.ruleId === 1; })) {
+    var seedR1 = seedAlarms().filter(function (a) { return a.ruleId === 1; });
+    alarms = alarms.concat(seedR1);
+  }
+  /* 状态统一：只有 待处置 / 已处置 两种，其余一律迁移为已处置 */
+  alarms.forEach(function (a) {
+    if (a.status !== '待处置') a.status = '已处置';
+  });
+  function clauseOf(ruleId) { var r = RULES.filter(function (x) { return x.id === ruleId; })[0]; return r ? r.clause : '-'; }
+  function lvClass(lv) { return lv === '三级告警' ? 'lv3' : lv === '二级告警' ? 'lv2' : 'lv1'; }
+  function stClass(st) {
+    return st === '待处置' ? 'st-wait' : st === '已处置' ? 'st-done' : 'st-gray';
+  }
+
+  var STAT_DEF = [
+    { key: 'wait', label: '待处置', icon: '🚨', cls: 'lv3' },
+    { key: 'done', label: '已处置', icon: '✅', cls: 'lvb' }
+  ];
+  function renderStats() {
+    var stat = { wait: 0, done: 0 };
+    alarms.forEach(function (a) {
+      if (a.status === '待处置') stat.wait++;
+      else if (a.status === '已处置') stat.done++;
+    });
+    document.getElementById('statRow').innerHTML = STAT_DEF.map(function (s) {
+      return '<div class="stat-card' + (statFilter === s.key ? ' on' : '') + '" onclick="quickFilter(\'' + s.key + '\')">' +
+        '<div class="ic ' + s.cls + '">' + s.icon + '</div>' +
+        '<div><div class="num">' + stat[s.key] + '</div><div class="lb">' + s.label + '</div></div></div>';
+    }).join('');
+  }
+  function renderAlarmPage() {
+    renderStats();
+    /* 触发规则下拉 */
+    document.getElementById('dClause').innerHTML = '<option value="">全部</option>' +
+      RULES.map(function (r) {
+        var rn = (RULE_OPTIONS.filter(function (o) { return o.id === r.id; })[0] || {}).name || '';
+        return '<option value="' + r.clause + '">' + r.clause + ' ' + rn + '</option>';
+      }).join('');
+    queryAlarms();
+  }
+  var statFilter = ''; /* 统计卡片快速筛选：wait/done */
+  function quickFilter(key) {
+    statFilter = (statFilter === key) ? '' : key; /* 再点一次取消筛选 */
+    renderStats();
+    queryAlarms();
+  }
+  function queryAlarms() {
+    var id = document.getElementById('dId').value.trim();
+    var tk = document.getElementById('dTicket').value.trim();
+    var st = document.getElementById('dStatus').value;
+    var from = document.getElementById('dFrom').value;
+    var to = document.getElementById('dTo').value;
+    var cl = document.getElementById('dClause').value;
+    var list = alarms.filter(function (a) {
+      if (id && a.id.indexOf(id) < 0) return false;
+      if (tk && a.ticket.indexOf(tk) < 0) return false;
+      if (st && a.status !== st) return false;
+      if (cl && clauseOf(a.ruleId) !== cl) return false;
+      var d = a.time.slice(0, 10);
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      if (statFilter === 'wait' && a.status !== '待处置') return false;
+      if (statFilter === 'done' && a.status !== '已处置') return false;
+      return true;
+    });
+    var tb = document.getElementById('alarmTbody');
+    document.getElementById('alarmTotal').textContent = '共 ' + list.length + ' 条，所有记录永久存档，禁止删除篡改';
+    if (!list.length) { tb.innerHTML = '<tr><td colspan="6"><div class="empty">暂无数据</div></td></tr>'; return; }
+    tb.innerHTML = list.map(function (a) {
+      var ruleName = (RULE_OPTIONS.filter(function (o) { return o.id === a.ruleId; })[0] || {}).name || '';
+      var tParts = a.time.split(' ');
+      var ops = '<span class="link" onclick="openAlarmDlg(\'' + a.id + '\')">查看</span>';
+      if (a.status === '待处置') ops += '&nbsp;&nbsp;<span class="link" onclick="openAlarmDlg(\'' + a.id + '\',\'handle\')">处置</span>';
+      return '<tr>' +
+        '<td>' + a.id + '</td>' +
+        '<td>' + a.ticket + '</td>' +
+        '<td class="tleft">' + clauseOf(a.ruleId) + ' ' + ruleName + '</td>' +
+        '<td><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></td>' +
+        '<td>' + (tParts.length === 2 ? tParts[0] + '<br>' + tParts[1] : a.time) + '</td>' +
+        '<td>' + ops + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+  function resetAlarms() {
+    document.getElementById('dId').value = '';
+    document.getElementById('dTicket').value = '';
+    document.getElementById('dStatus').value = '';
+    document.getElementById('dFrom').value = '';
+    document.getElementById('dTo').value = '';
+    document.getElementById('dClause').value = '';
+    statFilter = '';
+    renderStats();
+    queryAlarms();
+  }
+
+  /* ================= 移动端（420x900）：与告警数据同数据同功能 ================= */
+  var mStatFilter = '';
+  function renderMobilePage() {
+    /* 触发规则下拉 */
+    document.getElementById('mClause').innerHTML = '<option value="">全部</option>' +
+      RULES.map(function (r) {
+        var rn = (RULE_OPTIONS.filter(function (o) { return o.id === r.id; })[0] || {}).name || '';
+        return '<option value="' + r.clause + '">' + r.clause + ' ' + rn + '</option>';
+      }).join('');
+    renderMobileStats();
+    mQueryAlarms();
+  }
+  function renderMobileStats() {
+    var stat = { wait: 0, done: 0 };
+    alarms.forEach(function (a) {
+      if (a.status === '待处置') stat.wait++;
+      else if (a.status === '已处置') stat.done++;
+    });
+    var defs = [
+      { key: 'wait', label: '待处置', num: stat.wait },
+      { key: 'done', label: '已处置', num: stat.done }
+    ];
+    document.getElementById('mStatRow').innerHTML = defs.map(function (s) {
+      return '<div class="mp-stat' + (mStatFilter === s.key ? ' on' : '') + '" onclick="mQuickFilter(\'' + s.key + '\')">' +
+        '<div class="n">' + s.num + '</div><div class="t">' + s.label + '</div></div>';
+    }).join('');
+  }
+  function mQuickFilter(key) {
+    mStatFilter = (mStatFilter === key) ? '' : key; /* 再点一次取消筛选 */
+    renderMobileStats();
+    mQueryAlarms();
+  }
+  function mQueryAlarms() {
+    var id = document.getElementById('mId').value.trim();
+    var tk = document.getElementById('mTicket').value.trim();
+    var cl = document.getElementById('mClause').value;
+    var st = document.getElementById('mStatus').value;
+    var list = alarms.filter(function (a) {
+      if (id && a.id.indexOf(id) < 0) return false;
+      if (tk && a.ticket.indexOf(tk) < 0) return false;
+      if (cl && clauseOf(a.ruleId) !== cl) return false;
+      if (st && a.status !== st) return false;
+      if (mStatFilter === 'wait' && a.status !== '待处置') return false;
+      if (mStatFilter === 'done' && a.status !== '已处置') return false;
+      return true;
+    });
+    document.getElementById('mAlarmTotal').textContent = '共 ' + list.length + ' 条';
+    var box = document.getElementById('mAlarmList');
+    if (!list.length) { box.innerHTML = '<div class="mp-empty">暂无数据</div>'; return; }
+    box.innerHTML = list.map(function (a) {
+      var ruleName = (RULE_OPTIONS.filter(function (o) { return o.id === a.ruleId; })[0] || {}).name || '';
+      var ops = '<span class="link" onclick="mOpenDetail(\'' + a.id + '\')">查看</span>';
+      if (a.status === '待处置') ops += '<span class="link" onclick="mOpenHandle(\'' + a.id + '\')">处置</span>';
+      return '<div class="mp-card">' +
+        '<div class="r1"><span class="code">' + a.id + '</span>' +
+          '<span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></div>' +
+        '<div class="r2">关联作业票：' + a.ticket + '<br>触发规则：' + clauseOf(a.ruleId) + ' ' + ruleName + '<br>触发时间：' + a.time + '</div>' +
+        '<div class="ops">' + ops + '</div>' +
+      '</div>';
+    }).join('');
+  }
+  function mResetAlarms() {
+    document.getElementById('mId').value = '';
+    document.getElementById('mTicket').value = '';
+    document.getElementById('mClause').value = '';
+    document.getElementById('mStatus').value = '';
+    mStatFilter = '';
+    renderMobileStats();
+    mQueryAlarms();
+  }
+  /* 移动端：搜索底部面板 */
+  function mOpenSearch() {
+    document.getElementById('mSearchMask').classList.add('show');
+    document.getElementById('mSearchSheet').classList.add('show');
+  }
+  function mCloseSearch() {
+    document.getElementById('mSearchMask').classList.remove('show');
+    document.getElementById('mSearchSheet').classList.remove('show');
+  }
+  function mDoSearch() {
+    mCloseSearch();
+    mQueryAlarms();
+  }
+  /* 移动端：详情页（整页跳转） */
+  function mOpenDetail(id) {
+    var a = alarms.filter(function (x) { return x.id === id; })[0];
+    if (!a) return;
+    var ruleName = (RULE_OPTIONS.filter(function (o) { return o.id === a.ruleId; })[0] || {}).name || '';
+    var handleBtn = a.status === '待处置'
+      ? '<button class="mp-big-btn" onclick="mOpenHandle(\'' + a.id + '\')">处 置</button>' : '';
+    document.getElementById('mDetailBody').innerHTML =
+      '<div class="mp-sec">' +
+        '<div class="mp-drow"><span class="k">告警编号</span><span class="v">' + a.id + '</span></div>' +
+        '<div class="mp-drow"><span class="k">关联作业票</span><span class="v">' + a.ticket + '</span></div>' +
+        '<div class="mp-drow"><span class="k">触发规则</span><span class="v">GB 30871-2022 第 ' + clauseOf(a.ruleId) + ' 条 ' + ruleName + '</span></div>' +
+        '<div class="mp-drow"><span class="k">作业类型</span><span class="v">' + a.type + '（' + a.place + '）</span></div>' +
+        '<div class="mp-drow"><span class="k">处理状态</span><span class="v"><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></span></div>' +
+        '<div class="mp-drow"><span class="k">触发时间</span><span class="v">' + a.time + '</span></div>' +
+      '</div>' +
+      '<div class="mp-sec">' +
+        '<div class="mp-drow"><span class="k">流转记录</span><span class="v"><span class="mp-tline">' +
+          a.logs.map(function (l) { return '<div class="ti"><span class="tt2">' + l.t + '</span><br>' + l.txt + '</div>'; }).join('') +
+        '</span></span></div>' +
+      '</div>' + handleBtn;
+    document.getElementById('mDetailPage').classList.add('show');
+    document.getElementById('mDetailBody').scrollTop = 0;
+  }
+  function mCloseDetail() { document.getElementById('mDetailPage').classList.remove('show'); }
+  /* 移动端：处置底部面板 */
+  var mCurAlarmId = null;
+  function mOpenHandle(id) {
+    var a = alarms.filter(function (x) { return x.id === id; })[0];
+    if (!a) return;
+    mCurAlarmId = id;
+    var ruleName = (RULE_OPTIONS.filter(function (o) { return o.id === a.ruleId; })[0] || {}).name || '';
+    document.getElementById('mHandleBody').innerHTML =
+      '<div class="mp-sec" style="box-shadow:none;border:1px solid #eef1f6;">' +
+        '<div class="mp-drow"><span class="k">告警编号</span><span class="v">' + a.id + '</span></div>' +
+        '<div class="mp-drow"><span class="k">关联作业票</span><span class="v">' + a.ticket + '</span></div>' +
+        '<div class="mp-drow"><span class="k">触发规则</span><span class="v">GB 30871-2022 第 ' + clauseOf(a.ruleId) + ' 条 ' + ruleName + '</span></div>' +
+        '<div class="mp-drow"><span class="k">处理状态</span><span class="v"><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></span></div>' +
+      '</div>' +
+      '<div class="mp-frow"><div class="lb"><span style="color:#e64340">*</span> 处置方案说明</div>' +
+        '<textarea id="mHandleDesc" placeholder="请输入处置方案说明"></textarea></div>';
+    document.getElementById('mHandleMask').classList.add('show');
+    document.getElementById('mHandleSheet').classList.add('show');
+  }
+  function mCloseHandle() {
+    document.getElementById('mHandleMask').classList.remove('show');
+    document.getElementById('mHandleSheet').classList.remove('show');
+  }
+  function mFinishHandle() {
+    var desc = (document.getElementById('mHandleDesc') || {}).value || '';
+    desc = desc.trim();
+    if (!desc) { toast('请填写处置方案说明'); return; }
+    if (!applyHandle(mCurAlarmId, desc)) return;
+    mCloseHandle();
+    mCloseDetail();
+    renderMobileStats();
+    mQueryAlarms();
+    toast('处置完成，告警已闭环');
+  }
+
+  var curAlarmId = null;
+  function openAlarmDlg(id, mode) {
+    var a = alarms.filter(function (x) { return x.id === id; })[0];
+    curAlarmId = id;
+    var ruleName = (RULE_OPTIONS.filter(function (o) { return o.id === a.ruleId; })[0] || {}).name || '';
+    if (mode === 'handle') {
+      /* 处置弹窗：触发规则 + 处置方案说明 + 处置完成 */
+      document.getElementById('alarmDlgTitle') && (document.getElementById('alarmDlgTitle').textContent = '告警处置');
+      document.getElementById('alarmDlgBody').innerHTML =
+        '<div class="detail-row"><span class="k">告警编号</span><span class="v">' + a.id + '</span></div>' +
+        '<div class="detail-row"><span class="k">关联作业票</span><span class="v">' + a.ticket + '</span></div>' +
+        '<div class="detail-row"><span class="k">触发规则</span><span class="v">GB 30871-2022 第 ' + clauseOf(a.ruleId) + ' 条 ' + ruleName + '</span></div>' +
+        '<div class="detail-row"><span class="k">作业类型</span><span class="v">' + a.type + '（' + a.place + '）</span></div>' +
+        '<div class="detail-row"><span class="k">处理状态</span><span class="v"><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></span></div>' +
+        '<div class="detail-row"><span class="k">触发时间</span><span class="v">' + a.time + '</span></div>' +
+        '<div class="detail-row"><span class="k">处置方案说明</span><span class="v"><textarea id="handleDesc" rows="4" placeholder="请输入处置方案说明" style="width:100%;height:90px;border:1px solid #d8e0ea;border-radius:4px;padding:8px 10px;font-size:13.5px;resize:vertical;outline:none;font-family:inherit"></textarea></span></div>';
+      document.getElementById('handleDoneBtn').style.display = '';
+    } else {
+      document.getElementById('alarmDlgBody').innerHTML =
+        '<div class="detail-row"><span class="k">告警编号</span><span class="v">' + a.id + '</span></div>' +
+        '<div class="detail-row"><span class="k">关联作业票</span><span class="v">' + a.ticket + '</span></div>' +
+        '<div class="detail-row"><span class="k">触发规则</span><span class="v">GB 30871-2022 第 ' + clauseOf(a.ruleId) + ' 条 ' + ruleName + '</span></div>' +
+        '<div class="detail-row"><span class="k">作业类型</span><span class="v">' + a.type + '（' + a.place + '）</span></div>' +
+        '<div class="detail-row"><span class="k">处理状态</span><span class="v"><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></span></div>' +
+        '<div class="detail-row"><span class="k">触发时间</span><span class="v">' + a.time + '</span></div>' +
+        '<div class="detail-row"><span class="k">流转记录</span><span class="v"><div class="tline">' +
+          a.logs.map(function (l) { return '<div class="ti"><span class="tt">' + l.t + '</span><br>' + l.txt + '</div>'; }).join('') +
+        '</div></span></div>';
+      document.getElementById('handleDoneBtn').style.display = 'none';
+    }
+    document.getElementById('alarmMask').classList.add('show');
+  }
+  function formatNow() {
+    var d = new Date();
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+  /* 处置闭环（PC / 移动端共用） */
+  function applyHandle(id, desc) {
+    var a = alarms.filter(function (x) { return x.id === id; })[0];
+    if (!a) return false;
+    var now = formatNow();
+    a.status = '已处置';
+    a.handler = '沈青荣';
+    a.handleTime = now;
+    a.handleDesc = desc;
+    a.logs.push({ t: now, txt: '沈青荣 提交处置方案并处置完成，告警闭环' });
+    saveAlarms();
+    return true;
+  }
+  function finishHandle() {
+    var desc = document.getElementById('handleDesc').value.trim();
+    if (!desc) { toast('请填写处置方案说明'); return; }
+    if (!applyHandle(curAlarmId, desc)) return;
+    closeAlarmDlg();
+    renderStats();
+    queryAlarms();
+    renderMobileStats();
+    mQueryAlarms();
+    toast('处置完成，告警已闭环');
+  }
+  function closeAlarmDlg() { document.getElementById('alarmMask').classList.remove('show'); }
+
+  /* ================= 初始化 ================= */
+  initRuleDlg();
+  renderRules(rules);
+  /* 通过哈希定位页签：#rules（默认）/ #data（告警数据）/ #mobile（移动端），供 portal 菜单调用 */
+  window.addEventListener('load', function () {
+    if (location.hash === '#data') showPane('data');
+    else if (location.hash === '#mobile') showPane('mobile');
+  });
+</script>
+</body>
+</html>

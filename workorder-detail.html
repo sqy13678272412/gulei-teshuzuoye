@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作业台账 - 特殊作业</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9;
+    color: #333;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 平台头部 ===== */
+  .platform-head {
+    height: 54px; flex-shrink: 0;
+    background: linear-gradient(90deg, #16233f 0%, #1d3054 60%, #243a66 100%);
+    display: flex; align-items: center; padding: 0 20px;
+  }
+  .ph-logo { display: flex; align-items: center; gap: 10px; }
+  .ph-logo .mark {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: conic-gradient(from 200deg, #f7c948, #2f9df4, #16233f);
+  }
+  .ph-logo .t1 { color: #fff; font-size: 17px; font-weight: 600; letter-spacing: 1px; }
+  .ph-logo .t2 { color: rgba(255,255,255,.45); font-size: 11px; }
+  .ph-user {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    color: rgba(255,255,255,.85); cursor: pointer;
+  }
+  .ph-user .uavatar {
+    width: 28px; height: 28px; border-radius: 50%; background: #3a517c;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px;
+  }
+
+  /* ===== Web 端左下角：切换移动端 ===== */
+  .float-mobile-btn {
+    position: fixed; left: 24px; bottom: 24px; z-index: 300;
+    background: none; border: none; color: #1296db;
+    font-size: 15px; cursor: pointer; padding: 4px;
+  }
+  .float-mobile-btn:hover { text-decoration: underline; }
+
+  /* ===== 页签栏 ===== */
+  .tabs-bar {
+    height: 42px; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+  }
+  .tabs-bar .fold { color: #5a6472; cursor: pointer; padding: 4px 8px; font-size: 15px; }
+  .chip {
+    border: 1px solid #d8e0ea; border-radius: 4px; padding: 5px 10px;
+    color: #5a6472; font-size: 13px; cursor: pointer; background: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip.active { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .chip .x { color: #a0a8b4; font-size: 12px; }
+  .chip .x:hover { color: #e64340; }
+
+  .layout { flex: 1; display: flex; min-height: 0; }
+
+  /* ===== 左侧菜单 ===== */
+  .side-menu {
+    width: 200px; flex-shrink: 0; overflow-y: auto;
+    background: linear-gradient(180deg, #1c2c4e 0%, #1f3a63 100%);
+    padding: 10px 0;
+  }
+  .sm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px;
+  }
+  .sm-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sm-item .ic { width: 16px; text-align: center; opacity: .8; }
+  .sm-item .exp { margin-left: auto; font-size: 11px; opacity: .6; }
+  .sm-sub { padding-left: 44px; color: rgba(255,255,255,.65); font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+  .sm-sub:hover { color: #fff; }
+  .sm-sub.active {
+    color: #fff; background: linear-gradient(90deg, #2f9df4, transparent);
+    border-left: 3px solid #f7c948; padding-left: 41px;
+  }
+
+  /* ===== 主区域 ===== */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px 40px; min-width: 0; }
+
+  /* 页内页签 */
+  .inner-tabs {
+    display: flex; background: #fff; border: 1px solid #e6ebf2; border-radius: 6px 6px 0 0;
+    overflow: hidden; margin-bottom: 14px;
+  }
+  .inner-tab {
+    padding: 12px 26px; cursor: pointer; color: #333; font-size: 14.5px;
+    border-right: 1px solid #eef1f6; user-select: none;
+  }
+  .inner-tab:hover { color: #1f8ef1; }
+  .inner-tab.active { color: #1f8ef1; font-weight: 600; box-shadow: inset 0 2px 0 #1f8ef1; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .placeholder {
+    background: #fff; border: 1px dashed #d8e0ea; border-radius: 6px;
+    color: #a0a8b4; text-align: center; padding: 80px 0;
+  }
+
+  /* ===== 定位信息地图 ===== */
+  .map-wrap { position: relative; background: #fff; border: 1px solid #e6ebf2; border-radius: 6px; overflow: hidden; height: 560px; }
+  .map-box { position: absolute; inset: 0; cursor: default; }
+  .map-box svg { width: 100%; height: 100%; display: block; }
+  .map-layers { position: absolute; top: 12px; left: 12px; z-index: 5; display: flex; gap: 8px; }
+  .layer-box {
+    background: rgba(255,255,255,.92); border-radius: 6px; padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.15); font-size: 13px;
+  }
+  .layer-box label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .layer-box input { accent-color: #1f8ef1; width: 15px; height: 15px; }
+  .map-scale {
+    position: absolute; right: 16px; bottom: 14px; z-index: 5;
+    color: #fff; font-size: 13px; text-align: center; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
+  .map-scale .bar { width: 90px; height: 0; border-top: 3px solid #fff; margin: 0 auto 3px; }
+
+  /* ===== 气体分析实时数据：卡片 ===== */
+  .gas-card {
+    background: #fff; border: 1px solid #e6ebf2; border-radius: 8px;
+    margin-bottom: 14px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
+  }
+  .gas-card-head {
+    display: flex; align-items: center; gap: 14px;
+    padding: 15px 18px; cursor: pointer; user-select: none;
+  }
+  .gas-card-head:hover { background: #f8fafd; }
+  .chev { width: 9px; height: 9px; flex-shrink: 0; position: relative; }
+  .chev::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border-right: 1.6px solid #8a94a3; border-bottom: 1.6px solid #8a94a3;
+    transform: rotate(-45deg); transition: transform .18s;
+  }
+  .gas-card.expanded .chev::before { transform: rotate(45deg); }
+  .gc-name { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
+  .gc-status { font-size: 12.5px; padding: 2px 12px; border-radius: 3px; }
+  .gc-status.on { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
+  .gc-status.off { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
+  .gc-time { margin-left: auto; color: #8a94a3; font-size: 13px; }
+  .gc-time b { color: #5a6472; font-weight: 500; }
+  .gas-card-body { display: none; border-top: 1px solid #eef1f6; padding: 16px 18px; }
+  .gas-card.expanded .gas-card-body { display: block; }
+  table.grid { width: 100%; border-collapse: collapse; }
+  table.grid th, table.grid td {
+    border: 1px solid #e6ebf2; padding: 10px 12px; text-align: center; font-size: 13.5px;
+  }
+  table.grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+  .gas-empty {
+    background: #fff; border: 1px dashed #d8e0ea; border-radius: 8px;
+    color: #a0a8b4; text-align: center; padding: 60px 0;
+  }
+
+  /* ===== 移动端视图 ===== */
+  .mobile-view {
+    display: none; position: fixed; inset: 0; background: #dfe3ea; z-index: 200;
+    overflow-y: auto;
+  }
+  .mobile-view.show { display: block; }
+  .mobile-page {
+    max-width: 430px; margin: 0 auto; min-height: 100vh;
+    background: #f4f6fa; display: flex; flex-direction: column;
+    box-shadow: 0 0 24px rgba(0, 0, 0, .25);
+  }
+  .m-head {
+    height: 48px; background: #fff; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; font-size: 16px; font-weight: 600; color: #1f2d3d;
+  }
+  .m-head .back { position: absolute; left: 14px; font-size: 20px; color: #333; cursor: pointer; }
+  .m-body { flex: 1; padding: 12px; }
+  .m-card { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+
+  /* 热工作业卡片 */
+  .work-card { display: flex; align-items: center; gap: 12px; }
+  .work-icon {
+    width: 42px; height: 42px; border-radius: 8px; flex-shrink: 0;
+    background: linear-gradient(135deg, #3d8bf8, #1f5fd0);
+    display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  .work-name { font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .work-no { font-size: 12.5px; color: #8a94a3; margin-top: 4px; }
+  .m-btn-realtime {
+    margin-left: auto; flex-shrink: 0;
+    background: #eaf4fe; color: #1f8ef1; border: 1px solid #b7d9fa;
+    padding: 7px 14px; border-radius: 16px; font-size: 13px; cursor: pointer;
+  }
+  .m-btn-realtime:active { opacity: .8; }
+  .btn-add {
+    background: #1f8ef1; color: #fff; border: none; padding: 9px 18px;
+    border-radius: 6px; font-size: 13.5px; cursor: pointer; margin-bottom: 12px;
+  }
+  .btn-add:active { opacity: .85; }
+
+  /* 分析记录卡片 */
+  .record-head { display: flex; align-items: center; margin-bottom: 12px; }
+  .record-badge {
+    width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+    background: #52c41a; color: #fff; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; margin-right: 10px;
+  }
+  .record-no { font-size: 14px; color: #333; }
+  .record-no b { color: #1f2d3d; }
+  .record-detail { margin-left: auto; color: #1f8ef1; font-size: 13px; cursor: pointer; }
+  .record-row { display: flex; font-size: 13.5px; padding: 5px 0; }
+  .record-row .lb { color: #8a94a3; width: 76px; flex-shrink: 0; }
+  .record-row .val { color: #333; }
+  .sign-wrap { display: flex; align-items: flex-end; gap: 12px; padding: 4px 0 4px 76px; }
+  .signature {
+    font-family: "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive;
+    font-size: 30px; color: #1a1a2e; transform: rotate(-4deg); line-height: 1;
+  }
+  .sign-time { color: #c0392b; font-size: 10px; line-height: 1.5; }
+  .record-more { text-align: right; color: #1f8ef1; font-size: 13px; cursor: pointer; padding-top: 8px; }
+
+  /* 移动端左下角：返回 Web 端 */
+  .m-web-link {
+    padding: 10px 16px 6px; color: #1296db; font-size: 15px;
+    cursor: pointer; background: #f4f6fa; flex-shrink: 0;
+  }
+
+  /* 移动端底部工具栏 */
+  .m-tabbar {
+    height: 54px; background: #fff; border-top: 1px solid #eceef2; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-around; color: #5a6472;
+  }
+  .m-tabbar .ti { font-size: 20px; cursor: pointer; }
+  .m-tabbar .ai {
+    width: 38px; height: 38px; border-radius: 50%; color: #fff; font-size: 15px; font-weight: 700;
+    background: linear-gradient(135deg, #f759ab, #9254de);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== 移动端实时数据弹窗 ===== */
+  .m-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 400;
+    display: none; align-items: center; justify-content: center;
+  }
+  .m-mask.show { display: flex; }
+  .m-dialog {
+    width: min(430px, 96vw); max-height: 82vh; background: #f4f6fa;
+    border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .m-dialog-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: #fff; border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .m-dialog-title { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
+  .m-dialog-close { color: #a0a8b4; font-size: 17px; cursor: pointer; }
+  .m-dialog-body { overflow-y: auto; padding: 12px; }
+  .m-dialog-foot {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: #fff;
+    border-top: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .m-dialog-foot .btn-close {
+    width: 100%; height: 42px; border: none; border-radius: 21px;
+    background: #1f8ef1; color: #fff; font-size: 15px; cursor: pointer;
+  }
+
+  /* 移动端探头卡片（两行式头部） */
+  .m-gas-card {
+    background: #fff; border-radius: 10px; margin-bottom: 10px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .06);
+  }
+  .m-gas-head { padding: 12px 14px; cursor: pointer; user-select: none; }
+  .m-gas-head:active { background: #f8fafd; }
+  .m-gas-row1 { display: flex; align-items: center; gap: 10px; }
+  .m-gas-row1 .gc-name { font-size: 14.5px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m-gas-row2 { display: flex; align-items: center; margin-top: 8px; padding-left: 19px; }
+  .m-gas-row2 .gc-time { margin-left: 0; font-size: 12px; }
+  .m-gas-body { display: none; border-top: 1px solid #eef1f6; padding: 10px 12px; }
+  .m-gas-card.expanded .m-gas-body { display: block; }
+  .m-gas-card.expanded .chev::before { transform: rotate(45deg); }
+  table.m-grid { width: 100%; border-collapse: collapse; }
+  table.m-grid th, table.m-grid td {
+    border: 1px solid #e6ebf2; padding: 8px 6px; text-align: center; font-size: 12.5px;
+  }
+  table.m-grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- 平台头部 -->
+<div class="platform-head">
+  <div class="ph-logo">
+    <div class="mark"></div>
+    <div>
+      <div class="t1">EHSS数字化管控平台</div>
+      <div class="t2">I-SHEM Platform</div>
+    </div>
+  </div>
+  <div class="ph-user"><span class="uavatar">沈</span> 沈青荣</div>
+</div>
+
+<!-- 页签栏 -->
+<div class="tabs-bar">
+  <span class="fold">☰</span>
+  <span class="fold">‹</span>
+  <span class="chip" onclick="location.href='gas-analysis.html'">气体分析设置 <span class="x">✕</span></span>
+  <span class="chip active">作业台账 <span class="x">✕</span></span>
+</div>
+
+<div class="layout">
+  <!-- 左侧菜单 -->
+  <div class="side-menu">
+    <div class="sm-item"><span class="ic">🛡</span>安全风险管控 <span class="exp">⌄</span></div>
+    <div class="sm-item"><span class="ic">▤</span>基础信息 <span class="exp">⌄</span></div>
+    <div class="sm-item"><span class="ic">✔</span>审批管理 <span class="exp">⌄</span></div>
+    <div class="sm-item"><span class="ic">▦</span>作业台账 <span class="exp">⌃</span></div>
+    <div class="sm-sub active">作业台账</div>
+    <div class="sm-sub">督察记录</div>
+    <div class="sm-sub">票证管理</div>
+    <div class="sm-item"><span class="ic">▧</span>作业许可管理 <span class="exp">⌄</span></div>
+    <div class="sm-item"><span class="ic">◷</span>作业预约管理 <span class="exp">⌄</span></div>
+    <div class="sm-item"><span class="ic">◎</span>监管项目</div>
+  </div>
+
+  <!-- 主区域 -->
+  <div class="content">
+    <!-- 页内页签 -->
+    <div class="inner-tabs">
+      <div class="inner-tab" data-panel="p1">作业详情</div>
+      <div class="inner-tab" data-panel="p2">作业过程</div>
+      <div class="inner-tab" data-panel="p3">流程状态</div>
+      <div class="inner-tab" data-panel="p4">定位信息</div>
+      <div class="inner-tab active" data-panel="p5">气体分析实时数据</div>
+    </div>
+
+    <!-- 作业详情 -->
+    <div class="panel" id="p1"><div class="placeholder">作业详情（示例占位）</div></div>
+    <!-- 作业过程 -->
+    <div class="panel" id="p2"><div class="placeholder">作业过程（示例占位）</div></div>
+    <!-- 流程状态 -->
+    <div class="panel" id="p3"><div class="placeholder">流程状态（示例占位）</div></div>
+
+    <!-- 定位信息 -->
+    <div class="panel" id="p4">
+      <div class="map-wrap">
+        <div class="map-box">
+          <svg id="siteSvg" viewBox="0 0 1000 700" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#2e6d7c"/>
+                <stop offset="1" stop-color="#4b8f96"/>
+              </linearGradient>
+              <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#8f8a76"/>
+                <stop offset="1" stop-color="#79866a"/>
+              </linearGradient>
+            </defs>
+            <rect width="1000" height="700" fill="url(#land)"/>
+            <polygon fill="url(#sea)" points="0,0 620,0 560,90 520,150 470,210 440,290 400,360 360,440 280,520 160,600 60,700 0,700"/>
+            <polygon fill="#c9bfa4" opacity=".75" points="620,0 560,90 520,150 470,210 440,290 400,360 360,440 280,520 160,600 60,700 200,700 320,600 420,520 470,440 500,360 540,290 580,210 645,120 685,40 685,0"/>
+            <polygon fill="rgba(35,125,245,.28)" stroke="rgba(90,170,255,.9)" stroke-width="2"
+              points="470,210 540,120 640,60 780,40 1000,28 1000,700 380,700 400,520 430,420 440,330"/>
+            <text x="500" y="415" fill="#fff" font-size="17" text-anchor="middle"
+              style="paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px;">福建古雷中沙石化</text>
+          </svg>
+        </div>
+        <div class="map-layers">
+          <div class="layer-box">
+            <label><input type="checkbox" checked data-layer="layer-grid2"> 2级网格</label>
+            <label><input type="checkbox" checked data-layer="layer-grid1"> 1级网格</label>
+          </div>
+          <div class="layer-box">
+            <label><input type="checkbox" checked data-layer="floor1"> 一层</label>
+            <label><input type="checkbox" checked data-layer="floor2"> 二层</label>
+            <label><input type="checkbox" checked data-layer="floor3"> 三层</label>
+            <label><input type="checkbox" checked data-layer="floor4"> 四层</label>
+          </div>
+        </div>
+        <div class="map-scale"><div class="bar"></div>300 m</div>
+      </div>
+    </div>
+
+    <!-- 气体分析实时数据 -->
+    <div class="panel active" id="p5">
+      <div id="cardList"></div>
+      <div class="gas-empty" id="cardEmpty" style="display:none">暂无气体探头数据</div>
+    </div>
+  </div>
+</div>
+
+<!-- Web 端左下角：切换移动端 -->
+<button class="float-mobile-btn" id="floatMobileBtn" onclick="showMobile()">移动端</button>
+
+<!-- ============ 移动端视图：作业分析 ============ -->
+<div class="mobile-view" id="mobileView">
+  <div class="mobile-page">
+    <div class="m-head">
+      <span class="back" onclick="showWeb()">‹</span>
+      作业分析
+    </div>
+    <div class="m-body">
+      <!-- 热工作业卡片 -->
+      <div class="m-card work-card">
+        <div class="work-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z"/><path d="M12 12l7-4M12 12v8M12 12L5 8"/></svg>
+        </div>
+        <div>
+          <div class="work-name">热工作业</div>
+          <div class="work-no">HW-20260914-0002</div>
+        </div>
+        <button class="m-btn-realtime" onclick="openMobileData()">实时数据</button>
+      </div>
+
+      <!-- 录入按钮 -->
+      <button class="btn-add">＋ 录入气体分析</button>
+
+      <!-- 分析记录卡片 -->
+      <div class="m-card">
+        <div class="record-head">
+          <span class="record-badge">2</span>
+          <span class="record-no">作业编号：<b>HW-20260914-0002</b></span>
+          <span class="record-detail">详情</span>
+        </div>
+        <div class="record-row"><span class="lb">分析气体：</span><span class="val">甲烷&nbsp; 甲烷&nbsp; 甲烷</span></div>
+        <div class="record-row"><span class="lb">分析时间：</span><span class="val">2026-09-14 12:04:47</span></div>
+        <div class="record-row"><span class="lb">分析判断：</span><span class="val">合格</span></div>
+        <div class="record-row"><span class="lb">分析人：</span><span class="val">hsk</span></div>
+        <div class="sign-wrap">
+          <span class="signature">HSK</span>
+          <span class="sign-time">2026-09-14<br>12:05:12</span>
+        </div>
+        <div class="record-more">查看更多(2)</div>
+      </div>
+    </div>
+
+    <!-- 移动端左下角：返回 Web 端 -->
+    <div class="m-web-link" onclick="showWeb()">web端</div>
+
+    <!-- 移动端底部工具栏 -->
+    <div class="m-tabbar">
+      <span class="ti">‹</span>
+      <span class="ti">▢</span>
+      <span class="ai">Ai</span>
+      <span class="ti">☰</span>
+      <span class="ti">⌂</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 移动端实时数据弹窗 ============ -->
+<div class="m-mask" id="mDataMask">
+  <div class="m-dialog">
+    <div class="m-dialog-head">
+      <span class="m-dialog-title">实时数据</span>
+      <span class="m-dialog-close" onclick="closeMobileData()">✕</span>
+    </div>
+    <div class="m-dialog-body" id="mCardList"></div>
+    <div class="m-dialog-foot">
+      <button class="btn-close" onclick="closeMobileData()">关 闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ================= Web / 移动端切换 ================= */
+  function showMobile() {
+    document.getElementById('mobileView').classList.add('show');
+    document.getElementById('floatMobileBtn').style.display = 'none';
+  }
+  function showWeb() {
+    document.getElementById('mobileView').classList.remove('show');
+    document.getElementById('floatMobileBtn').style.display = '';
+    closeMobileData();
+  }
+
+  /* ================= 移动端实时数据弹窗 ================= */
+  function openMobileData() { showMask('mDataMask'); }
+  function closeMobileData() { closeMask('mDataMask'); }
+  function showMask(id) { document.getElementById(id).classList.add('show'); }
+  function closeMask(id) { document.getElementById(id).classList.remove('show'); }
+  document.getElementById('mDataMask').addEventListener('click', function (e) {
+    if (e.target === this) closeMobileData();
+  });
+
+  /* ================= 页内页签切换 ================= */
+  document.querySelectorAll('.inner-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.inner-tab').forEach(function (t) { t.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.getAttribute('data-panel')).classList.add('active');
+    });
+  });
+
+  /* ================= 定位信息地图图层 ================= */
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var siteZones = [
+    { name: '混合蒸汽裂解装置', x: 870, y: 35, w: 130, h: 70 },
+    { name: '碳四加氢装置', x: 700, y: 60, w: 120, h: 60 },
+    { name: '苯乙烯抽提装置', x: 700, y: 120, w: 120, h: 55 },
+    { name: '丁二烯抽提装置', x: 830, y: 120, w: 130, h: 55 },
+    { name: '芳烃抽提装置', x: 700, y: 170, w: 120, h: 50 },
+    { name: '天然气计量站', x: 830, y: 170, w: 130, h: 50 },
+    { name: '火炬气回收站', x: 700, y: 215, w: 120, h: 50 },
+    { name: '己烯-1装置', x: 830, y: 215, w: 130, h: 50 },
+    { name: '二氧化碳回收预留', x: 700, y: 265, w: 260, h: 45 },
+    { name: '1号罐区', x: 560, y: 130, w: 130, h: 110 },
+    { name: '环氧乙烷/乙二醇装置', x: 560, y: 260, w: 260, h: 90 },
+    { name: '2号循环水场', x: 700, y: 355, w: 120, h: 55 },
+    { name: '环氧乙烷存储及装车站', x: 830, y: 355, w: 150, h: 55 },
+    { name: '聚乙烯包装及仓库', x: 560, y: 420, w: 260, h: 70 },
+    { name: '3号罐区/汽车装卸车场及叉车充电间', x: 480, y: 455, w: 190, h: 65 },
+    { name: '集装箱堆场', x: 700, y: 495, w: 180, h: 50 },
+    { name: '企业消防站(含气防站)', x: 890, y: 495, w: 110, h: 50 },
+    { name: '2号消防水泵房', x: 560, y: 540, w: 150, h: 50 },
+    { name: '聚丙烯包装及仓库', x: 390, y: 560, w: 140, h: 60 },
+    { name: '聚丙烯装置', x: 540, y: 575, w: 150, h: 60 },
+    { name: '均聚/无规聚丙烯装置', x: 390, y: 630, w: 150, h: 55 },
+    { name: '苯酚丙酮/异丙苯装置', x: 550, y: 645, w: 230, h: 50 },
+    { name: '综合仓库', x: 390, y: 665, w: 140, h: 35 }
+  ];
+  var floorPoints = {
+    floor1: [[620, 180], [760, 90], [900, 145], [620, 305], [900, 385], [620, 455]],
+    floor2: [[660, 220], [800, 240], [940, 200], [700, 440], [840, 525], [470, 590]],
+    floor3: [[590, 160], [740, 145], [880, 250], [640, 380], [780, 480], [500, 530]],
+    floor4: [[610, 250], [760, 190], [920, 320], [680, 405], [860, 445], [450, 640]]
+  };
+  function svgEl(tag, attrs, parent) {
+    var el = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    parent.appendChild(el);
+    return el;
+  }
+  (function buildMapLayers() {
+    var svg = document.getElementById('siteSvg');
+    var g2 = svgEl('g', { id: 'layer-grid2' }, svg);
+    siteZones.forEach(function (z) {
+      svgEl('rect', {
+        x: z.x, y: z.y, width: z.w, height: z.h,
+        fill: 'rgba(25,110,240,.30)', stroke: 'rgba(130,195,255,.95)', 'stroke-width': 1.5
+      }, g2);
+      svgEl('text', {
+        x: z.x + z.w / 2, y: z.y + z.h / 2 + 5, fill: '#fff', 'font-size': 14,
+        'text-anchor': 'middle', style: 'paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px;'
+      }, g2).textContent = z.name;
+    });
+    var g1 = svgEl('g', { id: 'layer-grid1', opacity: .5 }, svg);
+    for (var x = 420; x <= 1000; x += 40) {
+      svgEl('line', { x1: x, y1: 40, x2: x, y2: 700, stroke: 'rgba(150,205,255,.8)', 'stroke-width': 1 }, g1);
+    }
+    for (var y = 40; y <= 700; y += 40) {
+      svgEl('line', { x1: 420, y1: y, x2: 1000, y2: y, stroke: 'rgba(150,205,255,.8)', 'stroke-width': 1 }, g1);
+    }
+    for (var f = 1; f <= 4; f++) {
+      var gf = svgEl('g', { id: 'floor' + f }, svg);
+      floorPoints['floor' + f].forEach(function (p) {
+        svgEl('circle', { cx: p[0], cy: p[1], r: 10, fill: 'rgba(30,120,245,.75)', stroke: '#fff', 'stroke-width': 1.5 }, gf);
+        svgEl('text', { x: p[0], y: p[1] + 4, fill: '#fff', 'font-size': 11, 'text-anchor': 'middle' }, gf).textContent = f + '层';
+      });
+    }
+  })();
+  document.querySelectorAll('[data-layer]').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var g = document.getElementById(cb.getAttribute('data-layer'));
+      if (g) g.style.display = cb.checked ? '' : 'none';
+    });
+  });
+
+  /* ================= 探头卡片数据 ================= */
+  var defaultCards = [
+    { name: '1号罐区-可燃气体探头A', online: true, configTime: '2026-09-01 08:30:00' },
+    { name: '裂解装置-硫化氢探头B', online: true, configTime: '2026-09-05 14:12:36' },
+    { name: '乙烯罐区-氧气探头C', online: false, configTime: '2026-08-22 09:05:51' },
+    { name: '泵区-一氧化碳探头D', online: true, configTime: '2026-09-12 16:45:09' }
+  ];
+  try {
+    var savedProbes = JSON.parse(localStorage.getItem('gas_probes') || '[]');
+    savedProbes.forEach(function (p, i) {
+      defaultCards.push({
+        name: p.name,
+        online: i % 2 === 0,
+        configTime: '2026-09-14 10:2' + i + ':0' + (i % 10)
+      });
+    });
+  } catch (e) {}
+
+  function gasTypesOf(name) {
+    var types = [];
+    if (/可燃|甲烷/.test(name)) types.push('甲烷');
+    if (/硫化氢/.test(name)) types.push('硫化氢');
+    if (/一氧化碳|CO/i.test(name)) types.push('一氧化碳');
+    if (/氧/.test(name)) types.push('氧气');
+    if (!types.length) types = ['甲烷', '氧气'];
+    return types;
+  }
+  function fmtDateTime(d) {
+    function pad(n) { return ('0' + n).slice(-2); }
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+      ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  function readingRows(types) {
+    var now = Date.now();
+    var rows = [];
+    types.forEach(function (t, i) {
+      var d = new Date(now - (i * 3 + 2) * 60 * 1000);
+      var val = (4 + Math.random() * 40).toFixed(1);
+      rows.push('<tr><td>' + t + '</td><td>' + fmtDateTime(d) + '</td><td>' + val + ' PPM</td></tr>');
+    });
+    return rows.join('');
+  }
+
+  // Web 端卡片
+  function renderCards() {
+    var list = document.getElementById('cardList');
+    document.getElementById('cardEmpty').style.display = defaultCards.length ? 'none' : 'block';
+    list.innerHTML = defaultCards.map(function (c) {
+      return '<div class="gas-card">' +
+        '<div class="gas-card-head" onclick="toggleCard(this)">' +
+          '<span class="chev"></span>' +
+          '<span class="gc-name">' + c.name + '</span>' +
+          '<span class="gc-status ' + (c.online ? 'on' : 'off') + '">' + (c.online ? '在线' : '不在线') + '</span>' +
+          '<span class="gc-time">配置时间：<b>' + c.configTime + '</b></span>' +
+        '</div>' +
+        '<div class="gas-card-body">' +
+          '<table class="grid">' +
+            '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th></tr></thead>' +
+            '<tbody>' + readingRows(gasTypesOf(c.name)) + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+  function toggleCard(head) {
+    head.parentElement.classList.toggle('expanded');
+  }
+
+  // 移动端弹窗卡片（两行式排版）
+  function renderMobileCards() {
+    document.getElementById('mCardList').innerHTML = defaultCards.map(function (c) {
+      return '<div class="m-gas-card">' +
+        '<div class="m-gas-head" onclick="toggleCard(this)">' +
+          '<div class="m-gas-row1">' +
+            '<span class="chev"></span>' +
+            '<span class="gc-name">' + c.name + '</span>' +
+            '<span class="gc-status ' + (c.online ? 'on' : 'off') + '">' + (c.online ? '在线' : '不在线') + '</span>' +
+          '</div>' +
+          '<div class="m-gas-row2">' +
+            '<span class="gc-time">配置时间：<b>' + c.configTime + '</b></span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="m-gas-body">' +
+          '<table class="m-grid">' +
+            '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th></tr></thead>' +
+            '<tbody>' + readingRows(gasTypesOf(c.name)) + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  renderCards();
+  renderMobileCards();
+</script>
+</body>
+</html>

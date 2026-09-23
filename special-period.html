@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>特殊时段配置 - 特殊作业</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9;
+    color: #333;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 平台头部 ===== */
+  .platform-head {
+    height: 54px; flex-shrink: 0;
+    background: linear-gradient(90deg, #16233f 0%, #1d3054 60%, #243a66 100%);
+    display: flex; align-items: center; padding: 0 20px;
+  }
+  .ph-logo { display: flex; align-items: center; gap: 10px; }
+  .ph-logo .mark {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: conic-gradient(from 200deg, #f7c948, #2f9df4, #16233f);
+  }
+  .ph-logo .t1 { color: #fff; font-size: 17px; font-weight: 600; letter-spacing: 1px; }
+  .ph-logo .t2 { color: rgba(255,255,255,.45); font-size: 11px; }
+  .ph-title { color: #fff; font-size: 16px; font-weight: 600; margin-left: 26px; }
+  .ph-right { margin-left: auto; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.85); cursor: pointer; }
+  .ph-right .uavatar {
+    width: 28px; height: 28px; border-radius: 50%; background: #3a517c;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px;
+  }
+
+  /* ===== 页签栏 ===== */
+  .tabs-bar {
+    height: 42px; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+  }
+  .tabs-bar .fold { color: #5a6472; cursor: pointer; padding: 4px 8px; font-size: 15px; }
+  .chip {
+    border: 1px solid #d8e0ea; border-radius: 4px; padding: 5px 10px;
+    color: #5a6472; font-size: 13px; cursor: pointer; background: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chip.active { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .chip .x { color: #a0a8b4; font-size: 12px; }
+  .chip .x:hover { color: #e64340; }
+
+  .layout { flex: 1; display: flex; min-height: 0; }
+
+  /* ===== 左侧菜单 ===== */
+  .side-menu {
+    width: 200px; flex-shrink: 0; overflow-y: auto;
+    background: linear-gradient(180deg, #1c2c4e 0%, #1f3a63 100%);
+    padding: 10px 0;
+  }
+  .sm-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px;
+  }
+  .sm-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sm-item .ic { width: 16px; text-align: center; opacity: .8; }
+  .sm-item .exp { margin-left: auto; font-size: 11px; opacity: .6; }
+  .sm-sub { padding-left: 44px; color: rgba(255,255,255,.65); font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+  .sm-sub:hover { color: #fff; }
+  .sm-sub.active {
+    color: #fff; background: linear-gradient(90deg, #2f9df4, transparent);
+    border-left: 3px solid #f7c948; padding-left: 41px;
+  }
+
+  /* ===== 主区域 ===== */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px 40px; min-width: 0; }
+
+  .pane-box {
+    background: #fff; border: 1px solid #e6ebf2; border-radius: 6px;
+    padding: 16px; min-height: calc(100vh - 190px);
+  }
+
+  .cfg-layout { display: flex; gap: 16px; align-items: flex-start; }
+  .cal-wrap { width: 470px; flex-shrink: 0; }
+  .list-wrap { flex: 1; min-width: 0; }
+
+  .panel {
+    border: 1px solid #e6ebf2; border-radius: 8px; background: #fff;
+    display: flex; flex-direction: column;
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    border-bottom: 1px solid #eef1f6; flex-wrap: wrap;
+  }
+  .panel-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .panel-hint { font-size: 12.5px; color: #8a94a3; }
+  .panel-head .spacer { margin-left: auto; }
+  .panel-body { padding: 12px 14px; }
+
+  .btn {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472;
+    padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 13px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { background: #3da1f3; color: #fff; }
+
+  /* ===== 日历 ===== */
+  .cal-title {
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+    padding: 6px 0 12px;
+  }
+  .cal-nav {
+    width: 30px; height: 30px; border: none; background: none; cursor: pointer;
+    font-size: 18px; color: #5a6472; border-radius: 6px;
+  }
+  .cal-nav:hover { background: #f0f4f9; color: #1f8ef1; }
+  .cal-ym { font-size: 26px; font-weight: 600; color: #1f2d3d; letter-spacing: 1px; }
+  .cal-week { display: flex; }
+  .cal-week span {
+    flex: 1; text-align: center; font-size: 13px; color: #5a6472; padding: 6px 0;
+  }
+  .cal-grid { display: flex; flex-wrap: wrap; }
+  .cal-cell {
+    width: 14.2857%; padding: 7px 0 6px; text-align: center; cursor: pointer;
+    border-radius: 8px; user-select: none;
+  }
+  .cal-cell:hover { background: #f0f4f9; }
+  .cal-cell.other .cal-num, .cal-cell.other .cal-lunar { color: #c9ced8; }
+  .cal-num { font-size: 16.5px; font-weight: 600; color: #1f2d3d; line-height: 1.3; }
+  .cal-lunar { font-size: 11px; color: #9aa2ae; margin-top: 2px; height: 14px; overflow: hidden; }
+  .cal-cell.festival .cal-lunar { color: #e64340; }
+  /* 今天 */
+  .cal-cell.today { background: #1f8ef1; }
+  .cal-cell.today .cal-num, .cal-cell.today .cal-lunar { color: #fff; }
+  .cal-cell.today.festival .cal-lunar { color: #ffe2e0; }
+  /* 特殊时段覆盖的日期 */
+  .cal-cell.special { background: #ffe7ba; }
+  .cal-cell.special .cal-num { color: #ad4e00; }
+  .cal-cell.special .cal-lunar { color: #d48806; }
+  .cal-cell.special.festival .cal-lunar { color: #cf1322; }
+  /* 选中（当天筛选） */
+  .cal-cell.selected { box-shadow: inset 0 0 0 2px #1f8ef1; }
+  .cal-cell.special.selected { box-shadow: inset 0 0 0 2px #ad4e00; }
+  .cal-cell.today.selected { box-shadow: inset 0 0 0 2px #0d5fb8; }
+  .cal-legend {
+    display: flex; gap: 18px; padding: 10px 6px 2px; font-size: 12.5px; color: #5a6472;
+  }
+  .cal-legend i {
+    display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+    margin-right: 5px; vertical-align: -1px;
+  }
+
+  /* ===== 右侧列表 ===== */
+  table.sp-grid { width: 100%; border-collapse: collapse; }
+  table.sp-grid th, table.sp-grid td {
+    border: 1px solid #e6ebf2; padding: 10px 12px; font-size: 13px; text-align: center;
+  }
+  table.sp-grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+  table.sp-grid td.sp-reason { text-align: left; color: #333; max-width: 220px; }
+  .sp-time { line-height: 1.7; color: #333; white-space: nowrap; }
+  .sp-time b { color: #1f2d3d; font-weight: 600; }
+  .op-link { color: #1f8ef1; cursor: pointer; margin: 0 6px; }
+  .op-link:hover { text-decoration: underline; }
+  .op-link.danger { color: #e64340; }
+  .clear-filter { color: #1f8ef1; cursor: pointer; margin-left: 6px; }
+  .clear-filter:hover { text-decoration: underline; }
+  .empty-tip { color: #a0a8b4; text-align: center; padding: 40px 0; font-size: 13px; }
+
+  /* ===== 弹窗 ===== */
+  .m-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+  }
+  .m-mask.show { display: flex; }
+  .m-dialog {
+    width: 480px; background: #fff; border-radius: 10px; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .m-head {
+    display: flex; align-items: center; padding: 14px 18px;
+    border-bottom: 1px solid #eef1f6;
+  }
+  .m-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .m-close { margin-left: auto; color: #5a6472; font-size: 17px; cursor: pointer; }
+  .m-body { padding: 18px; }
+  .m-label { font-size: 13.5px; color: #333; margin: 14px 0 8px; }
+  .m-label:first-child { margin-top: 0; }
+  .m-label .req { color: #e64340; margin-right: 3px; }
+  .m-time-row { display: flex; align-items: center; gap: 8px; }
+  .m-date {
+    flex: 1; height: 36px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 0 8px; font-size: 13px; outline: none; color: #333; min-width: 0;
+  }
+  .m-time {
+    width: 130px; height: 36px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 0 8px; font-size: 13px; outline: none; color: #333;
+  }
+  .m-date:focus, .m-time:focus { border-color: #1f8ef1; }
+  .m-area {
+    width: 100%; height: 74px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 8px 10px; font-size: 13.5px; outline: none; resize: none; font-family: inherit;
+  }
+  .m-area:focus { border-color: #1f8ef1; }
+  .m-meta {
+    display: flex; gap: 26px; background: #f7f9fc; border-radius: 6px;
+    padding: 10px 12px; font-size: 12.5px; color: #5a6472;
+  }
+  .m-meta b { color: #333; font-weight: 500; }
+  .m-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 0 18px 16px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- 平台头部 -->
+<div class="platform-head">
+  <div class="ph-logo">
+    <div class="mark"></div>
+    <div>
+      <div class="t1">EHSS数字化管控平台</div>
+      <div class="t2">I-SHEM Platform</div>
+    </div>
+  </div>
+  <span class="ph-title">特殊作业</span>
+  <div class="ph-right"><span class="uavatar">沈</span> 沈青荣 ⌄</div>
+</div>
+
+<!-- 页签栏 -->
+<div class="tabs-bar">
+  <span class="fold">☰</span>
+  <span class="fold">‹</span>
+  <span class="chip">作业统计 <span class="x">✕</span></span>
+  <span class="chip">作业台账 <span class="x">✕</span></span>
+  <span class="chip">作业工作流 <span class="x">✕</span></span>
+  <span class="chip">作业预约清单 <span class="x">✕</span></span>
+  <span class="chip">高处作业 <span class="x">✕</span></span>
+  <span class="chip">盲板抽堵作业 <span class="x">✕</span></span>
+  <span class="chip">安全措施 <span class="x">✕</span></span>
+  <span class="chip" onclick="location.href='guardian-config.html'">监护项配置 <span class="x">✕</span></span>
+  <span class="chip" onclick="location.href='tool-config.html'">工器具配置 <span class="x">✕</span></span>
+  <span class="chip active">特殊时段配置 <span class="x">✕</span></span>
+</div>
+
+<div class="layout">
+  <!-- 左侧菜单 -->
+  <div class="side-menu">
+    <div class="sm-item"><span class="ic">⚙</span>作业设置 <span class="exp">⌄</span></div>
+    <div class="sm-sub">作业工作流</div>
+    <div class="sm-sub">作业有效期</div>
+    <div class="sm-sub">风险辨识选项</div>
+    <div class="sm-sub">安全措施</div>
+    <div class="sm-sub" onclick="location.href='guardian-config.html'">监护项配置</div>
+    <div class="sm-sub" onclick="location.href='tool-config.html'">工器具配置</div>
+    <div class="sm-sub active">特殊时段配置</div>
+    <div class="sm-sub">安全作业方案</div>
+    <div class="sm-sub">JSA工作安全分析</div>
+    <div class="sm-sub">JSA分析库</div>
+    <div class="sm-sub">流程标识</div>
+    <div class="sm-sub" onclick="location.href='gas-analysis.html'">气体分析设置</div>
+    <div class="sm-sub">项目审批流</div>
+    <div class="sm-sub">动火方式设置</div>
+    <div class="sm-sub">JSA审批流</div>
+    <div class="sm-sub">安全作业方案审批流</div>
+    <div class="sm-sub">登高作业方式设置</div>
+  </div>
+
+  <!-- 主区域 -->
+  <div class="content">
+    <div class="pane-box">
+      <div class="cfg-layout">
+        <!-- 左：日历 -->
+        <div class="cal-wrap">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">特殊日期日历</span>
+              <span class="panel-hint">点击日期可筛选当天特殊时段</span>
+            </div>
+            <div class="panel-body">
+              <div class="cal-title">
+                <button class="cal-nav" onclick="shiftMonth(-1)">‹</button>
+                <span class="cal-ym" id="calYM">2026 / 9</span>
+                <button class="cal-nav" onclick="shiftMonth(1)">›</button>
+              </div>
+              <div class="cal-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+              <div class="cal-grid" id="calGrid"></div>
+              <div class="cal-legend">
+                <span><i style="background:#1f8ef1"></i>今天</span>
+                <span><i style="background:#ffe7ba"></i>特殊时段</span>
+                <span><i style="background:#fff;border:1px solid #1f8ef1"></i>选中日期</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右：特殊时段列表 -->
+        <div class="list-wrap">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">特殊时段</span>
+              <span class="panel-hint" id="spHint"></span>
+              <span class="spacer"></span>
+              <button class="btn primary" onclick="openSpModal('add')">＋ 新增标记</button>
+            </div>
+            <div class="panel-body" id="spList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 新增/调整特殊时段弹窗 ============ -->
+<div class="m-mask" id="spMask">
+  <div class="m-dialog">
+    <div class="m-head">
+      <span class="m-title" id="spModalTitle">新增特殊时段标记</span>
+      <span class="m-close" onclick="closeSpModal()">✕</span>
+    </div>
+    <div class="m-body">
+      <div class="m-label"><span class="req">*</span>开始时间</div>
+      <div class="m-time-row">
+        <input type="date" class="m-date" id="spStartDate">
+        <input type="time" class="m-time" id="spStartTime" step="1">
+      </div>
+      <div class="m-label"><span class="req">*</span>结束时间</div>
+      <div class="m-time-row">
+        <input type="date" class="m-date" id="spEndDate">
+        <input type="time" class="m-time" id="spEndTime" step="1">
+      </div>
+      <div class="m-label"><span class="req">*</span>标记理由</div>
+      <textarea class="m-area" id="spReason" placeholder="请输入标记为特殊时段的理由"></textarea>
+      <div class="m-meta" style="margin-top:14px;">
+        <span>标记人：<b id="spMarker">沈青荣</b></span>
+        <span>标记时间：<b id="spMarkTime">-</b></span>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeSpModal()">取 消</button>
+      <button class="btn primary" onclick="savePeriod()">保 存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ================= 农历数据与换算（1900-2100） ================= */
+  var lunarInfo = new Array(
+    0x04bd8,0x04ae8,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+    0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+    0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+    0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+    0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+    0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,
+    0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+    0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b5a0,0x195a6,
+    0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+    0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x05ac0,0x0ab60,0x096d5,0x092e0,
+    0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+    0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+    0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+    0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+    0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,
+    0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,
+    0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,
+    0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,
+    0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,
+    0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,0x0d520);
+  var nStr1 = ['日','一','二','三','四','五','六','七','八','九','十'];
+  var nStr2 = ['初','十','廿','卅'];
+  var nStr3 = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+  var lFtv = { '1-1': '春节', '1-15': '元宵', '5-5': '端午', '7-7': '七夕', '8-15': '中秋', '9-9': '重阳' };
+  var sFtv = { '9-3': '抗战胜利', '9-10': '教师节', '9-18': '九一八' };
+
+  function lYearDays(y) { var i, sum = 348; for (i = 0x8000; i > 0x8; i >>= 1) { sum += (lunarInfo[y - 1900] & i) ? 1 : 0; } return sum + leapDays(y); }
+  function leapMonth(y) { return lunarInfo[y - 1900] & 0xf; }
+  function leapDays(y) { if (leapMonth(y)) { return (lunarInfo[y - 1900] & 0x10000) ? 30 : 29; } return 0; }
+  function monthDays(y, m) { return (lunarInfo[y - 1900] & (0x10000 >> m)) ? 30 : 29; }
+
+  function getLunar(y, m, d) {
+    var offset = Math.floor((Date.UTC(y, m - 1, d) - Date.UTC(1900, 0, 31)) / 86400000);
+    var temp = 0, i;
+    for (i = 1900; i < 2101 && offset > 0; i++) { temp = lYearDays(i); offset -= temp; }
+    if (offset < 0) { offset += temp; i--; }
+    var year = i;
+    var leap = leapMonth(year);
+    var isLeap = false;
+    for (i = 1; i < 13 && offset > 0; i++) {
+      if (leap > 0 && i === (leap + 1) && !isLeap) { --i; isLeap = true; temp = leapDays(year); }
+      else { temp = monthDays(year, i); }
+      offset -= temp;
+      if (isLeap && i === (leap + 1)) isLeap = false;
+    }
+    if (offset === 0 && leap > 0 && i === leap + 1) {
+      if (isLeap) { isLeap = false; } else { isLeap = true; --i; }
+    }
+    if (offset < 0) { offset += temp; --i; }
+    return { year: year, month: i, day: offset + 1, isLeap: isLeap };
+  }
+  function cDay(d) {
+    if (d === 10) return '初十';
+    if (d === 20) return '二十';
+    if (d === 30) return '三十';
+    return nStr2[Math.floor(d / 10)] + nStr1[d % 10];
+  }
+  function lunarText(y, m, d) {
+    var l = getLunar(y, m, d);
+    var key = l.month + '-' + l.day;
+    var sf = sFtv[m + '-' + d];
+    if (sf) return { text: sf, festival: true };
+    if (lFtv[key]) return { text: lFtv[key], festival: true };
+    if (l.day === 1) return { text: (l.isLeap ? '闰' : '') + nStr3[l.month - 1] + '月', festival: false };
+    return { text: cDay(l.day), festival: false };
+  }
+
+  /* ================= 数据（localStorage 持久化） ================= */
+  var STORE_KEY = 'special_periods';
+  var periods = loadPeriods();
+  var selectedDay = null; // 'YYYY-MM-DD'，点击日历筛选
+
+  function defaultPeriods() {
+    return [
+      { id: 1, start: '2026-09-20 08:00:00', end: '2026-09-21 18:30:00',
+        marker: '李佳峻', markTime: '2026-09-15 09:12:05', reason: '全厂大检修窗口期，特殊作业升级管控' },
+      { id: 2, start: '2026-09-25 00:00:00', end: '2026-09-27 23:59:59',
+        marker: '沈青荣', markTime: '2026-09-10 14:22:31', reason: '中秋节假期，厂区禁止动火作业' }
+    ];
+  }
+  function loadPeriods() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* 忽略损坏数据，使用默认 */ }
+    return defaultPeriods();
+  }
+  function savePeriods() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(periods));
+  }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtDT(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  function parseDT(s) { // 'YYYY-MM-DD HH:mm:ss' -> Date
+    var p = s.split(/[- :]/);
+    return new Date(+p[0], +p[1] - 1, +p[2], +p[3], +p[4], +p[5]);
+  }
+  function fmtCN(s) { // 'YYYY-MM-DD HH:mm:ss' -> 'YYYY年MM月DD日 HH点mm分ss秒'
+    var p = s.split(/[- :]/);
+    return p[0] + '年' + p[1] + '月' + p[2] + '日 ' + p[3] + '点' + p[4] + '分' + p[5] + '秒';
+  }
+  /* 某天是否与某时段重叠 */
+  function dayOverlap(dayStr, rec) {
+    var dayStart = parseDT(dayStr + ' 00:00:00');
+    var dayEnd = parseDT(dayStr + ' 23:59:59');
+    return dayStart <= parseDT(rec.end) && dayEnd >= parseDT(rec.start);
+  }
+
+  /* ================= 日历渲染 ================= */
+  var now = new Date();
+  var calYear = now.getFullYear();
+  var calMonth = now.getMonth() + 1;
+  var todayStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+
+  function shiftMonth(n) {
+    calMonth += n;
+    if (calMonth > 12) { calMonth = 1; calYear++; }
+    if (calMonth < 1) { calMonth = 12; calYear--; }
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    document.getElementById('calYM').textContent = calYear + ' / ' + calMonth;
+    var firstWeek = new Date(calYear, calMonth - 1, 1).getDay();
+    var daysInMonth = new Date(calYear, calMonth, 0).getDate();
+    var prevDays = new Date(calYear, calMonth - 1, 0).getDate();
+    var cells = [];
+    for (var i = 0; i < 42; i++) {
+      var num = i - firstWeek + 1;
+      var y = calYear, m = calMonth, d = num, inMonth = true;
+      if (num < 1) { m = calMonth - 1; d = prevDays + num; inMonth = false; }
+      else if (num > daysInMonth) { m = calMonth + 1; d = num - daysInMonth; inMonth = false; }
+      if (m < 1) { m = 12; y--; } else if (m > 12) { m = 1; y++; }
+      cells.push({ y: y, m: m, d: d, inMonth: inMonth });
+      if (i >= 34 && d + 7 > (inMonth ? daysInMonth : 31) && (i + 1) % 7 === 0) break;
+    }
+    document.getElementById('calGrid').innerHTML = cells.map(function (c) {
+      var ds = c.y + '-' + pad(c.m) + '-' + pad(c.d);
+      var lu = lunarText(c.y, c.m, c.d);
+      var isSpecial = periods.some(function (p) { return dayOverlap(ds, p); });
+      var cls = 'cal-cell';
+      if (!c.inMonth) cls += ' other';
+      if (ds === todayStr) cls += ' today';
+      if (isSpecial) cls += ' special';
+      if (lu.festival) cls += ' festival';
+      if (ds === selectedDay) cls += ' selected';
+      return '<div class="' + cls + '" title="' + ds + '" onclick="pickDay(\'' + ds + '\')">' +
+        '<div class="cal-num">' + c.d + '</div>' +
+        '<div class="cal-lunar">' + lu.text + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function pickDay(ds) {
+    selectedDay = (selectedDay === ds) ? null : ds; // 再次点击取消筛选
+    renderCalendar();
+    renderList();
+  }
+
+  /* ================= 右侧列表 ================= */
+  function renderList() {
+    var hint = document.getElementById('spHint');
+    var list = periods.slice().sort(function (a, b) { return a.start < b.start ? -1 : 1; });
+    if (selectedDay) {
+      list = list.filter(function (p) { return dayOverlap(selectedDay, p); });
+      hint.innerHTML = selectedDay + ' 当天的特殊时段（' + list.length + ' 条）' +
+        '<span class="clear-filter" onclick="clearFilter()">清除筛选</span>';
+    } else {
+      hint.textContent = '共 ' + list.length + ' 条特殊时段';
+    }
+    var box = document.getElementById('spList');
+    if (!list.length) {
+      box.innerHTML = '<div class="empty-tip">' +
+        (selectedDay ? '当天没有特殊时段' : '暂未配置特殊时段，请点击右上角"新增标记"') + '</div>';
+      return;
+    }
+    box.innerHTML = '<table class="sp-grid"><thead><tr>' +
+      '<th style="width:56px">序号</th>' +
+      '<th>特殊时段</th>' +
+      '<th style="width:80px">标记人</th>' +
+      '<th style="width:150px">标记时间</th>' +
+      '<th>标记理由</th>' +
+      '<th style="width:130px">操作</th>' +
+      '</tr></thead><tbody>' +
+      list.map(function (p, i) {
+        return '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td class="sp-time"><b>' + fmtCN(p.start) + '</b><br>至 <b>' + fmtCN(p.end) + '</b></td>' +
+          '<td>' + p.marker + '</td>' +
+          '<td style="white-space:nowrap">' + p.markTime + '</td>' +
+          '<td class="sp-reason">' + p.reason + '</td>' +
+          '<td>' +
+            '<span class="op-link" onclick="openSpModal(\'edit\',' + p.id + ')">调整</span>' +
+            '<span class="op-link danger" onclick="delPeriod(' + p.id + ')">取消</span>' +
+          '</td>' +
+        '</tr>';
+      }).join('') + '</tbody></table>';
+  }
+  function clearFilter() {
+    selectedDay = null;
+    renderCalendar();
+    renderList();
+  }
+
+  /* ================= 新增 / 调整弹窗 ================= */
+  var editId = null;
+  function openSpModal(mode, id) {
+    editId = mode === 'edit' ? id : null;
+    document.getElementById('spModalTitle').textContent = mode === 'edit' ? '调整特殊时段' : '新增特殊时段标记';
+    var nowStr = fmtDT(new Date());
+    if (mode === 'edit') {
+      var p = getPeriod(id);
+      document.getElementById('spStartDate').value = p.start.slice(0, 10);
+      document.getElementById('spStartTime').value = p.start.slice(11, 19);
+      document.getElementById('spEndDate').value = p.end.slice(0, 10);
+      document.getElementById('spEndTime').value = p.end.slice(11, 19);
+      document.getElementById('spReason').value = p.reason;
+      document.getElementById('spMarker').textContent = p.marker;
+      document.getElementById('spMarkTime').textContent = p.markTime;
+    } else {
+      // 默认：今天 00:00:00 ~ 23:59:59
+      document.getElementById('spStartDate').value = todayStr;
+      document.getElementById('spStartTime').value = '00:00:00';
+      document.getElementById('spEndDate').value = todayStr;
+      document.getElementById('spEndTime').value = '23:59:59';
+      document.getElementById('spReason').value = '';
+      document.getElementById('spMarker').textContent = '沈青荣';
+      document.getElementById('spMarkTime').textContent = nowStr;
+    }
+    document.getElementById('spMask').classList.add('show');
+  }
+  function closeSpModal() { document.getElementById('spMask').classList.remove('show'); }
+  document.getElementById('spMask').addEventListener('click', function (e) {
+    if (e.target === this) closeSpModal();
+  });
+  function getPeriod(id) {
+    for (var i = 0; i < periods.length; i++) if (periods[i].id === id) return periods[i];
+    return null;
+  }
+
+  function savePeriod() {
+    var sd = document.getElementById('spStartDate').value;
+    var st = document.getElementById('spStartTime').value;
+    var ed = document.getElementById('spEndDate').value;
+    var et = document.getElementById('spEndTime').value;
+    var reason = document.getElementById('spReason').value.trim();
+    if (!sd || !st || !ed || !et) { toast('请完整选择起止时间'); return; }
+    if (!reason) { toast('请输入标记理由'); return; }
+    var start = sd + ' ' + st;
+    var end = ed + ' ' + et;
+    if (parseDT(start) >= parseDT(end)) { toast('结束时间必须晚于开始时间'); return; }
+
+    if (editId) {
+      var p = getPeriod(editId);
+      p.start = start;
+      p.end = end;
+      p.reason = reason;
+      // 调整保留原标记人、原标记时间
+      toast('已调整');
+    } else {
+      var nid = periods.length ? Math.max.apply(null, periods.map(function (x) { return x.id; })) + 1 : 1;
+      periods.push({
+        id: nid, start: start, end: end,
+        marker: '沈青荣', markTime: fmtDT(new Date()), reason: reason
+      });
+      toast('已新增标记');
+    }
+    savePeriods();
+    closeSpModal();
+    renderCalendar();
+    renderList();
+  }
+
+  function delPeriod(id) {
+    var p = getPeriod(id);
+    if (!p) return;
+    if (!confirm('确定取消该特殊时段吗？\n' + fmtCN(p.start) + '\n至 ' + fmtCN(p.end))) return;
+    periods = periods.filter(function (x) { return x.id !== id; });
+    savePeriods();
+    renderCalendar();
+    renderList();
+    toast('已取消');
+  }
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+
+  /* ================= 初始化 ================= */
+  renderCalendar();
+  renderList();
+</script>
+</body>
+</html>

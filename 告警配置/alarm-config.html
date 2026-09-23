@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>特殊作业告警规则配置</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9; color: #333; font-size: 14px;
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  }
+  /* ===== 平台头部 ===== */
+  .platform-head {
+    height: 54px; flex-shrink: 0;
+    background: linear-gradient(90deg, #16233f 0%, #1d3054 60%, #243a66 100%);
+    display: flex; align-items: center; padding: 0 20px;
+  }
+  .ph-logo { display: flex; align-items: center; gap: 10px; }
+  .ph-logo .mark { width: 30px; height: 30px; border-radius: 50%; background: conic-gradient(from 200deg, #f7c948, #2f9df4, #16233f); }
+  .ph-logo .t1 { color: #fff; font-size: 17px; font-weight: 600; letter-spacing: 1px; }
+  .ph-logo .t2 { color: rgba(255,255,255,.45); font-size: 11px; }
+  .ph-title { color: #fff; font-size: 16px; font-weight: 600; margin-left: 26px; }
+  .ph-right { margin-left: auto; display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.85); cursor: pointer; }
+  .ph-right .uavatar { width: 28px; height: 28px; border-radius: 50%; background: #3a517c; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; }
+  /* ===== 页签栏 ===== */
+  .tabs-bar { height: 42px; background: #fff; border-bottom: 1px solid #e6ebf2; display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0; }
+  .chip { border: 1px solid #d8e0ea; border-radius: 4px; padding: 5px 10px; color: #5a6472; font-size: 13px; cursor: pointer; background: #fff; display: flex; align-items: center; gap: 8px; }
+  .chip.active { border-color: #1f8ef1; color: #1f8ef1; background: #eaf4fe; }
+  .layout { flex: 1; display: flex; min-height: 0; }
+  /* ===== 左侧菜单 ===== */
+  .side-menu { width: 200px; flex-shrink: 0; overflow-y: auto; background: linear-gradient(180deg, #1c2c4e 0%, #1f3a63 100%); padding: 10px 0; }
+  .sm-item { display: flex; align-items: center; gap: 10px; padding: 12px 18px; color: rgba(255,255,255,.75); cursor: pointer; font-size: 14px; }
+  .sm-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+  .sm-item .exp { margin-left: auto; font-size: 11px; opacity: .6; }
+  .sm-sub { padding-left: 44px; color: rgba(255,255,255,.65); font-size: 13.5px; padding-top: 10px; padding-bottom: 10px; cursor: pointer; }
+  .sm-sub:hover { color: #fff; }
+  .sm-sub.active { color: #fff; background: linear-gradient(90deg, #2f9df4, transparent); border-left: 3px solid #f7c948; padding-left: 41px; }
+  /* ===== 主区域 ===== */
+  .content { flex: 1; overflow-y: auto; padding: 16px 20px 40px; min-width: 0; }
+  .page-tabs { display: flex; gap: 4px; background: #fff; border: 1px solid #e6ebf2; border-radius: 6px 6px 0 0; padding: 0 8px; }
+  .page-tab { padding: 12px 22px; cursor: pointer; color: #5a6472; font-size: 14.5px; position: relative; user-select: none; }
+  .page-tab.active { color: #1f8ef1; font-weight: 600; }
+  .page-tab.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 40px; height: 3px; background: #1f8ef1; border-radius: 2px; }
+  .tab-wrap { background: #fff; border: 1px solid #e6ebf2; border-top: none; border-radius: 0 0 6px 6px; padding: 16px; min-height: calc(100vh - 190px); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .btn { border: 1px solid #d8e0ea; background: #fff; color: #5a6472; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { background: #3da1f3; color: #fff; }
+  .input, .select { height: 34px; border: 1px solid #d8e0ea; border-radius: 4px; padding: 0 10px; font-size: 13.5px; color: #333; outline: none; background: #fff; }
+  .input:focus, .select:focus { border-color: #1f8ef1; }
+
+  /* ===== 规则配置：左右布局 ===== */
+  .cfg-layout { display: flex; gap: 16px; align-items: flex-start; }
+  .rule-list-box { width: 430px; flex-shrink: 0; border: 1px solid #e6ebf2; border-radius: 8px; }
+  .rl-head { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid #eef1f6; }
+  .rl-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .rl-hint { font-size: 12px; color: #8a94a3; margin-left: 10px; }
+  .rule-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #f5f6f9; }
+  .rule-item:hover { background: #f5f9ff; }
+  .rule-item.active { background: #eaf4fe; }
+  .rule-no { width: 22px; height: 22px; border-radius: 50%; background: #16233f; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .rule-main { flex: 1; min-width: 0; }
+  .rule-name { font-size: 13.5px; color: #1f2d3d; font-weight: 500; }
+  .rule-item.active .rule-name { color: #1f8ef1; }
+  .rule-clause { font-size: 12px; color: #8a94a3; margin-top: 3px; }
+  .sw { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .sw input { display: none; }
+  .sw .sl { position: absolute; inset: 0; background: #c3c9d4; border-radius: 11px; transition: .2s; cursor: pointer; }
+  .sw .sl::before { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .sw input:checked + .sl { background: #1f8ef1; }
+  .sw input:checked + .sl::before { transform: translateX(18px); }
+
+  /* 右侧参数面板 */
+  .panel { border: 1px solid #e6ebf2; border-radius: 8px; flex: 1; min-width: 0; }
+  .panel-head { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eef1f6; }
+  .panel-title { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .panel-head .spacer { margin-left: auto; }
+  .panel-body { padding: 16px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+  .fi { display: flex; flex-direction: column; }
+  .fi.full { grid-column: span 2; }
+  .fi label { font-size: 13px; color: #5a6472; margin-bottom: 6px; }
+  .fi label .req { color: #e64340; margin-right: 2px; }
+  .th-row { display: flex; align-items: center; gap: 8px; }
+  .th-row .input { flex: 1; min-width: 0; }
+  .th-row .unit { color: #8a94a3; font-size: 13px; flex-shrink: 0; }
+  .radio-row { display: flex; gap: 20px; align-items: center; height: 34px; }
+  .radio-row label { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; color: #333; cursor: pointer; margin: 0; }
+  .radio-row input { width: 15px; height: 15px; accent-color: #1f8ef1; }
+  .check-grid { display: flex; flex-wrap: wrap; gap: 10px 20px; }
+  .check-grid label { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; color: #333; cursor: pointer; margin: 0; }
+  .check-grid input { width: 15px; height: 15px; accent-color: #1f8ef1; }
+  .formula-box { background: #f7f9fc; border: 1px dashed #d8e0ea; border-radius: 6px; padding: 12px 14px; font-size: 12.5px; color: #5a6472; line-height: 1.8; }
+  .push-box { border: 1px solid #e6ebf2; border-radius: 8px; margin-bottom: 16px; }
+  .push-box-head { padding: 12px 16px; font-size: 14px; font-weight: 600; color: #1f2d3d; border-bottom: 1px solid #eef1f6; display:flex; align-items:center; }
+  .push-box-body { padding: 16px; }
+  table.grid { width: 100%; border-collapse: collapse; }
+  table.grid th, table.grid td { border: 1px solid #e6ebf2; padding: 10px 12px; text-align: center; font-size: 13px; }
+  table.grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+  table.grid td.tleft { text-align: left; }
+  .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.72); color: #fff; padding: 9px 22px; border-radius: 6px; font-size: 14px; z-index: 999; display: none; }
+</style>
+</head>
+<body>
+
+<div class="platform-head">
+  <div class="ph-logo"><div class="mark"></div><div><div class="t1">EHSS数字化管控平台</div><div class="t2">I-SHEM Platform</div></div></div>
+  <span class="ph-title">特殊作业</span>
+  <div class="ph-right"><span class="uavatar">沈</span> 沈青荣 ⌄</div>
+</div>
+
+<div class="tabs-bar">
+  <span class="chip">作业统计</span>
+  <span class="chip">作业台账</span>
+  <span class="chip active">告警规则配置</span>
+</div>
+
+<div class="layout">
+  <div class="side-menu">
+    <div class="sm-item">▶ 作业一张图</div>
+    <div class="sm-item">🛡 安全承诺 <span class="exp">›</span></div>
+    <div class="sm-item">▤ 基础信息 <span class="exp">›</span></div>
+    <div class="sm-item">▦ 作业台账 <span class="exp">⌄</span></div>
+    <div class="sm-sub">作业台账</div>
+    <div class="sm-sub">督察记录</div>
+    <div class="sm-sub">票证管理</div>
+    <div class="sm-item">▧ 作业许可管理 <span class="exp">›</span></div>
+    <div class="sm-item">⚙ 作业设置 <span class="exp">⌄</span></div>
+    <div class="sm-item">🚨 告警管理 <span class="exp">⌄</span></div>
+    <div class="sm-sub active">告警规则配置</div>
+    <div class="sm-sub" onclick="location.href='alarm-center.html'">告警中心</div>
+  </div>
+
+  <div class="content">
+    <div class="page-tabs">
+      <div class="page-tab active" data-pane="paneRule" onclick="switchPane(this)">规则配置</div>
+      <div class="page-tab" data-pane="panePush" onclick="switchPane(this)">推送配置</div>
+      <div class="page-tab" data-pane="paneLog" onclick="switchPane(this)">操作日志</div>
+    </div>
+    <div class="tab-wrap">
+
+      <!-- ============ 规则配置 ============ -->
+      <div class="tab-pane active" id="paneRule">
+        <div class="cfg-layout">
+          <div class="rule-list-box">
+            <div class="rl-head">
+              <span class="rl-title">规则列表</span>
+              <span class="rl-hint">开关即时生效，点击规则配置参数</span>
+            </div>
+            <div id="ruleList"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title" id="cfgTitle">参数配置</span>
+              <span class="spacer"></span>
+              <button class="btn primary" onclick="saveRule()">保存配置</button>
+            </div>
+            <div class="panel-body" id="cfgBody"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 推送配置 ============ -->
+      <div class="tab-pane" id="panePush">
+        <div class="push-box">
+          <div class="push-box-head">默认推送渠道（新告警默认勾选，可在单条规则中调整）</div>
+          <div class="push-box-body">
+            <div class="check-grid" id="pushChannels"></div>
+          </div>
+        </div>
+        <div class="push-box">
+          <div class="push-box-head">默认推送对象</div>
+          <div class="push-box-body">
+            <div class="check-grid" id="pushTargets"></div>
+          </div>
+        </div>
+        <div class="push-box">
+          <div class="push-box-head">逐级推送设置（规则9：作业票超时未审批）</div>
+          <div class="push-box-body">
+            <div class="th-row" style="max-width:400px">
+              <span style="font-size:13px;color:#5a6472">超时后每</span>
+              <input class="input" id="escMin" type="number" min="5">
+              <span style="font-size:13px;color:#5a6472">分钟向上级岗位升级推送一级</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn primary" onclick="savePush()">保存推送配置</button>
+      </div>
+
+      <!-- ============ 操作日志 ============ -->
+      <div class="tab-pane" id="paneLog">
+        <table class="grid">
+          <thead><tr><th style="width:60px">序号</th><th style="width:170px">操作时间</th><th style="width:100px">操作人</th><th style="width:130px">操作类型</th><th>操作详情</th></tr></thead>
+          <tbody id="logTbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ================= 规则元数据（9条，对应国标 5.9.1~5.9.9） ================= */
+  var RULE_META = [
+    { id: 1, name: '作业中断超时未气体分析', clause: 'GB 30871-2022 5.9.1',
+      formula: '作业状态=作业中断 且（当前时间-中断时间）> 配置阈值，且中断时段无新气体记录 → 触发；新增合规气体分析记录自动销号。' },
+    { id: 2, name: '跨日作业每日开工未气体分析', clause: 'GB 30871-2022 5.9.2',
+      formula: '作业跨自然日且当日0点后无任何气体检测记录 → 触发（适用：二级动火、爆危场所临时用电）；补录当日记录自动销号。' },
+    { id: 3, name: '气体分析值不达标', clause: 'GB 30871-2022 5.9.3',
+      formula: '氧含量/可燃气体/有毒气体任一指标超出对应作业类型阈值区间 → 触发三级严重告警，保存瞬间弹窗拦截“禁止作业”；新增全指标合规记录自动销号。' },
+    { id: 4, name: '受限空间超2h未检测', clause: 'GB 30871-2022 5.9.4',
+      formula: '作业进行中（非中断）且（当前时间-最近气体记录时间）> 检测周期阈值 → 触发；新增气体检测记录自动销号。' },
+    { id: 5, name: '作业票有效期超时', clause: 'GB 30871-2022 5.9.5',
+      formula: '作业状态=待开工/进行中且当前时间>计划结束时间 → 超时告警，支持提前预警；完工/作废/延期审批通过销号。' },
+    { id: 6, name: '审批人/监护人不在现场', clause: 'GB 30871-2022 5.9.6',
+      formula: '审批操作无现场人脸/定位或定位偏移超阈值 → 告警；监护人超时未打卡或定位偏离 → 告警；仅人工处置+复核闭环，不自动销号。' },
+    { id: 7, name: '特种作业人员资质不满足', clause: 'GB 30871-2022 5.9.7',
+      formula: '无对应特种作业证书 / 证书过期 / 证书类型不匹配 / 专项安全培训过期（满足任一）→ 触发，禁止提交作业票、禁止开工；替换合规人员自动销号。' },
+    { id: 8, name: '交叉作业票未办全/未关联', clause: 'GB 30871-2022 5.9.8',
+      formula: '勾选作业类型≥2种且对应作业票未全部创建/未完成跨票关联 → 触发并禁止开工；补齐票据+完成关联+全部审批通过销号。' },
+    { id: 9, name: '作业票超时未审批', clause: 'GB 30871-2022 5.9.9',
+      formula: '作业票状态=待审批且（当前时间-提交时间）> 审批时限 → 逐级推送告警；审批通过/驳回自动销号。' }
+  ];
+
+  var LEVELS = ['一级预警（提示）', '二级告警（一般）', '三级告警（严重）'];
+  var CHANNELS = ['APP消息', '站内信', '大屏'];
+  var TARGETS = ['作业负责人', '监护人', '属地管理员', '安全管理员', '超级管理员'];
+
+  /* ================= 默认配置 ================= */
+  function defaultRules() {
+    return [
+      { id: 1, enabled: true, level: '二级告警（一般）', intercept: false,
+        thresholds: [{ label: '特级/一级动火中断超时阈值', value: 30, unit: '分钟' }, { label: '二级动火/受限空间中断超时阈值', value: 60, unit: '分钟' }],
+        targets: ['作业负责人', '监护人'], channels: ['APP消息', '站内信'] },
+      { id: 2, enabled: true, level: '二级告警（一般）', intercept: false,
+        thresholds: [{ label: '每日首次作业操作宽限时长', value: 30, unit: '分钟' }],
+        targets: ['作业负责人', '监护人'], channels: ['APP消息', '站内信'] },
+      { id: 3, enabled: true, level: '三级告警（严重）', intercept: true,
+        thresholds: [{ label: '氧含量下限', value: 19.5, unit: '%' }, { label: '氧含量上限', value: 23.5, unit: '%' },
+                     { label: '可燃气体上限', value: 10, unit: '%LEL' }, { label: '有毒气体上限', value: 10, unit: 'ppm' }],
+        targets: ['作业负责人', '监护人', '安全管理员'], channels: ['APP消息', '站内信', '大屏'] },
+      { id: 4, enabled: true, level: '二级告警（一般）', intercept: false,
+        thresholds: [{ label: '受限空间连续检测周期', value: 2, unit: '小时' }],
+        targets: ['监护人'], channels: ['APP消息', '站内信'] },
+      { id: 5, enabled: true, level: '二级告警（一般）', intercept: false,
+        thresholds: [{ label: '到期预警提前时长', value: 30, unit: '分钟' }],
+        targets: ['作业负责人', '属地管理员'], channels: ['APP消息', '站内信'] },
+      { id: 6, enabled: true, level: '二级告警（一般）', intercept: false,
+        thresholds: [{ label: '现场定位偏移阈值', value: 100, unit: '米' }, { label: '监护人离岗打卡时限', value: 30, unit: '分钟' }],
+        targets: ['属地管理员', '安全管理员'], channels: ['APP消息', '站内信', '大屏'] },
+      { id: 7, enabled: true, level: '三级告警（严重）', intercept: true,
+        thresholds: [{ label: '证书到期提前提醒', value: 30, unit: '天' }],
+        targets: ['作业负责人', '安全管理员'], channels: ['APP消息', '站内信'] },
+      { id: 8, enabled: true, level: '三级告警（严重）', intercept: true,
+        thresholds: [],
+        targets: ['作业负责人', '属地管理员', '安全管理员'], channels: ['APP消息', '站内信', '大屏'] },
+      { id: 9, enabled: true, level: '二级告警（一般）', intercept: false,
+        thresholds: [{ label: '作业审批超时时限', value: 4, unit: '小时' }],
+        targets: ['属地管理员', '安全管理员'], channels: ['APP消息', '站内信', '大屏'] }
+    ];
+  }
+  function defaultPush() {
+    return { channels: ['APP消息', '站内信'], targets: ['作业负责人', '监护人'], escMin: 30 };
+  }
+
+  var RULE_KEY = 'alarm_rules_config';
+  var PUSH_KEY = 'alarm_push_config';
+  var LOG_KEY = 'alarm_op_logs';
+  var rules = load(RULE_KEY) || defaultRules();
+  var pushCfg = load(PUSH_KEY) || defaultPush();
+  var logs = load(LOG_KEY) || [
+    { time: '2026-09-16 09:12:40', user: '沈青荣', action: '启用规则', detail: '规则[6 审批人/监护人不在现场]：停用 → 启用' },
+    { time: '2026-09-15 16:44:03', user: '沈青荣', action: '修改规则配置', detail: '规则[3 气体分析值不达标]：告警等级 二级告警（一般）→ 三级告警（严重），开启作业拦截' },
+    { time: '2026-09-15 10:02:18', user: '系统', action: '初始化', detail: '9条告警规则按国标 GB 30871-2022 5.9.1~5.9.9 初始化完成' }
+  ];
+  function load(k) { try { var r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+  function store(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+  function meta(id) { return RULE_META.filter(function (m) { return m.id === id; })[0]; }
+  function cfg(id) { return rules.filter(function (r) { return r.id === id; })[0]; }
+
+  var currentId = 1;
+
+  /* ================= 页面 tab ================= */
+  function switchPane(el) {
+    document.querySelectorAll('.page-tab').forEach(function (t) { t.classList.remove('active'); });
+    el.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById(el.getAttribute('data-pane')).classList.add('active');
+  }
+
+  /* ================= 规则列表 ================= */
+  function renderRuleList() {
+    document.getElementById('ruleList').innerHTML = RULE_META.map(function (m) {
+      var c = cfg(m.id);
+      return '<div class="rule-item' + (m.id === currentId ? ' active' : '') + '" onclick="selectRule(' + m.id + ')">' +
+        '<span class="rule-no">' + m.id + '</span>' +
+        '<div class="rule-main">' +
+          '<div class="rule-name">' + m.name + '</div>' +
+          '<div class="rule-clause">' + m.clause + (c.enabled ? '' : '（已停用）') + '</div>' +
+        '</div>' +
+        '<span class="sw"><input type="checkbox" ' + (c.enabled ? 'checked' : '') + ' onchange="toggleRule(' + m.id + ',this.checked)" onclick="event.stopPropagation()"><span class="sl"></span></span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function selectRule(id) {
+    currentId = id;
+    renderRuleList();
+    renderCfgPanel();
+  }
+
+  function toggleRule(id, on) {
+    cfg(id).enabled = on;
+    store(RULE_KEY, rules);
+    addLog(on ? '启用规则' : '停用规则', '规则[' + id + ' ' + meta(id).name + ']：' + (on ? '停用 → 启用' : '启用 → 停用'));
+    renderRuleList();
+    toast(on ? '规则已启用' : '规则已停用');
+  }
+
+  /* ================= 参数配置面板 ================= */
+  function renderCfgPanel() {
+    var m = meta(currentId), c = cfg(currentId);
+    document.getElementById('cfgTitle').textContent = '参数配置 — 规则' + m.id + '：' + m.name;
+    var thHtml = c.thresholds.length
+      ? c.thresholds.map(function (t, i) {
+          return '<div class="fi"><label><span class="req">*</span>' + t.label + '</label>' +
+            '<div class="th-row"><input class="input" type="number" id="th_' + i + '" value="' + t.value + '"><span class="unit">' + t.unit + '</span></div></div>';
+        }).join('')
+      : '<div class="fi full"><label>阈值参数</label><div class="formula-box">本规则无数值阈值，按判定公式直接校验。</div></div>';
+    document.getElementById('cfgBody').innerHTML =
+      '<div class="form-grid">' +
+        '<div class="fi"><label>规则名称</label><input class="input" value="' + m.name + '" disabled style="background:#f7f9fc"></div>' +
+        '<div class="fi"><label>关联国标条款</label><input class="input" value="' + m.clause + '" disabled style="background:#f7f9fc"></div>' +
+        thHtml +
+        '<div class="fi"><label><span class="req">*</span>告警等级</label><select class="select" id="cfgLevel">' +
+          LEVELS.map(function (l) { return '<option' + (l === c.level ? ' selected' : '') + '>' + l + '</option>'; }).join('') +
+        '</select></div>' +
+        '<div class="fi"><label><span class="req">*</span>是否开启作业拦截</label>' +
+          '<div class="radio-row">' +
+            '<label><input type="radio" name="cfgIntercept" value="1" ' + (c.intercept ? 'checked' : '') + '>是（拦截开工/完工等操作）</label>' +
+            '<label><input type="radio" name="cfgIntercept" value="0" ' + (c.intercept ? '' : 'checked') + '>否（仅消息推送）</label>' +
+          '</div>' +
+        '</div>' +
+        '<div class="fi full"><label><span class="req">*</span>推送对象（岗位/角色）</label><div class="check-grid" id="cfgTargets">' +
+          TARGETS.map(function (t) { return '<label><input type="checkbox" value="' + t + '" ' + (c.targets.indexOf(t) > -1 ? 'checked' : '') + '>' + t + '</label>'; }).join('') +
+        '</div></div>' +
+        '<div class="fi full"><label><span class="req">*</span>推送渠道</label><div class="check-grid" id="cfgChannels">' +
+          CHANNELS.map(function (t) { return '<label><input type="checkbox" value="' + t + '" ' + (c.channels.indexOf(t) > -1 ? 'checked' : '') + '>' + t + '</label>'; }).join('') +
+        '</div></div>' +
+        '<div class="fi full"><label>判定逻辑（只读）</label><div class="formula-box">' + m.formula + '</div></div>' +
+      '</div>';
+  }
+
+  function saveRule() {
+    var c = cfg(currentId);
+    for (var i = 0; i < c.thresholds.length; i++) {
+      var v = document.getElementById('th_' + i).value;
+      if (v === '' || isNaN(+v)) { toast('请填写完整的阈值参数'); return; }
+      c.thresholds[i].value = +v;
+    }
+    c.level = document.getElementById('cfgLevel').value;
+    c.intercept = document.querySelector('input[name="cfgIntercept"]:checked').value === '1';
+    c.targets = checkedVals('cfgTargets');
+    c.channels = checkedVals('cfgChannels');
+    if (!c.targets.length || !c.channels.length) { toast('请至少勾选一个推送对象和推送渠道'); return; }
+    store(RULE_KEY, rules);
+    addLog('修改规则配置', '规则[' + currentId + ' ' + meta(currentId).name + ']：等级[' + c.level + ']，作业拦截[' + (c.intercept ? '开' : '关') + ']，阈值[' +
+      c.thresholds.map(function (t) { return t.label + '=' + t.value + t.unit; }).join('；') + ']');
+    toast('配置已保存');
+  }
+  function checkedVals(id) {
+    var arr = [];
+    document.querySelectorAll('#' + id + ' input:checked').forEach(function (cb) { arr.push(cb.value); });
+    return arr;
+  }
+
+  /* ================= 推送配置 ================= */
+  function renderPush() {
+    document.getElementById('pushChannels').innerHTML = CHANNELS.map(function (t) {
+      return '<label><input type="checkbox" value="' + t + '" ' + (pushCfg.channels.indexOf(t) > -1 ? 'checked' : '') + '>' + t + '</label>';
+    }).join('');
+    document.getElementById('pushTargets').innerHTML = TARGETS.map(function (t) {
+      return '<label><input type="checkbox" value="' + t + '" ' + (pushCfg.targets.indexOf(t) > -1 ? 'checked' : '') + '>' + t + '</label>';
+    }).join('');
+    document.getElementById('escMin').value = pushCfg.escMin;
+  }
+  function savePush() {
+    pushCfg.channels = checkedVals('pushChannels');
+    pushCfg.targets = checkedVals('pushTargets');
+    pushCfg.escMin = +document.getElementById('escMin').value || 30;
+    if (!pushCfg.channels.length || !pushCfg.targets.length) { toast('请至少勾选一个推送渠道和推送对象'); return; }
+    store(PUSH_KEY, pushCfg);
+    addLog('修改推送配置', '默认渠道[' + pushCfg.channels.join('、') + ']，默认对象[' + pushCfg.targets.join('、') + ']，逐级升级间隔 ' + pushCfg.escMin + ' 分钟');
+    toast('推送配置已保存');
+  }
+
+  /* ================= 操作日志 ================= */
+  function addLog(action, detail) {
+    var d = new Date();
+    function p(n) { return n < 10 ? '0' + n : '' + n; }
+    logs.unshift({
+      time: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()),
+      user: '沈青荣', action: action, detail: detail
+    });
+    store(LOG_KEY, logs);
+    renderLogs();
+  }
+  function renderLogs() {
+    document.getElementById('logTbody').innerHTML = logs.map(function (l, i) {
+      return '<tr><td>' + (i + 1) + '</td><td>' + l.time + '</td><td>' + l.user + '</td><td>' + l.action + '</td><td class="tleft">' + l.detail + '</td></tr>';
+    }).join('');
+  }
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+
+  renderRuleList();
+  renderCfgPanel();
+  renderPush();
+  renderLogs();
+</script>
+</body>
+</html>
