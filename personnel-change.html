@@ -188,10 +188,9 @@
   .rc-handover { margin-top: 14px; border-top: 1px dashed #e6ebf2; padding-top: 12px; }
   .rc-ho-title { font-size: 13.5px; font-weight: 600; color: #333; margin-bottom: 8px; display: flex; align-items: center; }
   .rc-ho-title::before { content: ''; width: 3px; height: 13px; background: #f5a623; border-radius: 2px; margin-right: 7px; }
-  .rc-checks { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 12.5px; color: #5a6472; }
-  .rc-checks span::before { content: '✓ '; color: #52c41a; font-weight: 600; }
-  .rc-media { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
-  .rc-mlabel { font-size: 12.5px; color: #8a94a3; }
+  .rc-checks { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: #5a6472; }
+  .rc-check-item { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+  .rc-checks .rc-check-text::before { content: '✓ '; color: #52c41a; font-weight: 600; }
   .rc-thumb {
     width: 44px; height: 44px; border-radius: 4px; background: #eef1f6;
     display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px;
@@ -661,14 +660,18 @@
   }).join('');
 
   /* ================= 人员变更记录弹窗 ================= */
-  // 两类变更：guardian（监护人变更，含交接确认项与交接资料）；worker（作业人员变更，仅人员替换）
+  // 两类变更：guardian（监护人变更，含交接确认项，照片/视频挂在对应确认项下）；worker（作业人员变更，仅人员替换）
   var changeRecords = [
     {
       type: 'guardian', time: '2026-09-12 09:30:15', operator: '王强',
       from: { name: '赵磊', dept: '安环部', phone: '138****5566' },
       to: { name: '李敏', dept: '安环部', phone: '138****7788' },
-      checks: ['已向新监护人交底当前风险情况', '已确认现场安全措施状态', '新监护人已知晓当前作业进度', '新监护人已到岗'],
-      photos: 2, videos: 1
+      checks: [
+        { text: '已向新监护人交底当前风险情况', photos: 1, videos: 1 },
+        { text: '已确认现场安全措施状态', photos: 1, videos: 0 },
+        { text: '新监护人已知晓当前作业进度', photos: 0, videos: 0 },
+        { text: '新监护人已到岗', photos: 0, videos: 0 }
+      ]
     },
     {
       type: 'worker', time: '2026-09-13 14:05:22', operator: 'hsk',
@@ -679,8 +682,12 @@
       type: 'guardian', time: '2026-09-14 08:40:51', operator: 'hsk',
       from: { name: '李敏', dept: '安环部', phone: '138****7788' },
       to: { name: '王强', dept: '生产一部', phone: '138****2345' },
-      checks: ['已向新监护人交底当前风险情况', '已确认现场安全措施状态', '新监护人已到岗', '已核对新监护人监护资质证书'],
-      photos: 1, videos: 0
+      checks: [
+        { text: '已向新监护人交底当前风险情况', photos: 1, videos: 0 },
+        { text: '已确认现场安全措施状态', photos: 0, videos: 0 },
+        { text: '新监护人已到岗', photos: 0, videos: 0 },
+        { text: '已核对新监护人监护资质证书', photos: 0, videos: 0 }
+      ]
     }
   ];
 
@@ -693,15 +700,6 @@
 
     document.getElementById('rList').innerHTML = list.map(function (r) {
       var isGuardian = r.type === 'guardian';
-      var thumbs = '', chips = '';
-      if (isGuardian) {
-        for (var i = 0; i < r.photos; i++) {
-          thumbs += '<span class="rc-thumb" title="点击查看照片" onclick="toast(\'查看照片（示例）\')">🖼</span>';
-        }
-        for (var j = 0; j < r.videos; j++) {
-          chips += '<span class="rc-vchip" onclick="toast(\'播放视频（示例）\')">▶ 交接视频' + (j + 1) + '</span>';
-        }
-      }
       return '<div class="rc-card">' +
         '<div class="rc-head">' +
           '<span class="rc-type ' + r.type + '">' + (isGuardian ? '监护人变更' : '作业人员变更') + '</span>' +
@@ -723,11 +721,16 @@
         (isGuardian
           ? '<div class="rc-handover">' +
               '<div class="rc-ho-title">交接信息</div>' +
-              '<div class="rc-checks">' + r.checks.map(function (c) { return '<span>' + c + '</span>'; }).join('') + '</div>' +
-              '<div class="rc-media">' +
-                '<span class="rc-mlabel">交接资料：</span>' + thumbs + chips +
-                '<span class="rc-mlabel" style="margin-left:4px">照片 ' + r.photos + ' 张 / 视频 ' + r.videos + ' 个</span>' +
-              '</div>' +
+              '<div class="rc-checks">' + r.checks.map(function (c) {
+                var media = '';
+                for (var i = 0; i < c.photos; i++) {
+                  media += '<span class="rc-thumb" title="点击查看照片" onclick="toast(\'查看照片（示例）\')">🖼</span>';
+                }
+                for (var j = 0; j < c.videos; j++) {
+                  media += '<span class="rc-vchip" onclick="toast(\'播放视频（示例）\')">▶ 交接视频' + (j + 1) + '</span>';
+                }
+                return '<div class="rc-check-item"><span class="rc-check-text">' + c.text + '</span>' + media + '</div>';
+              }).join('') + '</div>' +
             '</div>'
           : '') +
         '<div class="rc-operator">操作人：' + r.operator + '</div>' +
