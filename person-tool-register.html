@@ -292,7 +292,7 @@
       <div class="more-wrap">
         <span class="more-link" onclick="toggleMore(event)">更多</span>
         <div class="more-menu" id="moreMenu">
-          <div class="more-item" onclick="openMon()">监控画面</div>
+          <div class="more-item" onclick="openGuardianCheck()">监护人检查项</div>
           <div class="more-item" onclick="toast('人员变更（示例）')">人员变更</div>
           <div class="more-item" onclick="openRegister()">人员及工器具登记</div>
         </div>
@@ -331,6 +331,19 @@
     <button class="reg-save" onclick="saveRegister()">保 存</button>
   </div>
   <input type="file" id="regPhotoInput" accept="image/*" multiple hidden>
+</div>
+
+<!-- ============ 监护人检查项弹窗 ============ -->
+<div class="m-mask" id="gcMask">
+  <div class="reg-dialog">
+    <div class="reg-head">
+      <span class="reg-back" onclick="closeGuardianCheck()">返回</span>
+      <span class="reg-title">监护人检查项</span>
+      <span class="reg-close" onclick="closeGuardianCheck()">✕</span>
+    </div>
+    <div class="reg-body" id="gcBody"></div>
+    <button class="reg-save" onclick="saveGuardianCheck()">保 存</button>
+  </div>
 </div>
 
 <!-- ============ 照片预览弹窗 ============ -->
@@ -685,6 +698,86 @@
     localStorage.setItem(TOOL_KEY, JSON.stringify(tools));
 
     // 保存后不关闭弹窗，仅提示 3 秒
+    toast('保存成功', 3000);
+  }
+
+  /* ================= 监护人检查项弹窗 ================= */
+  // 检查项读取 guardian-config.html 的配置（guardian_handover_items），按本页作业票类型过滤
+  var GC_ITEMS_KEY = 'guardian_handover_items';
+  var GC_SAVE_KEY = 'guardian_check_SX-20260915-0001';  // 按作业编号存档
+  var gcTicketType = '受限空间作业票';
+  /* 配置页无数据时的默认检查项（与 guardian-config 默认配置中适用于受限空间作业票的事项一致） */
+  var gcDefaults = [
+    { id: 1, name: '已向新监护人交底当前风险情况' },
+    { id: 2, name: '已确认现场安全措施状态' },
+    { id: 3, name: '新监护人已知晓当前作业进度' },
+    { id: 4, name: '新监护人已到岗' },
+    { id: 5, name: '已核对新监护人监护资质证书' }
+  ];
+
+  function loadGcItems() {
+    try {
+      var raw = localStorage.getItem(GC_ITEMS_KEY);
+      if (raw) {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length) {
+          var list = arr.filter(function (it) { return it.types && it.types.indexOf(gcTicketType) > -1; });
+          if (list.length) return list.map(function (it) { return { id: it.id, name: it.name }; });
+        }
+      }
+    } catch (e) { /* 配置缺失或损坏时使用默认 */ }
+    return gcDefaults.slice();
+  }
+
+  function loadGcSaved() {
+    try {
+      var raw = localStorage.getItem(GC_SAVE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function renderGuardianCheck() {
+    var items = loadGcItems();
+    var saved = loadGcSaved();
+    var checkedMap = {};
+    if (saved && Array.isArray(saved.checked)) {
+      saved.checked.forEach(function (id) { checkedMap[id] = true; });
+    }
+    document.getElementById('gcBody').innerHTML =
+      '<div class="tool-tip">请监护人逐项核对并勾选，完成后点击底部保存</div>' +
+      items.map(function (it, i) {
+        return '<div class="tool-row">' +
+          '<input type="checkbox" id="gc_' + i + '" data-id="' + it.id + '" ' + (checkedMap[it.id] ? 'checked' : '') + '>' +
+          '<span class="tool-name">' + it.name + '</span>' +
+        '</div>';
+      }).join('') +
+      (saved && saved.time
+        ? '<div class="tool-tip" style="padding-top:4px;">上次保存：' + saved.time + '（已勾选 ' + saved.checked.length + ' / ' + items.length + ' 项）</div>'
+        : '');
+  }
+
+  function openGuardianCheck() {
+    document.getElementById('moreMenu').classList.remove('show');
+    renderGuardianCheck();
+    document.getElementById('gcMask').classList.add('show');
+  }
+  function closeGuardianCheck() { document.getElementById('gcMask').classList.remove('show'); }
+  document.getElementById('gcMask').addEventListener('click', function (e) {
+    if (e.target === this) closeGuardianCheck();
+  });
+
+  function saveGuardianCheck() {
+    var items = loadGcItems();
+    var checked = [];
+    items.forEach(function (it, i) {
+      if (document.getElementById('gc_' + i).checked) checked.push(it.id);
+    });
+    if (!checked.length) { toast('请先勾选检查项', 1500); return; }
+    var d = new Date();
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    var time = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+               pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    localStorage.setItem(GC_SAVE_KEY, JSON.stringify({ checked: checked, total: items.length, time: time }));
     toast('保存成功', 3000);
   }
 
