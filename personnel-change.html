@@ -862,12 +862,14 @@
         '<div class="rg-rows">' +
           '<div class="rg-row"><span class="lb">是否进入受限空间</span><span class="val">' + (entered ? '是' : '否') + '</span></div>' +
           (entered ? '<div class="rg-row"><span class="lb">进入受限空间时间</span><span class="val">' + (time || '—') + '</span></div>' : '') +
+          '<div class="rg-row"><span class="lb">拍照留证</span><span class="val">' +
+            (photos.length
+              ? '<span class="rg-photos" style="margin-top:0;">' + photos.map(function (p) {
+                  return '<img class="rg-photo" src="' + p + '" onclick="toast(\'查看照片（示例）\')">';
+                }).join('') + '</span>'
+              : '—') +
+          '</span></div>' +
         '</div>' +
-        (photos.length
-          ? '<div class="rg-photos">' + photos.map(function (p) {
-              return '<img class="rg-photo" src="' + p + '" onclick="toast(\'查看照片（示例）\')">';
-            }).join('') + '</div>'
-          : '') +
       '</div>';
     }).join('');
 
@@ -878,11 +880,15 @@
           '<span class="rg-name">' + name + '</span>' +
           '<span class="rg-qty">× ' + t.qty + '</span>' +
         '</div>' +
-        (t.photos.length
-          ? '<div class="rg-photos">' + t.photos.map(function (p) {
-              return '<img class="rg-photo" src="' + p + '" onclick="toast(\'查看照片（示例）\')">';
-            }).join('') + '</div>'
-          : '') +
+        '<div class="rg-rows">' +
+          '<div class="rg-row"><span class="lb">拍照留证</span><span class="val">' +
+            (t.photos.length
+              ? '<span class="rg-photos" style="margin-top:0;">' + t.photos.map(function (p) {
+                  return '<img class="rg-photo" src="' + p + '" onclick="toast(\'查看照片（示例）\')">';
+                }).join('') + '</span>'
+              : '—') +
+          '</span></div>' +
+        '</div>' +
       '</div>';
     }).join('') : '<div class="rg-card rg-empty">暂无工器具登记记录</div>';
 
