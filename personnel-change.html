@@ -203,6 +203,31 @@
   }
   .rc-operator { margin-top: 12px; font-size: 12.5px; color: #8a94a3; }
 
+  /* 人员及工器具登记记录弹窗 */
+  .rg-sec-title { font-size: 13.5px; font-weight: 600; color: #333; margin: 4px 0 10px; display: flex; align-items: center; }
+  .rg-sec-title::before { content: ''; width: 3px; height: 13px; background: #1f8ef1; border-radius: 2px; margin-right: 7px; }
+  .rg-card { background: #fff; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .rg-card-head { display: flex; align-items: center; gap: 10px; }
+  .rg-avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: #16233f; color: #fff; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rg-name { font-size: 14px; font-weight: 600; color: #1f2d3d; }
+  .rg-sub { font-size: 12px; color: #8a94a3; margin-top: 3px; }
+  .rg-qty { margin-left: auto; font-size: 12.5px; color: #1f8ef1; background: #eaf4fe; border-radius: 4px; padding: 3px 10px; }
+  .rg-rows { margin-top: 10px; }
+  .rg-row { display: flex; font-size: 12.5px; margin-top: 6px; }
+  .rg-row .lb { color: #8a94a3; width: 130px; flex-shrink: 0; }
+  .rg-row .val { color: #333; }
+  .rg-photos { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .rg-photo {
+    width: 44px; height: 44px; object-fit: cover; border-radius: 4px;
+    border: 1px solid #e6ebf2; cursor: pointer;
+  }
+  .rg-photo:hover { border-color: #1f8ef1; }
+  .rg-empty { color: #8a94a3; font-size: 12.5px; }
+
   /* Toast */
   .toast {
     position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
@@ -582,6 +607,7 @@
 
     <!-- 操作按钮区 -->
     <div class="action-bar">
+      <button class="btn primary" onclick="openRegRecords()">人员及工器具登记记录</button>
       <button class="btn primary" onclick="openChangeRecords()">人员变更记录</button>
       <button class="btn primary" onclick="toast('采样分析记录（示例）')">采样分析记录</button>
       <button class="btn primary" onclick="toast('下载PDF（示例）')">下载PDF</button>
@@ -646,6 +672,20 @@
         <span class="r-chip" data-type="worker" onclick="filterRecords(this)">作业人员变更</span>
       </div>
       <div id="rList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 人员及工器具登记记录弹窗 ============ -->
+<div class="r-mask" id="regMask">
+  <div class="r-dialog">
+    <div class="r-head">
+      <span class="r-title">人员及工器具登记记录</span>
+      <span class="r-close" onclick="closeRegRecords()">✕</span>
+    </div>
+    <div class="r-body">
+      <div class="r-summary" id="regSummary"></div>
+      <div id="regList"></div>
     </div>
   </div>
 </div>
@@ -756,6 +796,108 @@
   function closeChangeRecords() { document.getElementById('rMask').classList.remove('show'); }
   document.getElementById('rMask').addEventListener('click', function (e) {
     if (e.target === this) closeChangeRecords();
+  });
+
+  /* ================= 人员及工器具登记记录弹窗 ================= */
+  // 与 person-tool-register.html 共用同一份 localStorage 存档，键名保持一致
+  var REG_PERSON_KEY = 'cs_register_persons';
+  var REG_TOOL_KEY = 'cs_register_tools';
+  function loadRegJSON(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  /* 兼容旧数据：工器具存档从纯数量 number 升级为 {qty, photos} */
+  function normalizeRegTool(v) {
+    if (v === undefined || v === null) return { qty: 1, photos: [] };
+    if (typeof v === 'number') return { qty: v, photos: [] };
+    return { qty: v.qty !== undefined ? v.qty : 1, photos: v.photos || [] };
+  }
+  /* 登记页的作业人员清单（与 person-tool-register.html 的 workers 一致） */
+  var regWorkers = [
+    { name: '张强', phone: '139****1122' },
+    { name: '郑磊', phone: '139****9900' },
+    { name: '李敏', phone: '138****7788' }
+  ];
+  /* 从未登记过时展示的示例数据 */
+  var regSamplePersons = {
+    '张强': { entered: true, time: '2026-09-12T08:30', photos: [] },
+    '郑磊': { entered: true, time: '2026-09-12T08:32', photos: [] },
+    '李敏': { entered: false, time: '', photos: [] }
+  };
+  var regSampleTools = {
+    '便携式气体检测仪': { qty: 2, photos: [] },
+    '防爆对讲机': { qty: 1, photos: [] }
+  };
+
+  function renderRegRecords() {
+    var pSaved = loadRegJSON(REG_PERSON_KEY);
+    var tSaved = loadRegJSON(REG_TOOL_KEY);
+    var persons = pSaved || regSamplePersons;
+    var tools = tSaved || regSampleTools;
+
+    var enteredCount = regWorkers.filter(function (w) {
+      var s = persons[w.name] || {};
+      return s.entered !== false;
+    }).length;
+
+    var toolNames = Object.keys(tools);
+    var toolCount = toolNames.reduce(function (sum, n) { return sum + normalizeRegTool(tools[n]).qty; }, 0);
+    document.getElementById('regSummary').textContent =
+      '登记人员 ' + regWorkers.length + ' 人（进入受限空间 ' + enteredCount + ' 人），登记工器具 ' +
+      toolNames.length + ' 种（共 ' + toolCount + ' 件）';
+
+    var personHtml = regWorkers.map(function (w) {
+      var s = persons[w.name] || {};
+      var entered = s.entered !== false;
+      var time = (s.time || '').replace('T', ' ');
+      var photos = s.photos || [];
+      return '<div class="rg-card">' +
+        '<div class="rg-card-head">' +
+          '<span class="rg-avatar">' + w.name.charAt(0) + '</span>' +
+          '<div><div class="rg-name">' + w.name + '</div>' +
+          '<div class="rg-sub">' + w.phone + '</div></div>' +
+        '</div>' +
+        '<div class="rg-rows">' +
+          '<div class="rg-row"><span class="lb">是否进入受限空间</span><span class="val">' + (entered ? '是' : '否') + '</span></div>' +
+          (entered ? '<div class="rg-row"><span class="lb">进入受限空间时间</span><span class="val">' + (time || '—') + '</span></div>' : '') +
+        '</div>' +
+        (photos.length
+          ? '<div class="rg-photos">' + photos.map(function (p) {
+              return '<img class="rg-photo" src="' + p + '" onclick="toast(\'查看照片（示例）\')">';
+            }).join('') + '</div>'
+          : '') +
+      '</div>';
+    }).join('');
+
+    var toolHtml = toolNames.length ? toolNames.map(function (name) {
+      var t = normalizeRegTool(tools[name]);
+      return '<div class="rg-card">' +
+        '<div class="rg-card-head">' +
+          '<span class="rg-name">' + name + '</span>' +
+          '<span class="rg-qty">× ' + t.qty + '</span>' +
+        '</div>' +
+        (t.photos.length
+          ? '<div class="rg-photos">' + t.photos.map(function (p) {
+              return '<img class="rg-photo" src="' + p + '" onclick="toast(\'查看照片（示例）\')">';
+            }).join('') + '</div>'
+          : '') +
+      '</div>';
+    }).join('') : '<div class="rg-card rg-empty">暂无工器具登记记录</div>';
+
+    document.getElementById('regList').innerHTML =
+      '<div class="rg-sec-title">人员登记</div>' + personHtml +
+      '<div class="rg-sec-title" style="margin-top:18px;">工器具登记</div>' + toolHtml;
+  }
+
+  function openRegRecords() {
+    renderRegRecords();
+    document.getElementById('regMask').classList.add('show');
+  }
+  function closeRegRecords() { document.getElementById('regMask').classList.remove('show'); }
+  document.getElementById('regMask').addEventListener('click', function (e) {
+    if (e.target === this) closeRegRecords();
   });
 
   /* ================= Toast ================= */
