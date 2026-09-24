@@ -110,6 +110,9 @@
     font-size: 13.5px; color: #333; cursor: pointer; user-select: none;
   }
   .radio-item input { width: 15px; height: 15px; accent-color: #1f8ef1; cursor: pointer; }
+  /* 弹窗内“对应等级”分组 */
+  .acc-lv-group { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .acc-lv-type { font-size: 13px; color: #5a6472; min-width: 100px; flex-shrink: 0; }
 
   /* ===== 左右模块布局 ===== */
   .cfg-layout { display: flex; gap: 16px; align-items: stretch; }
@@ -431,6 +434,8 @@
       </div>
       <div class="m-label" style="margin-top:14px;">该检查项适用作业类型</div>
       <div id="accTypesBox" style="display:flex;flex-wrap:wrap;gap:8px 22px;"></div>
+      <div class="m-label" id="accLevelsLabel" style="margin-top:14px;display:none;">对应等级</div>
+      <div id="accLevelsBox" style="display:none;flex-direction:column;gap:8px;"></div>
       <div class="m-label" style="margin-top:14px;">排序</div>
       <input class="m-input" id="accSortInput" type="number" placeholder="数字越小越靠前" value="1">
     </div>
@@ -869,13 +874,47 @@
     });
     return types;
   }
-  function itemInType(t, id) { return accItemTypes(id).indexOf(t) > -1; }
-  /* 目标作业类型下新增条目时使用的级别键：与当前级别同名则沿用，否则取该类型第一个级别 */
-  function targetLevelKey(t) {
-    if (t === accType) return accLevelKey();
+  /* 检查项在指定作业类型下已放入的等级键列表 */
+  function accItemLevels(t, id) {
+    var items = accData[t].items;
+    return Object.keys(items).filter(function (k) {
+      return items[k].some(function (i) { return i.id === id; });
+    });
+  }
+  /* 弹窗中指定作业类型当前勾选的等级；无等级的类型返回 ['_default'] */
+  function selectedLevelKeys(t) {
     var d = accData[t];
-    if (!d.levels) return '_default';
-    return d.levels.indexOf(accLevel) > -1 ? accLevel : d.levels[0];
+    if (!d.levels) return ['_default'];
+    var lvs = [];
+    document.querySelectorAll('input[name="accLv_' + t + '"]:checked').forEach(function (cb) { lvs.push(cb.value); });
+    return lvs;
+  }
+  /* 勾选的作业类型中有等级时，动态渲染“对应等级”勾选区 */
+  function renderAccLevels() {
+    /* 保留用户已勾选的等级（类型取消勾选再勾选时不丢状态） */
+    var prev = {};
+    document.querySelectorAll('input[name^="accLv_"]').forEach(function (cb) {
+      var t = cb.name.slice('accLv_'.length);
+      if (!prev[t]) prev[t] = [];
+      if (cb.checked) prev[t].push(cb.value);
+    });
+    var html = '';
+    document.querySelectorAll('input[name="accTypeCb"]:checked').forEach(function (cb) {
+      var t = cb.value;
+      var d = accData[t];
+      if (!d.levels) return;
+      var lv = (prev[t] && prev[t].length) ? prev[t]
+        : (accEditId ? accItemLevels(t, accEditId) : (t === accType ? [accLevel] : [d.levels[0]]));
+      html += '<div class="acc-lv-group"><span class="acc-lv-type">' + t + '</span>' +
+        d.levels.map(function (k) {
+          return '<label class="radio-item"><input type="checkbox" name="accLv_' + t + '" value="' + k + '"' +
+            (lv.indexOf(k) > -1 ? ' checked' : '') + '>' + k + '</label>';
+        }).join('') + '</div>';
+    });
+    document.getElementById('accLevelsBox').innerHTML = html;
+    var hasLv = html.length > 0;
+    document.getElementById('accLevelsLabel').style.display = hasLv ? 'block' : 'none';
+    document.getElementById('accLevelsBox').style.display = hasLv ? 'flex' : 'none';
   }
   function removeAccItemFromType(t, id) {
     var items = accData[t].items;
@@ -970,8 +1009,9 @@
     var checkedTypes = mode === 'edit' ? accItemTypes(id) : [accType];
     document.getElementById('accTypesBox').innerHTML = allTypes.map(function (t) {
       return '<label class="radio-item"><input type="checkbox" name="accTypeCb" value="' + t + '"' +
-        (checkedTypes.indexOf(t) > -1 ? ' checked' : '') + '>' + t + '</label>';
+        (checkedTypes.indexOf(t) > -1 ? ' checked' : '') + ' onchange="renderAccLevels()">' + t + '</label>';
     }).join('');
+    renderAccLevels();
     if (mode === 'edit') {
       var it = findAccItem(id);
       document.getElementById('accNameInput').value = it.name;
@@ -999,33 +1039,38 @@
     if (!name) { toast('请输入监护检查事项内容'); return; }
     if (isNaN(sort)) { toast('请输入正确的排序数字'); return; }
     if (!selTypes.length) { toast('请选择该检查项适用作业类型'); return; }
+    /* 有等级的作业类型必须勾选至少一个对应等级 */
+    for (var vi = 0; vi < selTypes.length; vi++) {
+      var vt = selTypes[vi];
+      if (accData[vt].levels && !selectedLevelKeys(vt).length) {
+        toast('请选择"' + vt + '"的对应等级'); return;
+      }
+    }
     if (accEditId) {
-      var it = findAccItem(accEditId);
-      var status = it.status;
-      /* 同步更新所有作业类型下的同一检查项 */
+      var status = findAccItem(accEditId).status;
       Object.keys(accData).forEach(function (t) {
+        if (selTypes.indexOf(t) === -1) { removeAccItemFromType(t, accEditId); return; }
+        var keys = selectedLevelKeys(t);
         var items = accData[t].items;
+        /* 从取消勾选的等级中移除 */
         Object.keys(items).forEach(function (k) {
-          items[k].forEach(function (i) {
-            if (i.id === accEditId) { i.name = name; i.needImg = needImg; i.sort = sort; }
-          });
+          if (keys.indexOf(k) === -1) items[k] = items[k].filter(function (i) { return i.id !== accEditId; });
         });
-      });
-      /* 从取消勾选的类型中移除 */
-      Object.keys(accData).forEach(function (t) {
-        if (selTypes.indexOf(t) === -1) removeAccItemFromType(t, accEditId);
-      });
-      /* 补入新勾选的类型 */
-      selTypes.forEach(function (t) {
-        if (!itemInType(t, accEditId)) {
-          accData[t].items[targetLevelKey(t)].push({ id: accEditId, name: name, needImg: needImg, sort: sort, status: status });
-        }
+        /* 更新/补入勾选的等级 */
+        keys.forEach(function (k) {
+          var exist = null;
+          items[k].forEach(function (i) { if (i.id === accEditId) exist = i; });
+          if (exist) { exist.name = name; exist.needImg = needImg; exist.sort = sort; }
+          else items[k].push({ id: accEditId, name: name, needImg: needImg, sort: sort, status: status });
+        });
       });
       toast('已保存');
     } else {
       var nid = nextAccId();
       selTypes.forEach(function (t) {
-        accData[t].items[targetLevelKey(t)].push({ id: nid, name: name, needImg: needImg, sort: sort, status: '启用' });
+        selectedLevelKeys(t).forEach(function (k) {
+          accData[t].items[k].push({ id: nid, name: name, needImg: needImg, sort: sort, status: '启用' });
+        });
       });
       toast('已新增');
     }
