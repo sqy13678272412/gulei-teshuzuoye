@@ -154,16 +154,16 @@
   .gp-num.cur { background: #1f8ef1; color: #fff; }
   .gp-btn { cursor: pointer; color: #1f8ef1; padding: 2px 6px; user-select: none; }
   .gp-btn.dis { color: #c3c6cf; cursor: default; }
-  /* 探头卡片展开区：各气体分析类型的指标上下限 */
-  .gc-limits { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
-  .gc-limit {
-    flex: 1; min-width: 220px; border: 1px solid #e6ebf2; border-radius: 6px;
-    padding: 10px 14px; background: #fafbfe;
+  /* 探头卡片展开区：各气体分析类型的指标上下限（浅黄色列表） */
+  .gc-limit-table {
+    width: 100%; border-collapse: collapse; margin-bottom: 14px;
+    background: #fffbe6; border: 1px solid #ffe58f;
   }
-  .gc-limit-row { display: flex; font-size: 12.5px; margin-top: 5px; }
-  .gc-limit-row:first-child { margin-top: 0; }
-  .gc-limit-row .k { color: #8a94a3; width: 118px; flex-shrink: 0; }
-  .gc-limit-row .v { color: #333; }
+  .gc-limit-table th, .gc-limit-table td {
+    border: 1px solid #ffe58f; padding: 8px 12px; text-align: center; font-size: 13px;
+  }
+  .gc-limit-table th { background: #fff3c2; color: #ad6800; font-weight: 500; }
+  .gc-limit-table td { color: #874d00; }
   .gas-card-body { display: none; border-top: 1px solid #eef1f6; padding: 16px 18px; }
   .gas-card.expanded .gas-card-body { display: block; }
   table.grid { width: 100%; border-collapse: collapse; }
@@ -625,22 +625,26 @@
     '一氧化碳': { up: '25 PPM',   low: '0 PPM' },
     '氧气':     { up: '23.5 %VOL', low: '19.5 %VOL' }
   };
-  /* 展开区顶部：气体分析类型1/2/3 的指标上下限 */
+  /* 展开区顶部：气体分析类型1/2/3 的指标上下限（列表展示，浅黄色） */
   function limitsHtml(name) {
     var types = gasTypesOf(name);
-    var blocks = [];
+    var rows = [];
     for (var i = 0; i < 3; i++) {
       var t = types[i];
       var lim = t ? (GAS_LIMITS[t] || { up: '—', low: '—' }) : null;
-      blocks.push(
-        '<div class="gc-limit">' +
-          '<div class="gc-limit-row"><span class="k">气体分析类型' + (i + 1) + '</span><span class="v">' + (t || '—') + '</span></div>' +
-          '<div class="gc-limit-row"><span class="k">气体分析指标上限</span><span class="v">' + (lim ? lim.up : '—') + '</span></div>' +
-          '<div class="gc-limit-row"><span class="k">气体分析指标下限</span><span class="v">' + (lim ? lim.low : '—') + '</span></div>' +
-        '</div>'
+      rows.push(
+        '<tr>' +
+          '<td>气体分析类型' + (i + 1) + '</td>' +
+          '<td>' + (t || '—') + '</td>' +
+          '<td>' + (lim ? lim.up : '—') + '</td>' +
+          '<td>' + (lim ? lim.low : '—') + '</td>' +
+        '</tr>'
       );
     }
-    return '<div class="gc-limits">' + blocks.join('') + '</div>';
+    return '<table class="gc-limit-table">' +
+      '<thead><tr><th style="width:160px;">类型</th><th>气体分析类型</th><th>气体分析指标上限</th><th>气体分析指标下限</th></tr></thead>' +
+      '<tbody>' + rows.join('') + '</tbody>' +
+    '</table>';
   }
 
   /* 每个探头卡片生成 27 条采集数据（3 页 × 每页 9 条），采集时间倒序：最新在最上 */
