@@ -837,9 +837,9 @@
   }
   /* 登记页的作业人员清单（与 person-tool-register.html 的 workers 一致） */
   var regWorkers = [
-    { name: '张强', phone: '139****1122' },
-    { name: '郑磊', phone: '139****9900' },
-    { name: '李敏', phone: '138****7788' }
+    { name: '张强', phone: '13912341122' },
+    { name: '郑磊', phone: '13912349900' },
+    { name: '李敏', phone: '13812347788' }
   ];
   /* 从未登记过时展示的示例数据 */
   var regSamplePersons = {
@@ -855,7 +855,17 @@
   function renderRegRecords() {
     var pSaved = loadRegJSON(REG_PERSON_KEY);
     var tSaved = loadRegJSON(REG_TOOL_KEY);
-    var persons = pSaved || regSamplePersons;
+    /* 人员存档兼容：新格式为登记记录数组 [{name, dir:'进'|'出', time, photos}]，
+       旧格式为 {姓名:{entered,time,photos}}；数组按姓名取最后一条转成旧结构 */
+    var persons;
+    if (Array.isArray(pSaved)) {
+      persons = {};
+      pSaved.forEach(function (e) {
+        persons[e.name] = { entered: e.dir !== '出', time: e.time || '', photos: e.photos || [] };
+      });
+    } else {
+      persons = pSaved || regSamplePersons;
+    }
     var tools = tSaved || regSampleTools;
 
     var enteredCount = regWorkers.filter(function (w) {
@@ -866,7 +876,8 @@
     var toolNames = Object.keys(tools);
     var toolCount = toolNames.reduce(function (sum, n) { return sum + normalizeRegTool(tools[n]).qty; }, 0);
     document.getElementById('regSummary').textContent =
-      '登记人员 ' + regWorkers.length + ' 人（进入受限空间 ' + enteredCount + ' 人），登记工器具 ' +
+      '登记人员 ' + regWorkers.length + ' 人（进 ' + enteredCount + ' 人 / 出 ' +
+      (regWorkers.length - enteredCount) + ' 人），登记工器具 ' +
       toolNames.length + ' 种（共 ' + toolCount + ' 件）';
 
     var personHtml = regWorkers.map(function (w) {
@@ -881,8 +892,8 @@
           '<div class="rg-sub">' + w.phone + '</div></div>' +
         '</div>' +
         '<div class="rg-rows">' +
-          '<div class="rg-row"><span class="lb">是否进入受限空间</span><span class="val">' + (entered ? '是' : '否') + '</span></div>' +
-          (entered ? '<div class="rg-row"><span class="lb">进入受限空间时间</span><span class="val">' + (time || '—') + '</span></div>' : '') +
+          '<div class="rg-row"><span class="lb">登记类型</span><span class="val">' + (entered ? '进' : '出') + '</span></div>' +
+          (time ? '<div class="rg-row"><span class="lb">时间</span><span class="val">' + time + '</span></div>' : '') +
           '<div class="rg-row"><span class="lb">拍照留证</span><span class="val">' +
             (photos.length
               ? '<span class="rg-photos" style="margin-top:0;">' + photos.map(function (p) {

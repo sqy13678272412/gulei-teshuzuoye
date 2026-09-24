@@ -84,7 +84,7 @@
   .reg-dialog {
     width: min(430px, 96vw); height: min(880px, 94vh); background: #f4f6fa;
     border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
-    animation: pop .16s ease;
+    animation: pop .16s ease; position: relative;
   }
   @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   .reg-head {
@@ -118,7 +118,42 @@
   .reg-avatar {
     width: 36px; height: 36px; border-radius: 50%; background: #16233f; color: #fff;
     font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    position: relative; overflow: hidden;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'><path d='M12 12c2.7 0 4.8-2.2 4.8-4.8S14.7 2.4 12 2.4 7.2 4.6 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-7.2 1.6-7.2 4.8v1.2h14.4v-1.2c0-3.2-4-4.8-7.2-4.8z'/></svg>");
+    background-size: 55%; background-position: center; background-repeat: no-repeat;
   }
+  .reg-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* 人员登记右下角新增按钮 */
+  .reg-add-fab {
+    position: absolute; right: 16px; bottom: 24px; width: 48px; height: 48px;
+    border-radius: 50%; background: #1f8ef1; color: #fff; font-size: 26px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(31,142,241,.4); z-index: 10; user-select: none;
+  }
+  .reg-add-fab:active { opacity: .88; }
+
+  /* 新增人员登记弹窗 */
+  #aMask { z-index: 450; }
+  .a-dialog {
+    width: min(430px, 96vw); max-height: 94vh; background: #f4f6fa; border-radius: 12px;
+    display: flex; flex-direction: column; overflow: hidden; animation: pop .16s ease;
+  }
+  .a-foot { display: flex; gap: 10px; padding: 12px; background: #fff; flex-shrink: 0; }
+  .a-cancel {
+    flex: 1; height: 44px; border: 1px solid #d8e0ea; border-radius: 22px;
+    background: #fff; font-size: 15px; color: #5a6472; cursor: pointer;
+  }
+  .a-save {
+    flex: 2; height: 44px; border: none; border-radius: 22px; background: #1f8ef1;
+    color: #fff; font-size: 15px; cursor: pointer;
+  }
+  .a-save:active { opacity: .88; }
+  .reg-select {
+    height: 32px; border: 1px solid #d8e0ea; border-radius: 6px; padding: 0 8px;
+    font-size: 12.5px; color: #333; outline: none; background: #fff; width: 185px;
+  }
+  .reg-select:focus { border-color: #1f8ef1; }
   .reg-card-name { font-size: 15px; font-weight: 600; color: #1f2d3d; }
   .reg-row { display: flex; align-items: center; padding: 9px 0; font-size: 13.5px; }
   .reg-row .lb { color: #8a94a3; width: 130px; flex-shrink: 0; }
@@ -328,9 +363,46 @@
         <div class="tool-add" onclick="showToolAdd()">＋自定义添加</div>
       </div>
     </div>
-    <button class="reg-save" onclick="saveRegister()">保 存</button>
+    <div class="reg-add-fab" id="personAddFab" onclick="openPersonAdd()" title="新增登记">＋</div>
   </div>
   <input type="file" id="regPhotoInput" accept="image/*" multiple hidden>
+  <input type="file" id="personPhotoInput" accept="image/*" multiple hidden>
+</div>
+
+<!-- ============ 新增人员登记弹窗 ============ -->
+<div class="m-mask" id="aMask">
+  <div class="a-dialog">
+    <div class="reg-head">
+      <span class="reg-back" onclick="closePersonAdd()">返回</span>
+      <span class="reg-title">新增人员登记</span>
+      <span class="reg-close" onclick="closePersonAdd()">✕</span>
+    </div>
+    <div class="reg-body">
+      <div class="reg-card">
+        <div class="reg-row"><span class="lb">人员姓名</span>
+          <select class="reg-select" id="addName"></select>
+        </div>
+        <div class="reg-row"><span class="lb">人员登记类型</span>
+          <span class="reg-radios">
+            <label class="reg-radio"><input type="radio" name="addDir" value="进" checked>进</label>
+            <label class="reg-radio"><input type="radio" name="addDir" value="出">出</label>
+          </span>
+        </div>
+        <div class="reg-row"><span class="lb">时间</span>
+          <input type="datetime-local" class="reg-time" id="addTime">
+        </div>
+        <div class="reg-photo-bar">
+          <button class="reg-photo-btn" onclick="document.getElementById('addPhotoInput').click()">📷 拍照</button>
+          <span class="reg-thumbs" id="addThumbs"></span>
+        </div>
+      </div>
+    </div>
+    <div class="a-foot">
+      <button class="a-cancel" onclick="closePersonAdd()">取 消</button>
+      <button class="a-save" onclick="savePersonAdd()">保 存</button>
+    </div>
+  </div>
+  <input type="file" id="addPhotoInput" accept="image/*" multiple hidden>
 </div>
 
 <!-- ============ 监护人检查项弹窗 ============ -->
@@ -420,9 +492,9 @@
 <script>
   /* ================= 作业人员（示例数据） ================= */
   var workers = [
-    { name: '张强', phone: '139****1122' },
-    { name: '郑磊', phone: '139****9900' },
-    { name: '李敏', phone: '138****7788' }
+    { name: '张强', phone: '13912341122', img: 12 },
+    { name: '郑磊', phone: '13912349900', img: 33 },
+    { name: '李敏', phone: '13812347788', img: 47 }
   ];
 
   /* ================= 登记数据读写 ================= */
@@ -464,9 +536,11 @@
     el.classList.add('active');
     document.querySelectorAll('.reg-pane').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById(pane === 'person' ? 'panePerson' : 'paneTool').classList.add('active');
+    var fab = document.getElementById('personAddFab');
+    if (fab) fab.style.display = pane === 'person' ? 'flex' : 'none';
   }
 
-  /* ================= 人员登记 ================= */
+  /* ================= 人员登记（登记记录，新增走右下角＋） ================= */
   function nowStr() {
     var d = new Date();
     function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -474,46 +548,182 @@
       'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
+  /* 登记记录：[{id, name, phone, dir:'进'|'出', time, photos:[dataURL]}] */
+  var personEntries = null;
+  function loadEntries() {
+    if (personEntries) return personEntries;
+    var raw = loadJSON(PERSON_KEY);
+    if (Array.isArray(raw) && raw.length) {
+      personEntries = raw;
+    } else {
+      personEntries = workers.map(function (w, i) {
+        return { id: i + 1, name: w.name, phone: w.phone, dir: '进', time: nowStr(), photos: [] };
+      });
+      persistEntries();
+    }
+    return personEntries;
+  }
+  function persistEntries() { localStorage.setItem(PERSON_KEY, JSON.stringify(personEntries)); }
+  function nextEntryId() {
+    return loadEntries().reduce(function (m, e) { return Math.max(m, e.id); }, 0) + 1;
+  }
+  function findEntry(id) {
+    var list = loadEntries();
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function workerImg(name) {
+    for (var i = 0; i < workers.length; i++) if (workers[i].name === name) return workers[i].img;
+    return 5;
+  }
+
   function renderPersonPane() {
-    var saved = loadJSON(PERSON_KEY) || {};
-    document.getElementById('panePerson').innerHTML = workers.map(function (w, i) {
-      var s = saved[w.name] || {};
-      var entered = s.entered !== undefined ? s.entered : true;  // 默认“是”
-      var time = s.time || nowStr();                             // 默认当前时间
-      var photos = s.photos || [];
+    document.getElementById('panePerson').innerHTML = loadEntries().map(function (e) {
       return '<div class="reg-card">' +
         '<div class="reg-card-head">' +
-          '<span class="reg-avatar">' + w.name.charAt(0) + '</span>' +
-          '<span class="reg-card-name">' + w.name + '</span>' +
+          '<span class="reg-avatar"><img src="https://i.pravatar.cc/80?img=' + workerImg(e.name) + '" onerror="this.style.display=\'none\'"></span>' +
+          '<span class="reg-card-name">' + e.name + '</span>' +
         '</div>' +
-        '<div class="reg-row"><span class="lb">姓名</span><span class="val">' + w.name + '</span></div>' +
-        '<div class="reg-row"><span class="lb">联系方式</span><span class="val">' + w.phone + '</span></div>' +
-        '<div class="reg-row"><span class="lb">是否进入受限空间</span>' +
+        '<div class="reg-row"><span class="lb">姓名</span><span class="val">' + e.name + '</span></div>' +
+        '<div class="reg-row"><span class="lb">联系方式</span><span class="val">' + e.phone + '</span></div>' +
+        '<div class="reg-row"><span class="lb">登记类型</span>' +
           '<span class="reg-radios">' +
-            '<label class="reg-radio"><input type="radio" name="enter_' + i + '" value="1" ' + (entered ? 'checked' : '') + ' onchange="toggleEnter(' + i + ')">是</label>' +
-            '<label class="reg-radio"><input type="radio" name="enter_' + i + '" value="0" ' + (entered ? '' : 'checked') + ' onchange="toggleEnter(' + i + ')">否</label>' +
+            '<label class="reg-radio"><input type="radio" name="dir_' + e.id + '" value="进" ' + (e.dir === '进' ? 'checked' : '') + ' onchange="setEntryDir(' + e.id + ',\'进\')">进</label>' +
+            '<label class="reg-radio"><input type="radio" name="dir_' + e.id + '" value="出" ' + (e.dir === '出' ? 'checked' : '') + ' onchange="setEntryDir(' + e.id + ',\'出\')">出</label>' +
           '</span>' +
         '</div>' +
-        '<div class="reg-row"><span class="lb">进入受限空间时间</span>' +
-          '<input type="datetime-local" class="reg-time" id="enterTime_' + i + '" value="' + time + '" ' + (entered ? '' : 'disabled') + '>' +
+        '<div class="reg-row"><span class="lb">时间</span>' +
+          '<input type="datetime-local" class="reg-time" value="' + e.time + '" onchange="setEntryTime(' + e.id + ',this.value)">' +
         '</div>' +
         '<div class="reg-photo-bar">' +
-          '<button class="reg-photo-btn" onclick="pickPhoto(\'person\',\'' + w.name + '\')">📷 拍照</button>' +
-          '<span class="reg-thumbs" id="pthumbs_' + i + '">' + photoThumbsHtml(photos, 'person', w.name) + '</span>' +
-          '<span class="reg-photo-count" id="pcount_' + i + '">' + (photos.length ? photos.length + ' 张' : '') + '</span>' +
+          '<button class="reg-photo-btn" onclick="pickEntryPhoto(' + e.id + ')">📷 拍照</button>' +
+          '<span class="reg-thumbs">' + entryThumbsHtml(e) + '</span>' +
+          '<span class="reg-photo-count">' + (e.photos.length ? e.photos.length + ' 张' : '') + '</span>' +
         '</div>' +
       '</div>';
     }).join('');
   }
 
-  /* 单选切换：为“否”时进入时间置灰禁用 */
-  function toggleEnter(i) {
-    var on = document.querySelector('input[name="enter_' + i + '"]:checked').value === '1';
-    document.getElementById('enterTime_' + i).disabled = !on;
+  /* 无保存按钮，修改即存档 */
+  function setEntryDir(id, dir) {
+    var e = findEntry(id); if (!e) return;
+    e.dir = dir; persistEntries(); toast('已保存', 1200);
+  }
+  function setEntryTime(id, time) {
+    var e = findEntry(id); if (!e) return;
+    e.time = time; persistEntries(); toast('已保存', 1200);
   }
 
-  /* ================= 拍照留证（人员/工器具共用） ================= */
-  var regPhotoCtx = null; /* {type:'person'|'tool', name} */
+  /* 人员登记拍照（独立输入框，与工器具分开） */
+  var entryPhotoCtx = null;
+  function pickEntryPhoto(id) {
+    entryPhotoCtx = id;
+    document.getElementById('personPhotoInput').click();
+  }
+  document.getElementById('personPhotoInput').addEventListener('change', function () {
+    var id = entryPhotoCtx;
+    var files = this.files;
+    this.value = '';
+    if (id === null || !files.length) return;
+    var e = findEntry(id);
+    if (!e) return;
+    var pending = files.length;
+    for (var i = 0; i < files.length; i++) {
+      (function (f) {
+        var r = new FileReader();
+        r.onload = function (ev) {
+          e.photos.push(ev.target.result);
+          if (--pending === 0) { persistEntries(); renderPersonPane(); toast('照片已保存', 1500); }
+        };
+        r.readAsDataURL(f);
+      })(files[i]);
+    }
+  });
+  function entryThumbsHtml(e) {
+    return e.photos.map(function (p, j) {
+      return '<span class="reg-thumb-wrap">' +
+        '<img class="reg-thumb" src="' + p + '" onclick="previewEntryPhoto(' + e.id + ',' + j + ')">' +
+        '<span class="reg-thumb-del" onclick="removeEntryPhoto(' + e.id + ',' + j + ')">✕</span>' +
+      '</span>';
+    }).join('');
+  }
+  function previewEntryPhoto(id, j) {
+    var e = findEntry(id);
+    if (!e || !e.photos[j]) return;
+    document.getElementById('regPvContent').innerHTML =
+      '<img src="' + e.photos[j] + '" style="width:100%;border-radius:8px;display:block">';
+    document.getElementById('regPvMask').classList.add('show');
+  }
+  function removeEntryPhoto(id, j) {
+    var e = findEntry(id);
+    if (!e) return;
+    e.photos.splice(j, 1);
+    persistEntries(); renderPersonPane();
+  }
+
+  /* ================= 新增人员登记弹窗 ================= */
+  var addPhotos = [];
+  function openPersonAdd() {
+    var sel = document.getElementById('addName');
+    sel.innerHTML = '<option value="" disabled selected>请选择</option>' +
+      workers.map(function (w) { return '<option value="' + w.name + '">' + w.name + '（' + w.phone + '）</option>'; }).join('');
+    document.querySelector('input[name="addDir"][value="进"]').checked = true;
+    document.getElementById('addTime').value = nowStr();
+    addPhotos = [];
+    renderAddThumbs();
+    document.getElementById('aMask').classList.add('show');
+  }
+  function closePersonAdd() { document.getElementById('aMask').classList.remove('show'); }
+  document.getElementById('aMask').addEventListener('click', function (e) {
+    if (e.target === this) closePersonAdd();
+  });
+  function renderAddThumbs() {
+    document.getElementById('addThumbs').innerHTML = addPhotos.map(function (p, j) {
+      return '<span class="reg-thumb-wrap">' +
+        '<img class="reg-thumb" src="' + p + '" onclick="previewAddPhoto(' + j + ')">' +
+        '<span class="reg-thumb-del" onclick="removeAddPhoto(' + j + ')">✕</span>' +
+      '</span>';
+    }).join('');
+  }
+  function previewAddPhoto(j) {
+    document.getElementById('regPvContent').innerHTML =
+      '<img src="' + addPhotos[j] + '" style="width:100%;border-radius:8px;display:block">';
+    document.getElementById('regPvMask').classList.add('show');
+  }
+  function removeAddPhoto(j) { addPhotos.splice(j, 1); renderAddThumbs(); }
+  document.getElementById('addPhotoInput').addEventListener('change', function () {
+    var files = this.files;
+    this.value = '';
+    if (!files.length) return;
+    var pending = files.length;
+    for (var i = 0; i < files.length; i++) {
+      (function (f) {
+        var r = new FileReader();
+        r.onload = function (e) {
+          addPhotos.push(e.target.result);
+          if (--pending === 0) renderAddThumbs();
+        };
+        r.readAsDataURL(f);
+      })(files[i]);
+    }
+  });
+  function savePersonAdd() {
+    var name = document.getElementById('addName').value;
+    var dir = document.querySelector('input[name="addDir"]:checked').value;
+    var time = document.getElementById('addTime').value;
+    if (!name) { toast('请选择人员姓名'); return; }
+    if (!time) { toast('请选择时间'); return; }
+    var phone = '';
+    for (var i = 0; i < workers.length; i++) if (workers[i].name === name) phone = workers[i].phone;
+    loadEntries().push({ id: nextEntryId(), name: name, phone: phone, dir: dir, time: time, photos: addPhotos.slice() });
+    persistEntries();
+    renderPersonPane();
+    closePersonAdd();
+    toast('保存成功', 2000);
+  }
+
+  /* ================= 拍照留证（工器具） ================= */
+  var regPhotoCtx = null; /* {type:'tool', name} */
   function photoThumbsHtml(photos, type, name) {
     return photos.map(function (p, j) {
       return '<span class="reg-thumb-wrap">' +
@@ -536,29 +746,19 @@
       (function (f) {
         var r = new FileReader();
         r.onload = function (e) {
-          if (ctx.type === 'person') {
-            var ps = loadJSON(PERSON_KEY) || {};
-            if (!ps[ctx.name]) ps[ctx.name] = { entered: true, time: nowStr(), photos: [] };
-            if (!ps[ctx.name].photos) ps[ctx.name].photos = [];
-            ps[ctx.name].photos.push(e.target.result);
-            localStorage.setItem(PERSON_KEY, JSON.stringify(ps));
-          } else {
-            var ts = loadJSON(TOOL_KEY) || {};
-            var t = normalizeToolSaved(ts[ctx.name]);
-            t.photos.push(e.target.result);
-            ts[ctx.name] = t;
-            localStorage.setItem(TOOL_KEY, JSON.stringify(ts));
-          }
-          if (--pending === 0) { renderPersonPane(); renderToolPane(); toast('照片已保存', 1500); }
+          var ts = loadJSON(TOOL_KEY) || {};
+          var t = normalizeToolSaved(ts[ctx.name]);
+          t.photos.push(e.target.result);
+          ts[ctx.name] = t;
+          localStorage.setItem(TOOL_KEY, JSON.stringify(ts));
+          if (--pending === 0) { renderToolPane(); toast('照片已保存', 1500); }
         };
         r.readAsDataURL(f);
       })(files[i]);
     }
   });
   function previewRegPhoto(type, name, j) {
-    var arr;
-    if (type === 'person') arr = ((loadJSON(PERSON_KEY) || {})[name] || {}).photos || [];
-    else arr = normalizeToolSaved((loadJSON(TOOL_KEY) || {})[name]).photos;
+    var arr = normalizeToolSaved((loadJSON(TOOL_KEY) || {})[name]).photos;
     if (!arr[j]) return;
     document.getElementById('regPvContent').innerHTML =
       '<img src="' + arr[j] + '" style="width:100%;border-radius:8px;display:block">';
@@ -572,19 +772,12 @@
     if (e.target === this) closeRegPreview();
   });
   function removeRegPhoto(type, name, j) {
-    if (type === 'person') {
-      var ps = loadJSON(PERSON_KEY) || {};
-      if (ps[name] && ps[name].photos) ps[name].photos.splice(j, 1);
-      localStorage.setItem(PERSON_KEY, JSON.stringify(ps));
-      renderPersonPane();
-    } else {
-      var ts = loadJSON(TOOL_KEY) || {};
-      var t = normalizeToolSaved(ts[name]);
-      t.photos.splice(j, 1);
-      ts[name] = t;
-      localStorage.setItem(TOOL_KEY, JSON.stringify(ts));
-      renderToolPane();
-    }
+    var ts = loadJSON(TOOL_KEY) || {};
+    var t = normalizeToolSaved(ts[name]);
+    t.photos.splice(j, 1);
+    ts[name] = t;
+    localStorage.setItem(TOOL_KEY, JSON.stringify(ts));
+    renderToolPane();
   }
 
   /* ================= 工器具登记 ================= */
@@ -670,35 +863,6 @@
   function toggleQty(i) {
     var cb = document.getElementById('tool_' + i);
     document.getElementById('qty_' + i).disabled = !cb.checked;
-  }
-
-  /* ================= 保存 ================= */
-  function saveRegister() {
-    // 人员登记（保留已有照片）
-    var oldP = loadJSON(PERSON_KEY) || {};
-    var persons = {};
-    workers.forEach(function (w, i) {
-      persons[w.name] = {
-        entered: document.querySelector('input[name="enter_' + i + '"]:checked').value === '1',
-        time: document.getElementById('enterTime_' + i).value,
-        photos: (oldP[w.name] || {}).photos || []
-      };
-    });
-    localStorage.setItem(PERSON_KEY, JSON.stringify(persons));
-
-    // 工器具登记（保留已有照片）
-    var oldT = loadJSON(TOOL_KEY) || {};
-    var tools = {};
-    getTools().concat(getCustomTools()).forEach(function (name, i) {
-      if (document.getElementById('tool_' + i).checked) {
-        var q = parseInt(document.getElementById('qty_' + i).value, 10);
-        tools[name] = { qty: isNaN(q) || q < 1 ? 1 : q, photos: normalizeToolSaved(oldT[name]).photos };
-      }
-    });
-    localStorage.setItem(TOOL_KEY, JSON.stringify(tools));
-
-    // 保存后不关闭弹窗，仅提示 3 秒
-    toast('保存成功', 3000);
   }
 
   /* ================= 监护人检查项弹窗 ================= */
