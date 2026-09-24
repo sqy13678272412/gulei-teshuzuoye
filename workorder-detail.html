@@ -154,6 +154,16 @@
   .gp-num.cur { background: #1f8ef1; color: #fff; }
   .gp-btn { cursor: pointer; color: #1f8ef1; padding: 2px 6px; user-select: none; }
   .gp-btn.dis { color: #c3c6cf; cursor: default; }
+  /* 探头卡片展开区：各气体分析类型的指标上下限 */
+  .gc-limits { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  .gc-limit {
+    flex: 1; min-width: 220px; border: 1px solid #e6ebf2; border-radius: 6px;
+    padding: 10px 14px; background: #fafbfe;
+  }
+  .gc-limit-row { display: flex; font-size: 12.5px; margin-top: 5px; }
+  .gc-limit-row:first-child { margin-top: 0; }
+  .gc-limit-row .k { color: #8a94a3; width: 118px; flex-shrink: 0; }
+  .gc-limit-row .v { color: #333; }
   .gas-card-body { display: none; border-top: 1px solid #eef1f6; padding: 16px 18px; }
   .gas-card.expanded .gas-card-body { display: block; }
   table.grid { width: 100%; border-collapse: collapse; }
@@ -608,6 +618,31 @@
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
   }
+  /* 每种气体类型的指标上下限（演示数据） */
+  var GAS_LIMITS = {
+    '甲烷':     { up: '25 PPM',   low: '0 PPM' },
+    '硫化氢':   { up: '10 PPM',   low: '0 PPM' },
+    '一氧化碳': { up: '25 PPM',   low: '0 PPM' },
+    '氧气':     { up: '23.5 %VOL', low: '19.5 %VOL' }
+  };
+  /* 展开区顶部：气体分析类型1/2/3 的指标上下限 */
+  function limitsHtml(name) {
+    var types = gasTypesOf(name);
+    var blocks = [];
+    for (var i = 0; i < 3; i++) {
+      var t = types[i];
+      var lim = t ? (GAS_LIMITS[t] || { up: '—', low: '—' }) : null;
+      blocks.push(
+        '<div class="gc-limit">' +
+          '<div class="gc-limit-row"><span class="k">气体分析类型' + (i + 1) + '</span><span class="v">' + (t || '—') + '</span></div>' +
+          '<div class="gc-limit-row"><span class="k">气体分析指标上限</span><span class="v">' + (lim ? lim.up : '—') + '</span></div>' +
+          '<div class="gc-limit-row"><span class="k">气体分析指标下限</span><span class="v">' + (lim ? lim.low : '—') + '</span></div>' +
+        '</div>'
+      );
+    }
+    return '<div class="gc-limits">' + blocks.join('') + '</div>';
+  }
+
   /* 每个探头卡片生成 27 条采集数据（3 页 × 每页 9 条），采集时间倒序：最新在最上 */
   var PAGE_SIZE = 9;
   var cardRows = [], cardPage = [], mCardPage = [];
@@ -680,6 +715,7 @@
           '<span class="gc-time">配置时间：<b>' + c.configTime + '</b></span>' +
         '</div>' +
         '<div class="gas-card-body">' +
+          limitsHtml(c.name) +
           '<table class="grid">' +
             '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th><th>是否合格</th></tr></thead>' +
             '<tbody id="gct_' + idx + '">' + pageRowsHtml(idx, cardPage[idx]) + '</tbody>' +
@@ -707,6 +743,7 @@
           '</div>' +
         '</div>' +
         '<div class="m-gas-body">' +
+          limitsHtml(c.name) +
           '<table class="m-grid">' +
             '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th><th>是否合格</th></tr></thead>' +
             '<tbody id="mgct_' + idx + '">' + pageRowsHtml(idx, mCardPage[idx]) + '</tbody>' +
