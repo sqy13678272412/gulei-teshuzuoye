@@ -1235,7 +1235,12 @@
     display: flex; font-size: 13.5px; color: #333;
   }
   .p-info span { flex: 1; }
-  .p-sec-title { font-size: 15px; font-weight: 600; color: #1f2d3d; padding: 4px 2px 10px; }
+  .p-sec-title { font-size: 15px; font-weight: 600; color: #1f2d3d; padding: 4px 2px 10px; display: flex; align-items: center; }
+  .p-sec-title .p-sec-link {
+    margin-left: auto; color: #1f8ef1; font-size: 13px; font-weight: 400;
+    cursor: pointer; user-select: none;
+  }
+  .p-sec-title .p-sec-link:hover { text-decoration: underline; }
   .p-role { color: #5a6472; font-size: 13.5px; padding: 6px 2px 10px; }
   .person-card {
     background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px;
@@ -1294,7 +1299,7 @@
         <span>地点：装置A/区域1</span>
       </div>
 
-      <div class="p-sec-title">角色区</div>
+      <div class="p-sec-title">角色区<span class="p-sec-link" onclick="openChangeRecords()">人员变更记录</span></div>
 
       <div class="p-role">作业负责人 (1)</div>
       <div class="person-card">
