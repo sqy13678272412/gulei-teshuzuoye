@@ -202,6 +202,11 @@
     background: #fff; font-size: 12.5px; color: #333; cursor: pointer;
   }
   .reg-photo-btn:active { background: #f5f6f9; }
+  /* 展示态照片标签（纯展示，不可点击） */
+  .reg-photo-label {
+    flex-shrink: 0; height: 30px; padding: 0 14px; border: 1px solid #e6ebf2; border-radius: 15px;
+    background: #f5f6f9; font-size: 12.5px; color: #8a94a3; display: inline-flex; align-items: center;
+  }
   .reg-thumbs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-width: 0; }
   .reg-thumb {
     width: 44px; height: 44px; border-radius: 6px; object-fit: cover; cursor: pointer;
@@ -371,7 +376,6 @@
     <div class="reg-add-fab" id="personAddFab" onclick="openPersonAdd()" title="新增登记">＋</div>
   </div>
   <input type="file" id="regPhotoInput" accept="image/*" multiple hidden>
-  <input type="file" id="personPhotoInput" accept="image/*" multiple hidden>
 </div>
 
 <!-- ============ 新增人员登记弹窗 ============ -->
@@ -594,62 +598,25 @@
         '<div class="reg-row"><span class="lb">联系方式</span><span class="val">' + e.phone + '</span></div>' +
         '<div class="reg-row"><span class="lb">登记类型</span>' +
           '<span class="reg-radios">' +
-            '<label class="reg-radio"><input type="radio" name="dir_' + e.id + '" value="进" ' + (e.dir === '进' ? 'checked' : '') + ' onchange="setEntryDir(' + e.id + ',\'进\')">进</label>' +
-            '<label class="reg-radio"><input type="radio" name="dir_' + e.id + '" value="出" ' + (e.dir === '出' ? 'checked' : '') + ' onchange="setEntryDir(' + e.id + ',\'出\')">出</label>' +
+            '<label class="reg-radio"><input type="radio" name="dir_' + e.id + '" value="进" ' + (e.dir === '进' ? 'checked' : '') + ' disabled>进</label>' +
+            '<label class="reg-radio"><input type="radio" name="dir_' + e.id + '" value="出" ' + (e.dir === '出' ? 'checked' : '') + ' disabled>出</label>' +
           '</span>' +
         '</div>' +
         '<div class="reg-row"><span class="lb">时间</span>' +
-          '<input type="datetime-local" class="reg-time" value="' + e.time + '" onchange="setEntryTime(' + e.id + ',this.value)">' +
+          '<input type="datetime-local" class="reg-time" value="' + e.time + '" disabled>' +
         '</div>' +
         '<div class="reg-photo-bar">' +
-          '<button class="reg-photo-btn" onclick="pickEntryPhoto(' + e.id + ')">📷 拍照</button>' +
+          '<span class="reg-photo-label">照片</span>' +
           '<span class="reg-thumbs">' + entryThumbsHtml(e) + '</span>' +
           '<span class="reg-photo-count">' + (e.photos.length ? e.photos.length + ' 张' : '') + '</span>' +
         '</div>' +
       '</div>';
     }).join('');
   }
-
-  /* 无保存按钮，修改即存档 */
-  function setEntryDir(id, dir) {
-    var e = findEntry(id); if (!e) return;
-    e.dir = dir; persistEntries(); toast('已保存', 1200);
-  }
-  function setEntryTime(id, time) {
-    var e = findEntry(id); if (!e) return;
-    e.time = time; persistEntries(); toast('已保存', 1200);
-  }
-
-  /* 人员登记拍照（独立输入框，与工器具分开） */
-  var entryPhotoCtx = null;
-  function pickEntryPhoto(id) {
-    entryPhotoCtx = id;
-    document.getElementById('personPhotoInput').click();
-  }
-  document.getElementById('personPhotoInput').addEventListener('change', function () {
-    var id = entryPhotoCtx;
-    var files = this.files;
-    this.value = '';
-    if (id === null || !files.length) return;
-    var e = findEntry(id);
-    if (!e) return;
-    var pending = files.length;
-    for (var i = 0; i < files.length; i++) {
-      (function (f) {
-        var r = new FileReader();
-        r.onload = function (ev) {
-          e.photos.push(ev.target.result);
-          if (--pending === 0) { persistEntries(); renderPersonPane(); toast('照片已保存', 1500); }
-        };
-        r.readAsDataURL(f);
-      })(files[i]);
-    }
-  });
   function entryThumbsHtml(e) {
     return e.photos.map(function (p, j) {
       return '<span class="reg-thumb-wrap">' +
         '<img class="reg-thumb" src="' + p + '" onclick="previewEntryPhoto(' + e.id + ',' + j + ')">' +
-        '<span class="reg-thumb-del" onclick="removeEntryPhoto(' + e.id + ',' + j + ')">✕</span>' +
       '</span>';
     }).join('');
   }
@@ -659,12 +626,6 @@
     document.getElementById('regPvContent').innerHTML =
       '<img src="' + e.photos[j] + '" style="width:100%;border-radius:8px;display:block">';
     document.getElementById('regPvMask').classList.add('show');
-  }
-  function removeEntryPhoto(id, j) {
-    var e = findEntry(id);
-    if (!e) return;
-    e.photos.splice(j, 1);
-    persistEntries(); renderPersonPane();
   }
 
   /* ================= 新增人员登记弹窗 ================= */
