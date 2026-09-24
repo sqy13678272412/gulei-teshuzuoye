@@ -160,6 +160,7 @@
   .item-row:hover .item-ops, .item-row.active .item-ops { display: flex; }
   .item-op { font-size: 13px; cursor: pointer; }
   .item-op.edit { color: #1f8ef1; }
+  .item-op.copy { color: #389e0d; }
   .item-op.del { color: #e64340; }
   .type-dot {
     width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
@@ -367,27 +368,28 @@
       <!-- ============ 第二个 tab：监护检查事项配置 ============ -->
       <div class="tab-pane" id="pane2">
         <div class="cfg-layout">
-          <!-- 左模块：作业类型 -->
+          <!-- 左模块：检查项清单 -->
           <div class="cfg-left">
             <div class="panel">
               <div class="panel-head">
-                <span class="panel-title">作业类型</span>
-                <span class="panel-hint">选择作业类型配置监护检查事项</span>
+                <span class="panel-title">检查项清单</span>
+                <span class="panel-hint">选择清单查看检查项</span>
+                <span class="spacer"></span>
+                <button class="btn primary" onclick="openClModal('add')">＋ 新增清单</button>
               </div>
               <div class="panel-body" id="accLeftBody"></div>
             </div>
           </div>
 
-          <!-- 右模块：监护检查事项（有级别时按级别 tab 切换） -->
+          <!-- 右模块：当前清单下的监护检查事项 -->
           <div class="cfg-right">
             <div class="panel">
               <div class="panel-head">
                 <span class="panel-title">监护检查事项</span>
                 <span class="panel-hint" id="accHint"></span>
                 <span class="spacer"></span>
-                <button class="btn primary" onclick="openAccModal('add')">＋ 新增</button>
+                <button class="btn primary" onclick="openAccModal('add')">＋ 新增检查项</button>
               </div>
-              <div class="acc-level-tabs" id="accLevelTabs" style="display:none;"></div>
               <div class="panel-body" id="accRightBody"></div>
             </div>
           </div>
@@ -432,16 +434,32 @@
         <label class="radio-item"><input type="radio" name="accImg" value="1">是</label>
         <label class="radio-item"><input type="radio" name="accImg" value="0" checked>否</label>
       </div>
-      <div class="m-label" style="margin-top:14px;">该检查项适用作业类型</div>
-      <div id="accTypesBox" style="display:flex;flex-wrap:wrap;gap:8px 22px;"></div>
-      <div class="m-label" id="accLevelsLabel" style="margin-top:14px;display:none;">对应等级</div>
-      <div id="accLevelsBox" style="display:none;flex-direction:column;gap:8px;"></div>
       <div class="m-label" style="margin-top:14px;">排序</div>
       <input class="m-input" id="accSortInput" type="number" placeholder="数字越小越靠前" value="1">
     </div>
     <div class="m-foot">
       <button class="btn" onclick="closeAccModal()">取 消</button>
-      <button class="btn primary" onclick="saveAcc()">保 存</button>
+      <button class="btn primary" onclick="saveAccItem()">保 存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 新增/编辑检查项清单弹窗 ============ -->
+<div class="m-mask" id="clMask">
+  <div class="m-dialog">
+    <div class="m-head">
+      <span class="m-title" id="clModalTitle">新增检查项清单</span>
+      <span class="m-close" onclick="closeClModal()">✕</span>
+    </div>
+    <div class="m-body">
+      <div class="m-label">清单名称</div>
+      <input class="m-input" id="clNameInput" placeholder="请输入清单名称，如：动火作业监护检查清单">
+      <div class="m-label" style="margin-top:14px;">适用作业类型（可多选）</div>
+      <div id="clTypesBox" style="display:flex;flex-wrap:wrap;gap:8px 22px;"></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" onclick="closeClModal()">取 消</button>
+      <button class="btn primary" onclick="saveCl()">保 存</button>
     </div>
   </div>
 </div>
@@ -771,220 +789,217 @@
     toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
   }
 
-  /* ================= 监护检查事项配置 ================= */
+  /* ================= 监护检查事项配置（检查项清单模式） ================= */
+  /* 数据模型：[{ id, name, types:[作业类型...], items:[{id, name, needImg, sort, status}] }] */
   var ACC_KEY = 'guardian_acceptance_items';
   var accData = loadAcc();
-  var accType = allTypes[0];   // 当前选中的作业类型
-  var accLevel = null;         // 当前选中的级别（无级别作业类型为 null）
+  var currentClId = accData.length ? accData[0].id : null;
 
   function defaultAccData() {
-    var empty = function () { return { levels: null, items: { '_default': [] } }; };
-    var data = {
-      '动火作业票': {
-        levels: ['特级', '一级', '二级'],
-        items: {
-          '特级': [
-            { id: 1, name: '确认动火点及周边无残留火种、无阴燃现象', needImg: true, sort: 1, status: '启用' },
-            { id: 2, name: '动火设备、工具已全部撤离现场', needImg: false, sort: 2, status: '启用' },
-            { id: 3, name: '现场监火人员确认完毕并签字', needImg: true, sort: 3, status: '启用' }
-          ],
-          '一级': [
-            { id: 4, name: '确认动火点及周边无残留火种', needImg: true, sort: 1, status: '启用' },
-            { id: 5, name: '消防器材已归位、现场已清理', needImg: false, sort: 2, status: '停用' }
-          ],
-          '二级': [
-            { id: 6, name: '确认现场无残留火种', needImg: false, sort: 1, status: '启用' }
-          ]
-        }
-      },
-      '高处作业票': {
-        levels: ['一级', '二级', '三级'],
-        items: {
-          '一级': [
-            { id: 7, name: '脚手架、操作平台拆除完毕，现场清理完成', needImg: true, sort: 1, status: '启用' },
-            { id: 8, name: '预留孔洞、临边防护已恢复', needImg: true, sort: 2, status: '启用' }
-          ],
-          '二级': [
-            { id: 9, name: '作业下方警戒区域已解除', needImg: false, sort: 1, status: '启用' }
-          ],
-          '三级': []
-        }
-      },
-      '受限空间作业票': {
-        levels: null,
-        items: { '_default': [
-          { id: 10, name: '作业人员、工具已全部撤出，出入口已恢复', needImg: true, sort: 1, status: '启用' },
-          { id: 11, name: '空间内无遗留物，现场已封闭', needImg: false, sort: 2, status: '启用' }
-        ] }
-      },
-      '动土作业票': empty(),
-      '盲板抽堵作业票': empty(),
-      '吊装作业票': empty(),
-      '临时用电作业票': empty(),
-      '断路作业票': empty(),
-      '冷工作业票': empty()
-    };
-    return data;
+    return [
+      { id: 1, name: '受限空间作业监护检查清单', types: ['受限空间作业票'], items: [
+        { id: 1, name: '作业人员、工具已全部撤出，出入口已恢复', needImg: true, sort: 1, status: '启用' },
+        { id: 2, name: '空间内无遗留物，现场已封闭', needImg: false, sort: 2, status: '启用' }
+      ] },
+      { id: 2, name: '动火作业监护检查清单', types: ['动火作业票'], items: [
+        { id: 3, name: '确认动火点及周边无残留火种、无阴燃现象', needImg: true, sort: 1, status: '启用' },
+        { id: 4, name: '动火设备、工具已全部撤离现场', needImg: false, sort: 2, status: '启用' },
+        { id: 5, name: '现场监火人员确认完毕并签字', needImg: true, sort: 3, status: '启用' }
+      ] },
+      { id: 3, name: '高处/吊装作业通用检查清单', types: ['高处作业票', '吊装作业票'], items: [
+        { id: 6, name: '作业现场警戒已解除，作业人员已撤离', needImg: false, sort: 1, status: '启用' }
+      ] }
+    ];
+  }
+  /* 旧格式（按作业类型 → 级别 → 检查项 存储的对象）迁移为清单数组；
+     同一检查项出现在多个作业类型时，按类型组合归为一个清单 */
+  function migrateAccData(old) {
+    var idMap = {}; var idOrder = [];
+    Object.keys(old).forEach(function (t) {
+      var items = old[t].items || {};
+      Object.keys(items).forEach(function (k) {
+        (items[k] || []).forEach(function (i) {
+          if (!idMap[i.id]) { idMap[i.id] = { item: i, types: [] }; idOrder.push(i.id); }
+          if (idMap[i.id].types.indexOf(t) < 0) idMap[i.id].types.push(t);
+        });
+      });
+    });
+    var groups = {}; var gOrder = [];
+    idOrder.forEach(function (id) {
+      var sig = idMap[id].types.slice().sort().join('|');
+      if (!groups[sig]) { groups[sig] = { types: idMap[id].types.slice().sort(), ids: [] }; gOrder.push(sig); }
+      groups[sig].ids.push(id);
+    });
+    var clId = 1; var itemId = 1;
+    return gOrder.map(function (sig) {
+      var g = groups[sig];
+      var shorts = g.types.map(function (t) { return t.replace('作业票', ''); });
+      return {
+        id: clId++,
+        name: g.types.length === 1 ? shorts[0] + '监护检查清单' : '通用监护检查清单（' + shorts.join('、') + '）',
+        types: g.types,
+        items: g.ids.map(function (id) {
+          var src = idMap[id].item;
+          return { id: itemId++, name: src.name, needImg: !!src.needImg, sort: src.sort || 1, status: src.status || '启用' };
+        }).sort(function (a, b) { return a.sort - b.sort; })
+      };
+    });
   }
   function loadAcc() {
     try {
       var raw = localStorage.getItem(ACC_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        var data = JSON.parse(raw);
+        if (Array.isArray(data)) return data;
+        if (data && typeof data === 'object') {
+          var migrated = migrateAccData(data);
+          localStorage.setItem(ACC_KEY, JSON.stringify(migrated));
+          return migrated;
+        }
+      }
     } catch (e) { /* 忽略损坏数据，使用默认 */ }
     return defaultAccData();
   }
-  function saveAcc() {
-    localStorage.setItem(ACC_KEY, JSON.stringify(accData));
-  }
-
-  /* 当前级别对应的 items 键：有级别用级别名，无级别用 '_default' */
-  function accLevelKey() {
-    return accData[accType].levels ? accLevel : '_default';
-  }
-  function curAccItems() {
-    var d = accData[accType];
-    return d.items[accLevelKey()] || [];
-  }
-  function findAccItem(id) {
-    var all = [];
-    var map = accData[accType].items;
-    Object.keys(map).forEach(function (k) { all = all.concat(map[k]); });
-    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+  function saveAcc() { localStorage.setItem(ACC_KEY, JSON.stringify(accData)); }
+  function curClById(id) {
+    for (var i = 0; i < accData.length; i++) if (accData[i].id === id) return accData[i];
     return null;
   }
-  function nextAccId() {
+  function curCl() { return curClById(currentClId); }
+  function nextClId() { return accData.reduce(function (m, c) { return Math.max(m, c.id); }, 0) + 1; }
+  function nextAccItemId() {
     var max = 0;
-    Object.keys(accData).forEach(function (t) {
-      Object.keys(accData[t].items).forEach(function (k) {
-        accData[t].items[k].forEach(function (i) { if (i.id > max) max = i.id; });
-      });
-    });
+    accData.forEach(function (c) { c.items.forEach(function (i) { if (i.id > max) max = i.id; }); });
     return max + 1;
   }
 
-  /* 检查项可能同时适用于多个作业类型（同一 id 出现在多个类型的列表中） */
-  function accItemTypes(id) {
-    var types = [];
-    Object.keys(accData).forEach(function (t) {
-      var items = accData[t].items;
-      var found = Object.keys(items).some(function (k) {
-        return items[k].some(function (i) { return i.id === id; });
-      });
-      if (found) types.push(t);
-    });
-    return types;
-  }
-  /* 检查项在指定作业类型下已放入的等级键列表 */
-  function accItemLevels(t, id) {
-    var items = accData[t].items;
-    return Object.keys(items).filter(function (k) {
-      return items[k].some(function (i) { return i.id === id; });
-    });
-  }
-  /* 弹窗中指定作业类型当前勾选的等级；无等级的类型返回 ['_default'] */
-  function selectedLevelKeys(t) {
-    var d = accData[t];
-    if (!d.levels) return ['_default'];
-    var lvs = [];
-    document.querySelectorAll('input[name="accLv_' + t + '"]:checked').forEach(function (cb) { lvs.push(cb.value); });
-    return lvs;
-  }
-  /* 勾选的作业类型中有等级时，动态渲染“对应等级”勾选区 */
-  function renderAccLevels() {
-    /* 保留用户已勾选的等级（类型取消勾选再勾选时不丢状态） */
-    var prev = {};
-    document.querySelectorAll('input[name^="accLv_"]').forEach(function (cb) {
-      var t = cb.name.slice('accLv_'.length);
-      if (!prev[t]) prev[t] = [];
-      if (cb.checked) prev[t].push(cb.value);
-    });
-    var html = '';
-    document.querySelectorAll('input[name="accTypeCb"]:checked').forEach(function (cb) {
-      var t = cb.value;
-      var d = accData[t];
-      if (!d.levels) return;
-      var lv = (prev[t] && prev[t].length) ? prev[t]
-        : (accEditId ? accItemLevels(t, accEditId) : (t === accType ? [accLevel] : [d.levels[0]]));
-      html += '<div class="acc-lv-group"><span class="acc-lv-type">' + t + '</span>' +
-        d.levels.map(function (k) {
-          return '<label class="radio-item"><input type="checkbox" name="accLv_' + t + '" value="' + k + '"' +
-            (lv.indexOf(k) > -1 ? ' checked' : '') + '>' + k + '</label>';
-        }).join('') + '</div>';
-    });
-    document.getElementById('accLevelsBox').innerHTML = html;
-    var hasLv = html.length > 0;
-    document.getElementById('accLevelsLabel').style.display = hasLv ? 'block' : 'none';
-    document.getElementById('accLevelsBox').style.display = hasLv ? 'flex' : 'none';
-  }
-  function removeAccItemFromType(t, id) {
-    var items = accData[t].items;
-    Object.keys(items).forEach(function (k) {
-      items[k] = items[k].filter(function (i) { return i.id !== id; });
-    });
-  }
-
-  /* ---------- 左模块：作业类型 ---------- */
-  function renderAccLeft() {
-    document.getElementById('accLeftBody').innerHTML = allTypes.map(function (t) {
-      var s = typeStyle(t);
-      return '<div class="item-row' + (t === accType ? ' active' : '') + '" onclick="selectAccType(\'' + t + '\')">' +
-        '<span class="type-dot" style="background:' + s.color + '"></span>' +
-        '<span class="item-name">' + t + '</span>' +
+  /* ---------- 左模块：检查项清单 ---------- */
+  function renderClLeft() {
+    var box = document.getElementById('accLeftBody');
+    if (!accData.length) {
+      box.innerHTML = '<div class="empty-tip">暂无检查项清单<br>请点击右上角"新增清单"</div>';
+      return;
+    }
+    box.innerHTML = accData.map(function (c) {
+      return '<div class="item-row' + (c.id === currentClId ? ' active' : '') + '" onclick="selectCl(' + c.id + ')">' +
+        '<span class="item-name">' + c.name + '<span style="color:#a0a8b4;font-weight:400;font-size:12px;">（' + c.items.length + ' 项）</span></span>' +
+        '<span class="item-ops">' +
+          '<span class="item-op edit" title="编辑" onclick="event.stopPropagation();openClModal(\'edit\',' + c.id + ')">✎</span>' +
+          '<span class="item-op copy" title="复制" onclick="event.stopPropagation();copyCl(' + c.id + ')">⧉</span>' +
+          '<span class="item-op del" title="删除" onclick="event.stopPropagation();delCl(' + c.id + ')">🗑</span>' +
+        '</span>' +
       '</div>';
     }).join('');
   }
-  function selectAccType(t) {
-    accType = t;
-    var d = accData[t];
-    accLevel = d.levels ? d.levels[0] : null;
-    renderAccLeft();
+  function selectCl(id) { currentClId = id; renderClLeft(); renderAccRight(); }
+
+  /* ---------- 清单：新增 / 编辑 / 复制 / 删除 ---------- */
+  var clEditId = null;
+  function openClModal(mode, id) {
+    clEditId = mode === 'edit' ? id : null;
+    document.getElementById('clModalTitle').textContent = mode === 'edit' ? '编辑检查项清单' : '新增检查项清单';
+    var c = clEditId ? curClById(clEditId) : null;
+    document.getElementById('clNameInput').value = c ? c.name : '';
+    var checkedTypes = c ? c.types : [];
+    document.getElementById('clTypesBox').innerHTML = allTypes.map(function (t) {
+      return '<label class="radio-item"><input type="checkbox" name="clTypeCb" value="' + t + '"' +
+        (checkedTypes.indexOf(t) > -1 ? ' checked' : '') + '>' + t + '</label>';
+    }).join('');
+    document.getElementById('clMask').classList.add('show');
+    setTimeout(function () { document.getElementById('clNameInput').focus(); }, 50);
+  }
+  function closeClModal() { document.getElementById('clMask').classList.remove('show'); }
+  document.getElementById('clMask').addEventListener('click', function (e) {
+    if (e.target === this) closeClModal();
+  });
+  function saveCl() {
+    var name = document.getElementById('clNameInput').value.trim();
+    var selTypes = [];
+    document.querySelectorAll('input[name="clTypeCb"]:checked').forEach(function (cb) { selTypes.push(cb.value); });
+    if (!name) { toast('请输入清单名称'); return; }
+    if (!selTypes.length) { toast('请选择清单适用作业类型'); return; }
+    if (clEditId) {
+      var c = curClById(clEditId);
+      c.name = name;
+      c.types = selTypes;
+      toast('已保存');
+    } else {
+      var nc = { id: nextClId(), name: name, types: selTypes, items: [] };
+      accData.push(nc);
+      currentClId = nc.id;
+      toast('已新增清单');
+    }
+    saveAcc();
+    closeClModal();
+    renderClLeft();
     renderAccRight();
   }
+  /* 复制清单：内容完整拷贝并生成新 id，命名为“原名（副本）” */
+  function copyCl(id) {
+    var src = curClById(id);
+    if (!src) return;
+    var cp = {
+      id: nextClId(),
+      name: src.name + '（副本）',
+      types: src.types.slice(),
+      items: src.items.map(function (i) {
+        return { id: nextAccItemId(), name: i.name, needImg: i.needImg, sort: i.sort, status: i.status };
+      })
+    };
+    accData.splice(accData.indexOf(src) + 1, 0, cp);
+    currentClId = cp.id;
+    saveAcc();
+    renderClLeft();
+    renderAccRight();
+    toast('已复制清单');
+  }
+  function delCl(id) {
+    var c = curClById(id);
+    if (!c) return;
+    if (!confirm('确定删除检查项清单"' + c.name + '"吗？清单内 ' + c.items.length + ' 个检查项将一并删除。')) return;
+    accData = accData.filter(function (x) { return x.id !== id; });
+    if (currentClId === id) currentClId = accData.length ? accData[0].id : null;
+    saveAcc();
+    renderClLeft();
+    renderAccRight();
+    toast('已删除');
+  }
 
-  /* ---------- 右模块：级别 tab + 监护检查事项表格 ---------- */
+  /* ---------- 右模块：当前清单下的监护检查事项 ---------- */
   function renderAccRight() {
-    var d = accData[accType];
-    document.getElementById('accHint').textContent =
-      '当前作业类型：' + accType + (accLevel ? '（' + accLevel + '）' : '');
-
-    var tabs = document.getElementById('accLevelTabs');
-    if (d.levels) {
-      tabs.style.display = 'flex';
-      tabs.innerHTML = d.levels.map(function (lv) {
-        return '<div class="acc-level-tab' + (lv === accLevel ? ' active' : '') +
-          '" onclick="switchAccLevel(\'' + lv + '\')">' + lv + '</div>';
-      }).join('');
-    } else {
-      tabs.style.display = 'none';
-      tabs.innerHTML = '';
-    }
-
     var box = document.getElementById('accRightBody');
-    var list = curAccItems().slice().sort(function (a, b) { return a.sort - b.sort; });
+    var hint = document.getElementById('accHint');
+    var c = curCl();
+    if (!c) {
+      hint.textContent = '';
+      box.innerHTML = '<div class="empty-tip">请先在左侧选择或新增一个检查项清单</div>';
+      return;
+    }
+    var tags = c.types.map(function (t) {
+      var s = typeStyle(t);
+      return '<span class="type-tag" style="background:' + s.bg + ';border-color:' + s.border + ';color:' + s.color + ';padding:1px 7px;font-size:12px">' + t + '</span>';
+    }).join(' ');
+    hint.innerHTML = '当前清单：' + c.name + '　' + tags;
+
+    var list = c.items.slice().sort(function (a, b) { return a.sort - b.sort; });
     if (!list.length) {
-      box.innerHTML = '<div class="empty-tip">暂未配置监护检查事项，请点击右上角"新增"</div>';
+      box.innerHTML = '<div class="empty-tip">该清单暂未配置检查项，请点击右上角"新增检查项"</div>';
       return;
     }
     box.innerHTML = '<table class="acc-grid"><thead><tr>' +
       '<th style="width:60px">序号</th>' +
       '<th>监护检查事项</th>' +
       '<th style="width:110px">是否需要图片</th>' +
-      '<th style="width:210px">适用作业类型</th>' +
       '<th style="width:70px">排序</th>' +
       '<th style="width:90px">状态</th>' +
       '<th style="width:190px">操作</th>' +
       '</tr></thead><tbody>' +
       list.map(function (it, i) {
         var isOn = it.status === '启用';
-        var typeTags = accItemTypes(it.id).map(function (t) {
-          var s = typeStyle(t);
-          return '<span class="type-tag" style="background:' + s.bg + ';border-color:' + s.border + ';color:' + s.color + ';padding:1px 7px;font-size:12px">' + t + '</span>';
-        }).join('');
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
           '<td class="acc-name">' + it.name + '</td>' +
           '<td>' + (it.needImg ? '<span class="img-tag">是</span>' : '<span class="img-none">否</span>') + '</td>' +
-          '<td><div class="type-tags" style="gap:6px;">' + (typeTags || '—') + '</div></td>' +
           '<td>' + it.sort + '</td>' +
           '<td><span class="st-tag ' + (isOn ? 'st-on' : 'st-off') + '">' + it.status + '</span></td>' +
           '<td>' +
@@ -995,32 +1010,24 @@
         '</tr>';
       }).join('') + '</tbody></table>';
   }
-  function switchAccLevel(lv) {
-    accLevel = lv;
-    renderAccRight();
-  }
 
-  /* ---------- 新增 / 编辑 ---------- */
+  /* ---------- 检查项：新增 / 编辑 ---------- */
   var accEditId = null;
   function openAccModal(mode, id) {
+    if (!curCl()) { toast('请先选择检查项清单'); return; }
     accEditId = mode === 'edit' ? id : null;
     document.getElementById('accModalTitle').textContent = mode === 'edit' ? '编辑监护检查事项' : '新增监护检查事项';
-    /* 适用作业类型复选框：编辑时回显该检查项已适用的类型，新增时默认勾选当前类型 */
-    var checkedTypes = mode === 'edit' ? accItemTypes(id) : [accType];
-    document.getElementById('accTypesBox').innerHTML = allTypes.map(function (t) {
-      return '<label class="radio-item"><input type="checkbox" name="accTypeCb" value="' + t + '"' +
-        (checkedTypes.indexOf(t) > -1 ? ' checked' : '') + ' onchange="renderAccLevels()">' + t + '</label>';
-    }).join('');
-    renderAccLevels();
     if (mode === 'edit') {
-      var it = findAccItem(id);
+      var list = curCl().items;
+      var it = null;
+      for (var i = 0; i < list.length; i++) if (list[i].id === id) it = list[i];
       document.getElementById('accNameInput').value = it.name;
       document.querySelector('input[name="accImg"][value="' + (it.needImg ? '1' : '0') + '"]').checked = true;
       document.getElementById('accSortInput').value = it.sort;
     } else {
       document.getElementById('accNameInput').value = '';
       document.querySelector('input[name="accImg"][value="0"]').checked = true;
-      document.getElementById('accSortInput').value = curAccItems().length + 1;
+      document.getElementById('accSortInput').value = curCl().items.length + 1;
     }
     document.getElementById('accMask').classList.add('show');
     setTimeout(function () { document.getElementById('accNameInput').focus(); }, 50);
@@ -1029,91 +1036,64 @@
   document.getElementById('accMask').addEventListener('click', function (e) {
     if (e.target === this) closeAccModal();
   });
-
-  function saveAcc() {
+  function saveAccItem() {
     var name = document.getElementById('accNameInput').value.trim();
     var sort = parseInt(document.getElementById('accSortInput').value, 10);
     var needImg = document.querySelector('input[name="accImg"]:checked').value === '1';
-    var selTypes = [];
-    document.querySelectorAll('input[name="accTypeCb"]:checked').forEach(function (cb) { selTypes.push(cb.value); });
     if (!name) { toast('请输入监护检查事项内容'); return; }
     if (isNaN(sort)) { toast('请输入正确的排序数字'); return; }
-    if (!selTypes.length) { toast('请选择该检查项适用作业类型'); return; }
-    /* 有等级的作业类型必须勾选至少一个对应等级 */
-    for (var vi = 0; vi < selTypes.length; vi++) {
-      var vt = selTypes[vi];
-      if (accData[vt].levels && !selectedLevelKeys(vt).length) {
-        toast('请选择"' + vt + '"的对应等级'); return;
-      }
-    }
+    var items = curCl().items;
     if (accEditId) {
-      var status = findAccItem(accEditId).status;
-      Object.keys(accData).forEach(function (t) {
-        if (selTypes.indexOf(t) === -1) { removeAccItemFromType(t, accEditId); return; }
-        var keys = selectedLevelKeys(t);
-        var items = accData[t].items;
-        /* 从取消勾选的等级中移除 */
-        Object.keys(items).forEach(function (k) {
-          if (keys.indexOf(k) === -1) items[k] = items[k].filter(function (i) { return i.id !== accEditId; });
-        });
-        /* 更新/补入勾选的等级 */
-        keys.forEach(function (k) {
-          var exist = null;
-          items[k].forEach(function (i) { if (i.id === accEditId) exist = i; });
-          if (exist) { exist.name = name; exist.needImg = needImg; exist.sort = sort; }
-          else items[k].push({ id: accEditId, name: name, needImg: needImg, sort: sort, status: status });
-        });
-      });
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === accEditId) {
+          items[i].name = name;
+          items[i].needImg = needImg;
+          items[i].sort = sort;
+        }
+      }
       toast('已保存');
     } else {
-      var nid = nextAccId();
-      selTypes.forEach(function (t) {
-        selectedLevelKeys(t).forEach(function (k) {
-          accData[t].items[k].push({ id: nid, name: name, needImg: needImg, sort: sort, status: '启用' });
-        });
-      });
+      items.push({ id: nextAccItemId(), name: name, needImg: needImg, sort: sort, status: '启用' });
       toast('已新增');
     }
     saveAcc();
     closeAccModal();
+    renderClLeft();
     renderAccRight();
   }
 
-  /* ---------- 启用 / 停用 / 删除 ---------- */
+  /* ---------- 检查项：启用 / 停用 / 删除 ---------- */
+  function findAccItem(id) {
+    var c = curCl();
+    if (!c) return null;
+    for (var i = 0; i < c.items.length; i++) if (c.items[i].id === id) return c.items[i];
+    return null;
+  }
   function toggleAccStatus(id) {
     var it = findAccItem(id);
     if (!it) return;
-    var newStatus = it.status === '启用' ? '停用' : '启用';
-    /* 同一检查项可适用于多个作业类型，状态一并同步 */
-    Object.keys(accData).forEach(function (t) {
-      var items = accData[t].items;
-      Object.keys(items).forEach(function (k) {
-        items[k].forEach(function (i) { if (i.id === id) i.status = newStatus; });
-      });
-    });
+    it.status = it.status === '启用' ? '停用' : '启用';
     saveAcc();
     renderAccRight();
-    toast('已' + newStatus);
+    toast('已' + it.status);
   }
   function delAccItem(id) {
+    var c = curCl();
     var it = findAccItem(id);
-    if (!it) return;
-    var typeCount = accItemTypes(id).length;
-    var tip = typeCount > 1
-      ? '确定删除监护检查事项"' + it.name + '"吗？该事项适用于 ' + typeCount + ' 种作业类型，将全部删除。'
-      : '确定删除监护检查事项"' + it.name + '"吗？';
-    if (!confirm(tip)) return;
-    /* 检查项可适用于多个作业类型，删除时一并清除 */
-    Object.keys(accData).forEach(function (t) { removeAccItemFromType(t, id); });
+    if (!c || !it) return;
+    if (!confirm('确定删除监护检查事项"' + it.name + '"吗？')) return;
+    c.items = c.items.filter(function (i) { return i.id !== id; });
     saveAcc();
+    renderClLeft();
     renderAccRight();
     toast('已删除');
   }
 
   /* ================= 初始化 ================= */
   renderAll();
-  renderAccLeft();
+  renderClLeft();
   renderAccRight();
+
 </script>
 </body>
 </html>
