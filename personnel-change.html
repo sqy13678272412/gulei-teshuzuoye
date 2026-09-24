@@ -1356,17 +1356,9 @@
         </div>
       </div>
 
-      <div class="p-role">作业人员 (3)</div>
-      <div class="person-card">
-        <div class="person-avatar"></div>
-        <div class="person-info">
-          <div class="person-name">张强</div>
-          <div class="person-sub">设备部 | XX承包商<br>13912341122</div>
-        </div>
-        <div class="person-ops">
-          <span class="person-op" onclick="openWorkerChange()">变更</span>
-        </div>
-      </div>
+      <div class="p-role">作业人员 (<span id="workerCount">0</span>)</div>
+      <div id="workerList"></div>
+
     </div>
   </div>
 </div>
@@ -1688,6 +1680,8 @@
   .sheet-head { display: flex; align-items: center; margin-bottom: 16px; }
   .sheet-close { color: #333; font-size: 18px; cursor: pointer; width: 30px; flex-shrink: 0; }
   .sheet-title { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
+  .sheet-batch { margin-left: auto; color: #1f8ef1; font-size: 13px; cursor: pointer; user-select: none; }
+  .sheet-batch:hover { text-decoration: underline; }
   .sheet-label { font-size: 13.5px; color: #333; margin: 12px 0 6px; }
   .sheet-input {
     width: 100%; height: 38px; border: 1px solid #e6ebf2; border-radius: 6px;
@@ -1712,6 +1706,7 @@
     <div class="sheet-head">
       <span class="sheet-close" onclick="closeWorkerChange()">✕</span>
       <span class="sheet-title">人员变更</span>
+      <span class="sheet-batch" onclick="openBatchChange()">批量变更</span>
     </div>
     <div class="sheet-label">变更角色</div>
     <input class="sheet-input" value="作业人员" disabled>
@@ -1741,6 +1736,133 @@
   document.getElementById('wMask').addEventListener('click', function (e) {
     if (e.target === this) closeWorkerChange();
   });
+</script>
+
+<style>
+  /* ===== 批量变更弹窗 ===== */
+  .b-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 600;
+    display: none; align-items: center; justify-content: center;
+  }
+  .b-mask.show { display: flex; }
+  .b-card {
+    background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
+  }
+  .b-card-head { display: flex; align-items: center; gap: 10px; }
+  .b-lb { font-size: 12.5px; color: #8a94a3; margin: 12px 0 6px; }
+  .b-select {
+    width: 100%; height: 38px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 0 10px; font-size: 13.5px; background: #fff; color: #333; outline: none;
+  }
+  .b-select:focus { border-color: #1f8ef1; }
+  .b-foot {
+    display: flex; gap: 10px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    background: #fff; border-top: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .b-foot button { flex: 1; height: 40px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+</style>
+
+<!-- ============ 批量变更弹窗 ============ -->
+<div class="b-mask" id="bMask">
+  <div class="p-dialog" style="height:min(880px,94vh);">
+    <div class="p-head">
+      <span class="p-back" onclick="closeBatchChange()">返回</span>
+      <span class="p-title">批量变更</span>
+      <span class="p-close" onclick="closeBatchChange()">✕</span>
+    </div>
+    <div class="p-body">
+      <div id="batchList"></div>
+    </div>
+    <div class="b-foot">
+      <button class="sheet-cancel" onclick="closeBatchChange()">取 消</button>
+      <button class="sheet-ok" onclick="confirmBatchChange()">确 定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ================= 批量变更弹窗 ================= */
+  /* 当前作业人员清单（确定后回填到人员变更页面） */
+  var workers = [
+    { name: '张强', dept: '设备部 | XX承包商', phone: '13912341122' }
+  ];
+  /* 可替换人选池 */
+  var workerCandidates = [
+    { name: '郑磊', phone: '13912349900' },
+    { name: '李敏', phone: '13812347788' },
+    { name: '王强', phone: '13812342345' },
+    { name: '周杰', phone: '13712348899' }
+  ];
+
+  function workerCardHtml(w) {
+    return '<div class="person-card">' +
+      '<div class="person-avatar"></div>' +
+      '<div class="person-info">' +
+        '<div class="person-name">' + w.name + '</div>' +
+        '<div class="person-sub">' + w.dept + '<br>' + w.phone + '</div>' +
+      '</div>' +
+      '<div class="person-ops">' +
+        '<span class="person-op" onclick="openWorkerChange()">变更</span>' +
+      '</div>' +
+    '</div>';
+  }
+  function renderWorkers() {
+    document.getElementById('workerCount').textContent = workers.length;
+    document.getElementById('workerList').innerHTML = workers.map(workerCardHtml).join('');
+  }
+
+  function renderBatchList() {
+    document.getElementById('batchList').innerHTML = workers.map(function (w, i) {
+      var opts = '<option value="">请选择</option>' + workerCandidates.filter(function (c) {
+        return c.name !== w.name;
+      }).map(function (c) {
+        return '<option value="' + c.name + '|' + c.phone + '">' + c.name + '（' + c.phone + '）</option>';
+      }).join('');
+      return '<div class="b-card">' +
+        '<div class="b-lb" style="margin:0 0 8px;">现有人员</div>' +
+        '<div class="b-card-head">' +
+          '<div class="person-avatar" style="width:36px;height:36px;"></div>' +
+          '<div class="person-info">' +
+            '<div class="person-name" style="font-size:14px;">' + w.name + '</div>' +
+            '<div class="person-sub">' + w.dept + '<br>' + w.phone + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="b-lb">更换人员（请选择）</div>' +
+        '<select class="b-select" id="batchSel_' + i + '">' + opts + '</select>' +
+      '</div>';
+    }).join('');
+  }
+
+  function openBatchChange() {
+    renderBatchList();
+    document.getElementById('bMask').classList.add('show');
+  }
+  function closeBatchChange() { document.getElementById('bMask').classList.remove('show'); }
+  document.getElementById('bMask').addEventListener('click', function (e) {
+    if (e.target === this) closeBatchChange();
+  });
+
+  /* 确定：把勾选了替换人的卡片直接更新到人员变更页面 */
+  function confirmBatchChange() {
+    var changed = 0;
+    workers.forEach(function (w, i) {
+      var v = document.getElementById('batchSel_' + i).value;
+      if (v) {
+        var parts = v.split('|');
+        w.name = parts[0];
+        w.phone = parts[1];
+        changed++;
+      }
+    });
+    if (!changed) { toast('请先选择更换人员'); return; }
+    renderWorkers();
+    closeBatchChange();
+    closeWorkerChange();
+    toast('批量变更成功');
+  }
+
+  renderWorkers();
 </script>
 
 </body>
