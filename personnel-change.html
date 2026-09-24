@@ -1270,7 +1270,8 @@
   }
   .person-avatar {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-    background: #16233f; color: #fff; font-size: 16px;
+    background: #16233f url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'><path d='M12 12c2.7 0 4.8-2.2 4.8-4.8S14.7 2.4 12 2.4 7.2 4.6 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-7.2 1.6-7.2 4.8v1.2h14.4v-1.2c0-3.2-4-4.8-7.2-4.8z'/></svg>") center/55% no-repeat;
+    color: transparent;
     display: flex; align-items: center; justify-content: center;
   }
   .person-info { flex: 1; min-width: 0; }
@@ -1317,17 +1318,17 @@
     <div class="p-body">
       <div class="p-info">
         <span>票号：WP-20260205-001</span>
-        <span>地点：装置A/区域1</span>
+        <span>作业区域：装置A/区域1</span>
       </div>
 
       <div class="p-sec-title">角色区<span class="p-sec-link" onclick="openChangeRecords()">人员变更记录</span></div>
 
       <div class="p-role">作业负责人 (1)</div>
       <div class="person-card">
-        <div class="person-avatar">王</div>
+        <div class="person-avatar"></div>
         <div class="person-info">
           <div class="person-name">王强</div>
-          <div class="person-sub">生产一部 | —<br>138****2345</div>
+          <div class="person-sub">生产一部<br>13812342345</div>
         </div>
         <div class="person-ops">
         </div>
@@ -1335,20 +1336,20 @@
 
       <div class="p-role">监护人 (2)</div>
       <div class="person-card">
-        <div class="person-avatar">赵</div>
+        <div class="person-avatar"></div>
         <div class="person-info">
           <div class="person-name">赵磊</div>
-          <div class="person-sub">安环部 | —<br>138****5566</div>
+          <div class="person-sub">安环部<br>13812345566</div>
         </div>
         <div class="person-ops">
           <span class="person-op" onclick="openGuardianChange()">变更</span>
         </div>
       </div>
       <div class="person-card">
-        <div class="person-avatar">李</div>
+        <div class="person-avatar"></div>
         <div class="person-info">
           <div class="person-name">李敏</div>
-          <div class="person-sub">安环部 | —<br>138****7788</div>
+          <div class="person-sub">安环部<br>13812347788</div>
         </div>
         <div class="person-ops">
           <span class="person-op" onclick="openGuardianChange()">变更</span>
@@ -1357,10 +1358,10 @@
 
       <div class="p-role">作业人员 (3)</div>
       <div class="person-card">
-        <div class="person-avatar">张</div>
+        <div class="person-avatar"></div>
         <div class="person-info">
           <div class="person-name">张强</div>
-          <div class="person-sub">设备部 | XX承包商<br>139****1122</div>
+          <div class="person-sub">设备部 | XX承包商<br>13912341122</div>
         </div>
         <div class="person-ops">
           <span class="person-op" onclick="openWorkerChange()">变更</span>
