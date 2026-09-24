@@ -154,6 +154,11 @@
     font-size: 12.5px; color: #333; outline: none; background: #fff; width: 185px;
   }
   .reg-select:focus { border-color: #1f8ef1; }
+  .a-continue {
+    margin-top: 12px; text-align: center; padding: 11px; background: #fff;
+    border-radius: 10px; color: #1f8ef1; font-size: 14px; cursor: pointer; user-select: none;
+  }
+  .a-continue:active { background: #f0f7ff; }
   .reg-card-name { font-size: 15px; font-weight: 600; color: #1f2d3d; }
   .reg-row { display: flex; align-items: center; padding: 9px 0; font-size: 13.5px; }
   .reg-row .lb { color: #8a94a3; width: 130px; flex-shrink: 0; }
@@ -396,6 +401,7 @@
           <span class="reg-thumbs" id="addThumbs"></span>
         </div>
       </div>
+      <div class="a-continue" onclick="savePersonAdd(true)">＋ 继续添加</div>
     </div>
     <div class="a-foot">
       <button class="a-cancel" onclick="closePersonAdd()">取 消</button>
@@ -707,7 +713,7 @@
       })(files[i]);
     }
   });
-  function savePersonAdd() {
+  function savePersonAdd(keepOpen) {
     var name = document.getElementById('addName').value;
     var dir = document.querySelector('input[name="addDir"]:checked').value;
     var time = document.getElementById('addTime').value;
@@ -718,8 +724,18 @@
     loadEntries().push({ id: nextEntryId(), name: name, phone: phone, dir: dir, time: time, photos: addPhotos.slice() });
     persistEntries();
     renderPersonPane();
-    closePersonAdd();
-    toast('保存成功', 2000);
+    if (keepOpen) {
+      /* 继续添加：保存当前人员后重置表单，登记下一人 */
+      document.getElementById('addName').value = '';
+      document.querySelector('input[name="addDir"][value="进"]').checked = true;
+      document.getElementById('addTime').value = nowStr();
+      addPhotos = [];
+      renderAddThumbs();
+      toast('已添加，可继续登记下一人', 1800);
+    } else {
+      closePersonAdd();
+      toast('保存成功', 2000);
+    }
   }
 
   /* ================= 拍照留证（工器具） ================= */
