@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作业详情 - 监护交接事项</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #dfe3ea; color: #333; font-size: 14px;
+    display: flex; justify-content: center;
+  }
+  .phone {
+    width: 100%; max-width: 480px; min-height: 100vh;
+    background: #f0f4f9; display: flex; flex-direction: column;
+  }
+
+  /* 顶部导航 */
+  .p-head {
+    height: 48px; background: #fff; display: flex; align-items: center;
+    padding: 0 14px; gap: 12px; flex-shrink: 0;
+    border-bottom: 1px solid #e6ebf2;
+  }
+  .p-back { color: #333; font-size: 20px; cursor: pointer; width: 24px; }
+  .p-title { flex: 1; text-align: center; font-size: 16px; font-weight: 600; color: #1f2d3d; }
+
+  .p-body { flex: 1; overflow-y: auto; padding: 12px; }
+
+  /* 卡片 */
+  .card {
+    background: #fff; border-radius: 10px; margin-bottom: 12px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .06);
+  }
+  .card-head {
+    display: flex; align-items: center; gap: 8px;
+    background: #eaf4fe; padding: 12px 14px;
+  }
+  .card-head .ic {
+    width: 20px; height: 20px; border-radius: 4px; background: #1f8ef1; color: #fff;
+    font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .card-head .t { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .kv { display: flex; padding: 7px 14px; font-size: 13.5px; }
+  .kv .k { color: #8a94a3; width: 120px; flex-shrink: 0; }
+  .kv .v { flex: 1; color: #333; text-align: right; }
+
+  .handover-box {
+    margin: 10px 14px; border: 1px solid #e6ebf2; border-radius: 6px;
+    padding: 12px; color: #5a6472; font-size: 13.5px; min-height: 72px;
+  }
+
+  /* 监护交接事项 */
+  .ho-title {
+    display: flex; align-items: center; gap: 6px;
+    margin: 4px 14px 10px; font-size: 14px; font-weight: 600; color: #333;
+  }
+  .ho-title::before { content: ''; width: 3px; height: 14px; background: #f5a623; border-radius: 2px; }
+  .ho-item {
+    border: 1px solid #eef1f6; border-radius: 8px;
+    margin: 0 14px 10px; padding: 10px 12px;
+  }
+  .ho-check { font-size: 13.5px; color: #5a6472; }
+  .ho-check::before { content: '✓ '; color: #52c41a; font-weight: 600; }
+  .ho-media { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .ho-thumb {
+    width: 44px; height: 44px; border-radius: 4px; background: #eef1f6;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-size: 18px; border: 1px solid #e6ebf2;
+  }
+  .ho-thumb:hover { border-color: #1f8ef1; }
+  .ho-vchip {
+    font-size: 12px; color: #1f8ef1; background: #eaf4fe; border-radius: 4px;
+    padding: 4px 10px; cursor: pointer;
+  }
+
+  .node-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 14px 12px; font-size: 13.5px; color: #5a6472;
+  }
+  .sign-btn {
+    color: #fff; background: #1f8ef1; border-radius: 4px;
+    padding: 5px 12px; font-size: 12.5px; cursor: pointer;
+  }
+  .collapse-bar {
+    text-align: center; color: #8a94a3; font-size: 13px;
+    padding: 10px 0; border-top: 1px solid #f2f5f9; cursor: pointer;
+  }
+
+  /* 底部操作按钮 */
+  .p-foot {
+    display: flex; gap: 10px; padding: 12px;
+    background: #fff; border-top: 1px solid #e6ebf2; flex-shrink: 0;
+  }
+  .f-btn {
+    flex: 1; height: 42px; border-radius: 6px; border: none;
+    font-size: 14.5px; cursor: pointer; color: #fff;
+  }
+  .f-btn.pass { background: #52c41a; }
+  .f-btn.reject { background: #f5222d; }
+  .f-btn.draft { background: #1f8ef1; }
+  .f-btn.pdf {
+    background: #fff; color: #1f8ef1; border: 1px solid #1f8ef1; flex: 0 0 auto; padding: 0 16px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- 顶部 -->
+  <div class="p-head">
+    <span class="p-back" onclick="toast('返回（示例）')">‹</span>
+    <span class="p-title">作业详情</span>
+    <span style="width:24px"></span>
+  </div>
+
+  <div class="p-body">
+    <!-- 作业审批 -->
+    <div class="card">
+      <div class="card-head"><span class="ic">✓</span><span class="t">作业审批</span></div>
+      <div class="kv"><span class="k">操作人:</span><span class="v">ZPFAI3</span></div>
+      <div class="kv"><span class="k">操作人联系电话:</span><span class="v"></span></div>
+      <div class="kv"><span class="k">操作时间:</span><span class="v">2026-09-24 15:00:42</span></div>
+      <div class="collapse-bar" onclick="toast('展开（示例）')">展开 ∨</div>
+    </div>
+
+    <!-- 现场交底 -->
+    <div class="card">
+      <div class="card-head"><span class="ic">✓</span><span class="t">现场交底</span></div>
+      <div class="kv"><span class="k">操作人:</span><span class="v"></span></div>
+      <div class="kv"><span class="k">操作人联系电话:</span><span class="v"></span></div>
+      <div class="kv"><span class="k">操作时间:</span><span class="v"></span></div>
+
+      <div class="handover-box">作业交底</div>
+
+      <!-- 监护交接事项：展示监护人变更时勾选的注意事项及对应照片/视频 -->
+      <div class="ho-title">监护交接事项</div>
+      <div id="hoList"></div>
+
+      <div class="node-row">
+        <span>节点6</span>
+        <span class="sign-btn" onclick="toast('加签字（示例）')">✍ 加签字</span>
+      </div>
+      <div class="collapse-bar" onclick="toast('收起（示例）')">收起 ∧</div>
+    </div>
+  </div>
+
+  <!-- 底部按钮 -->
+  <div class="p-foot">
+    <button class="f-btn pass" onclick="toast('通过（示例）')">通 过</button>
+    <button class="f-btn reject" onclick="toast('驳回（示例）')">驳 回</button>
+    <button class="f-btn draft" onclick="toast('暂存（示例）')">暂 存</button>
+    <button class="f-btn pdf" onclick="toast('PDF预览（示例）')">PDF预览</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* 监护人变更时勾选的交接注意事项及对应照片/视频（与人员变更记录的交接确认项结构一致） */
+  var handoverItems = [
+    { text: '已向新监护人交底当前风险情况', photos: 2, videos: 1 },
+    { text: '已确认现场安全措施状态', photos: 1, videos: 0 },
+    { text: '新监护人已知晓当前作业进度', photos: 0, videos: 0 },
+    { text: '新监护人已到岗', photos: 0, videos: 1 },
+    { text: '已核对新监护人监护资质证书', photos: 1, videos: 0 }
+  ];
+
+  document.getElementById('hoList').innerHTML = handoverItems.map(function (it) {
+    var media = '';
+    for (var i = 0; i < it.photos; i++) {
+      media += '<span class="ho-thumb" title="点击查看照片" onclick="toast(\'查看照片（示例）\')">🖼</span>';
+    }
+    for (var j = 0; j < it.videos; j++) {
+      media += '<span class="ho-vchip" onclick="toast(\'播放视频（示例）\')">▶ 交接视频' + (j + 1) + '</span>';
+    }
+    return '<div class="ho-item">' +
+      '<div class="ho-check">' + it.text + '</div>' +
+      (media ? '<div class="ho-media">' + media + '</div>' : '') +
+    '</div>';
+  }).join('');
+
+  /* Toast */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+</script>
+</body>
+</html>
