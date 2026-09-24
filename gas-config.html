@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>气体配置</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9; color: #333; font-size: 14px;
+  }
+
+  /* ===== 顶部 ===== */
+  .topbar {
+    height: 52px; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 20px; gap: 16px;
+  }
+  .topbar .logo { font-size: 17px; font-weight: 600; color: #1f2d3d; }
+  .topbar .menu { color: #5a6472; cursor: pointer; padding: 4px 10px; border-radius: 4px; }
+  .topbar .menu.active { color: #1f8ef1; font-weight: 600; background: #eaf4fe; }
+
+  .main { padding: 16px 20px 40px; }
+
+  .module {
+    background: #fff; border-radius: 8px; padding: 18px 20px; margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
+  }
+  .module-title { font-size: 15.5px; font-weight: 600; color: #1f2d3d; margin-bottom: 14px; }
+  .module-title .req { color: #f5222d; margin-right: 4px; }
+
+  .btn {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472;
+    padding: 6px 18px; border-radius: 4px; cursor: pointer; font-size: 13px;
+  }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { opacity: .88; }
+
+  input[type="text"] {
+    height: 32px; border: 1px solid #d8e0ea; border-radius: 4px;
+    padding: 0 10px; font-size: 13px; outline: none; width: 180px;
+  }
+  input[type="text"]:focus { border-color: #1f8ef1; }
+
+  /* ===== 第一部分：已选择关联气体点位 ===== */
+  .sel-count { font-size: 13px; color: #5a6472; margin-bottom: 8px; }
+  .sel-box {
+    border: 1px solid #e6ebf2; border-radius: 6px; min-height: 76px;
+    padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start;
+    background: #fafbfe;
+  }
+  .sel-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #eaf4fe; color: #1f8ef1; border: 1px solid #b7d9fa;
+    border-radius: 4px; padding: 4px 10px; font-size: 12.5px; height: 28px;
+  }
+  .sel-tag .x { cursor: pointer; color: #8a94a3; font-size: 13px; }
+  .sel-tag .x:hover { color: #f5222d; }
+  .sel-empty { color: #b0b6c0; font-size: 12.5px; }
+
+  /* ===== 第二部分：自行选择探测器 ===== */
+  .picker-search { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .picker-search .lb { color: #5a6472; font-size: 13.5px; }
+  .picker-table { border: 1px solid #e6ebf2; border-radius: 6px; overflow: hidden; }
+  .picker-head, .picker-row {
+    display: flex; align-items: center; border-bottom: 1px solid #eef1f6;
+  }
+  .picker-head { background: #f7f9fc; color: #5a6472; font-size: 13px; }
+  .picker-row:last-child { border-bottom: none; }
+  .picker-row { cursor: pointer; }
+  .picker-row:hover { background: #f5f9ff; }
+  .picker-cell-check {
+    width: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    padding: 11px 0;
+  }
+  .picker-cell-name { flex: 1; padding: 11px 12px; font-size: 13.5px; color: #333; }
+  .picker-row input[type="checkbox"], .picker-head input[type="checkbox"] {
+    width: 15px; height: 15px; accent-color: #1f8ef1; cursor: pointer;
+  }
+  .picker-empty { text-align: center; color: #b0b6c0; padding: 60px 0; font-size: 13px; }
+  .picker-foot {
+    display: flex; align-items: center; gap: 14px; justify-content: flex-end;
+    padding: 12px 2px 0; font-size: 13px; color: #5a6472; flex-wrap: wrap;
+  }
+  .picker-foot select {
+    height: 30px; border: 1px solid #d8e0ea; border-radius: 4px;
+    padding: 0 6px; font-size: 12.5px; color: #5a6472; outline: none; background: #fff;
+  }
+  .picker-foot .page-no { color: #1f8ef1; cursor: pointer; padding: 0 4px; }
+  .picker-foot .page-input {
+    width: 46px; height: 28px; border: 1px solid #d8e0ea; border-radius: 4px;
+    text-align: center; outline: none; font-size: 12.5px;
+  }
+  .picker-foot .spacer { flex: 1; }
+  .picker-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+
+  /* ===== 第三部分：固定式探测器 ===== */
+  .fixed-table { border: 1px solid #e6ebf2; border-radius: 6px; overflow: hidden; }
+  .fixed-head, .fixed-row { display: flex; align-items: center; border-bottom: 1px solid #eef1f6; }
+  .fixed-head { background: #f7f9fc; color: #5a6472; font-size: 13px; }
+  .fixed-row:last-child { border-bottom: none; }
+  .fixed-row:hover { background: #f5f9ff; }
+  .fixed-cell-check {
+    width: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    padding: 11px 0;
+  }
+  .fixed-cell { padding: 11px 12px; font-size: 13.5px; color: #333; }
+  .fixed-cell.name { width: 220px; flex-shrink: 0; }
+  .fixed-cell.loc { flex: 1; }
+  .fixed-cell.gas { width: 220px; flex-shrink: 0; }
+  .fixed-row input[type="checkbox"], .fixed-head input[type="checkbox"] {
+    width: 15px; height: 15px; accent-color: #1f8ef1; cursor: pointer;
+  }
+
+  .page-head { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部菜单 -->
+<div class="topbar">
+  <span class="logo">特殊作业管理系统</span>
+  <span class="menu">工作台</span>
+  <span class="menu active">气体配置</span>
+</div>
+
+<div class="main">
+  <div class="page-head">
+    <button class="btn primary" onclick="saveConfig()">保 存</button>
+  </div>
+
+  <!-- ============ 第一部分：关联气体点位（已选择） ============ -->
+  <div class="module">
+    <div class="module-title">请选择关联气体点位</div>
+    <div class="sel-count">已选择(<span id="selCount">0</span>)</div>
+    <div class="sel-box" id="selBox"></div>
+  </div>
+
+  <!-- ============ 第二部分：自行选择探测器 ============ -->
+  <div class="module">
+    <div class="module-title">自行选择探测器</div>
+    <div class="picker-search">
+      <span class="lb">名称:</span>
+      <input type="text" id="pickerKw" placeholder="请输入名称">
+      <button class="btn" onclick="searchPicker()">查 询</button>
+      <button class="btn" onclick="resetPicker()">重 置</button>
+    </div>
+    <div class="picker-table">
+      <div class="picker-head">
+        <div class="picker-cell-check"><input type="checkbox" id="pickerAll" onchange="togglePickerAll(this)"></div>
+        <div class="picker-cell-name">名称</div>
+      </div>
+      <div id="pickerList"></div>
+    </div>
+    <div class="picker-foot">
+      <span>共 <span id="pickerTotal">0</span> 条</span>
+      <select>
+        <option>20条/页</option><option>50条/页</option><option>100条/页</option>
+      </select>
+      <span style="color:#c3c6cf">‹</span>
+      <span class="page-no">1</span>
+      <span style="color:#c3c6cf">›</span>
+      <span>前往</span>
+      <input type="text" class="page-input" value="1">
+      <span>页</span>
+    </div>
+    <div class="picker-actions">
+      <button class="btn" onclick="cancelPicker()">取 消</button>
+      <button class="btn primary" onclick="confirmPicker()">确 定</button>
+    </div>
+  </div>
+
+  <!-- ============ 第三部分：固定式探测器 ============ -->
+  <div class="module">
+    <div class="module-title">固定式探测器</div>
+    <div class="fixed-table">
+      <div class="fixed-head">
+        <div class="fixed-cell-check"><input type="checkbox" id="fixedAll" checked onchange="toggleFixedAll(this)"></div>
+        <div class="fixed-cell name">名称</div>
+        <div class="fixed-cell loc">位置</div>
+        <div class="fixed-cell gas">可检测气体类型</div>
+      </div>
+      <div id="fixedList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ================= 数据 ================= */
+  var GC_KEY = 'gas_config';
+  /* 自行选择探测器候选清单 */
+  var pickerData = [
+    '便携式可燃气体检测仪',
+    '四合一气体检测仪',
+    '泵吸式气体检测仪',
+    '激光甲烷检测仪',
+    '红外气体分析仪',
+    'VOC 检测仪',
+    '硫化氢检测仪',
+    '氧含量检测仪'
+  ];
+  /* 固定式探测器清单（默认全部选中） */
+  var fixedData = [
+    { name: 'GT-101 可燃气体探测器', loc: '1号罐区/T-101罐口', gas: '可燃气（甲烷）' },
+    { name: 'GT-102 硫化氢探测器',   loc: '1号罐区/T-101罐内', gas: '硫化氢' },
+    { name: 'GT-103 氧含量探测器',   loc: '1号罐区/T-101罐内', gas: '氧气' },
+    { name: 'GT-104 一氧化碳探测器', loc: '1号罐区/泵区',     gas: '一氧化碳' },
+    { name: 'GT-105 可燃气体探测器', loc: '2号罐区/T-201罐口', gas: '可燃气' }
+  ];
+
+  /* 页面状态：已选择的关联点位、固定式探测器勾选状态 */
+  var selected = [];
+  var fixedChecked = {};
+  fixedData.forEach(function (f, i) { fixedChecked[i] = true; });  // 默认全部选中
+
+  /* ================= 第一部分渲染 ================= */
+  function renderSelected() {
+    document.getElementById('selCount').textContent = selected.length;
+    document.getElementById('selBox').innerHTML = selected.length
+      ? selected.map(function (name, i) {
+          return '<span class="sel-tag">' + name +
+            '<span class="x" onclick="removeSelected(' + i + ')" title="移除">✕</span></span>';
+        }).join('')
+      : '<span class="sel-empty">暂无已选择点位，可从下方“自行选择探测器”中添加</span>';
+  }
+  function removeSelected(i) { selected.splice(i, 1); renderSelected(); }
+
+  /* ================= 第二部分：自行选择探测器 ================= */
+  var pickerKw = '';
+  function renderPicker() {
+    var list = pickerData.filter(function (n) { return !pickerKw || n.indexOf(pickerKw) > -1; });
+    document.getElementById('pickerTotal').textContent = list.length;
+    document.getElementById('pickerList').innerHTML = list.length
+      ? list.map(function (name) {
+          return '<div class="picker-row">' +
+            '<div class="picker-cell-check"><input type="checkbox" class="picker-cb" value="' + name + '"></div>' +
+            '<div class="picker-cell-name">' + name + '</div>' +
+          '</div>';
+        }).join('')
+      : '<div class="picker-empty">暂无数据</div>';
+    document.getElementById('pickerAll').checked = false;
+  }
+  function togglePickerAll(el) {
+    document.querySelectorAll('.picker-cb').forEach(function (cb) { cb.checked = el.checked; });
+  }
+  function searchPicker() {
+    pickerKw = document.getElementById('pickerKw').value.trim();
+    renderPicker();
+  }
+  function resetPicker() {
+    document.getElementById('pickerKw').value = '';
+    pickerKw = '';
+    renderPicker();
+  }
+  function confirmPicker() {
+    var added = 0;
+    document.querySelectorAll('.picker-cb:checked').forEach(function (cb) {
+      if (selected.indexOf(cb.value) === -1) { selected.push(cb.value); added++; }
+    });
+    renderPicker();
+    renderSelected();
+    toast(added ? '已添加 ' + added + ' 个探测器' : '所选探测器已在列表中');
+  }
+  function cancelPicker() { renderPicker(); }
+
+  /* ================= 第三部分：固定式探测器 ================= */
+  function renderFixed() {
+    document.getElementById('fixedList').innerHTML = fixedData.map(function (f, i) {
+      return '<div class="fixed-row">' +
+        '<div class="fixed-cell-check"><input type="checkbox" data-idx="' + i + '" ' + (fixedChecked[i] ? 'checked' : '') + ' onchange="toggleFixed(' + i + ', this.checked)"></div>' +
+        '<div class="fixed-cell name">' + f.name + '</div>' +
+        '<div class="fixed-cell loc">' + f.loc + '</div>' +
+        '<div class="fixed-cell gas">' + f.gas + '</div>' +
+      '</div>';
+    }).join('');
+  }
+  function toggleFixed(i, on) { fixedChecked[i] = on; syncFixedAll(); }
+  function toggleFixedAll(el) {
+    fixedData.forEach(function (f, i) { fixedChecked[i] = el.checked; });
+    renderFixed();
+  }
+  function syncFixedAll() {
+    var all = fixedData.every(function (f, i) { return fixedChecked[i]; });
+    document.getElementById('fixedAll').checked = all;
+  }
+
+  /* ================= 保存 / 回显 ================= */
+  function saveConfig() {
+    var fixedSel = fixedData.filter(function (f, i) { return fixedChecked[i]; }).map(function (f) { return f.name; });
+    localStorage.setItem(GC_KEY, JSON.stringify({ selected: selected, fixed: fixedSel }));
+    toast('保存成功');
+  }
+  function restore() {
+    try {
+      var raw = localStorage.getItem(GC_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (Array.isArray(data.selected)) selected = data.selected;
+      if (Array.isArray(data.fixed)) {
+        fixedData.forEach(function (f, i) { fixedChecked[i] = data.fixed.indexOf(f.name) > -1; });
+      }
+    } catch (e) { /* 忽略损坏数据 */ }
+  }
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+
+  restore();
+  renderSelected();
+  renderPicker();
+  renderFixed();
+  syncFixedAll();
+</script>
+</body>
+</html>
