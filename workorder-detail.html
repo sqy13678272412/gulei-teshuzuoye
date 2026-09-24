@@ -142,14 +142,18 @@
   }
   .gas-card.expanded .chev::before { transform: rotate(45deg); }
   .gc-name { font-size: 15.5px; font-weight: 600; color: #1f2d3d; }
-  .gc-status { font-size: 12.5px; padding: 2px 12px; border-radius: 3px; }
-  .gc-status.on { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
-  .gc-status.off { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
   .gc-time { margin-left: auto; color: #8a94a3; font-size: 13px; }
   .gc-time b { color: #5a6472; font-weight: 500; }
   .gd-pass, .gd-fail { font-size: 12.5px; padding: 2px 12px; border-radius: 3px; }
   .gd-pass { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
   .gd-fail { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
+  /* 探头卡片表格分页 */
+  .gc-pager { display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 12px 2px 0; font-size: 12.5px; color: #5a6472; }
+  .gp-total { margin-right: 6px; }
+  .gp-num { cursor: pointer; padding: 2px 8px; border-radius: 3px; }
+  .gp-num.cur { background: #1f8ef1; color: #fff; }
+  .gp-btn { cursor: pointer; color: #1f8ef1; padding: 2px 6px; user-select: none; }
+  .gp-btn.dis { color: #c3c6cf; cursor: default; }
   .gas-card-body { display: none; border-top: 1px solid #eef1f6; padding: 16px 18px; }
   .gas-card.expanded .gas-card-body { display: block; }
   table.grid { width: 100%; border-collapse: collapse; }
@@ -604,38 +608,83 @@
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
   }
-  function readingRows(types) {
+  /* 每个探头卡片生成 27 条采集数据（3 页 × 每页 9 条），采集时间倒序：最新在最上 */
+  var PAGE_SIZE = 9;
+  var cardRows = [], cardPage = [], mCardPage = [];
+  function buildRows(name) {
+    var types = gasTypesOf(name);
     var now = Date.now();
-    var rows = [];
-    types.forEach(function (t, i) {
-      var d = new Date(now - (i * 3 + 2) * 60 * 1000);
+    var arr = [];
+    for (var k = 0; k < 27; k++) {
+      var t = types[k % types.length];
+      var d = new Date(now - (k * 7 + 3) * 60 * 1000);
       var val = (4 + Math.random() * 40).toFixed(1);
       /* 演示判定逻辑：采集值 ≤25 PPM 合格 */
       var pass = parseFloat(val) <= 25;
-      rows.push('<tr><td>' + t + '</td><td>' + fmtDateTime(d) + '</td><td>' + val + ' PPM</td><td>' +
-        (pass ? '<span class="gd-pass">是</span>' : '<span class="gd-fail">否</span>') +
-        '</td></tr>');
-    });
-    return rows.join('');
+      arr.push({
+        ts: d.getTime(),
+        html: '<tr><td>' + t + '</td><td>' + fmtDateTime(d) + '</td><td>' + val + ' PPM</td><td>' +
+          (pass ? '<span class="gd-pass">是</span>' : '<span class="gd-fail">否</span>') +
+          '</td></tr>'
+      });
+    }
+    arr.sort(function (a, b) { return b.ts - a.ts; });
+    return arr;
+  }
+  defaultCards.forEach(function (c, i) {
+    cardRows[i] = buildRows(c.name);
+    cardPage[i] = 1;
+    mCardPage[i] = 1;
+  });
+
+  function pageRowsHtml(idx, p) {
+    return cardRows[idx].slice((p - 1) * PAGE_SIZE, p * PAGE_SIZE)
+      .map(function (r) { return r.html; }).join('');
+  }
+  function pagerHtml(idx, p, fn) {
+    var total = cardRows[idx].length;
+    var pages = Math.ceil(total / PAGE_SIZE);
+    var nums = '';
+    for (var n = 1; n <= pages; n++) {
+      nums += '<span class="gp-num' + (n === p ? ' cur' : '') + '" onclick="' + fn + '(' + idx + ',' + n + ')">' + n + '</span>';
+    }
+    return '<span class="gp-total">共 ' + total + ' 条</span>' +
+      '<span class="gp-btn' + (p <= 1 ? ' dis' : '') + '" onclick="' + fn + '(' + idx + ',' + (p - 1) + ')">‹</span>' +
+      nums +
+      '<span class="gp-btn' + (p >= pages ? ' dis' : '') + '" onclick="' + fn + '(' + idx + ',' + (p + 1) + ')">›</span>';
+  }
+  function gcGoPage(idx, p) {
+    var pages = Math.ceil(cardRows[idx].length / PAGE_SIZE);
+    if (p < 1 || p > pages) return;
+    cardPage[idx] = p;
+    document.getElementById('gct_' + idx).innerHTML = pageRowsHtml(idx, p);
+    document.getElementById('gcp_' + idx).innerHTML = pagerHtml(idx, p, 'gcGoPage');
+  }
+  function mgcGoPage(idx, p) {
+    var pages = Math.ceil(cardRows[idx].length / PAGE_SIZE);
+    if (p < 1 || p > pages) return;
+    mCardPage[idx] = p;
+    document.getElementById('mgct_' + idx).innerHTML = pageRowsHtml(idx, p);
+    document.getElementById('mgcp_' + idx).innerHTML = pagerHtml(idx, p, 'mgcGoPage');
   }
 
   // Web 端卡片
   function renderCards() {
     var list = document.getElementById('cardList');
     document.getElementById('cardEmpty').style.display = defaultCards.length ? 'none' : 'block';
-    list.innerHTML = defaultCards.map(function (c) {
+    list.innerHTML = defaultCards.map(function (c, idx) {
       return '<div class="gas-card">' +
         '<div class="gas-card-head" onclick="toggleCard(this)">' +
           '<span class="chev"></span>' +
           '<span class="gc-name">' + c.name + '</span>' +
-          '<span class="gc-status ' + (c.online ? 'on' : 'off') + '">' + (c.online ? '在线' : '不在线') + '</span>' +
           '<span class="gc-time">配置时间：<b>' + c.configTime + '</b></span>' +
         '</div>' +
         '<div class="gas-card-body">' +
           '<table class="grid">' +
             '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th><th>是否合格</th></tr></thead>' +
-            '<tbody>' + readingRows(gasTypesOf(c.name)) + '</tbody>' +
+            '<tbody id="gct_' + idx + '">' + pageRowsHtml(idx, cardPage[idx]) + '</tbody>' +
           '</table>' +
+          '<div class="gc-pager" id="gcp_' + idx + '">' + pagerHtml(idx, cardPage[idx], 'gcGoPage') + '</div>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -646,13 +695,12 @@
 
   // 移动端弹窗卡片（两行式排版）
   function renderMobileCards() {
-    document.getElementById('mCardList').innerHTML = defaultCards.map(function (c) {
+    document.getElementById('mCardList').innerHTML = defaultCards.map(function (c, idx) {
       return '<div class="m-gas-card">' +
         '<div class="m-gas-head" onclick="toggleCard(this)">' +
           '<div class="m-gas-row1">' +
             '<span class="chev"></span>' +
             '<span class="gc-name">' + c.name + '</span>' +
-            '<span class="gc-status ' + (c.online ? 'on' : 'off') + '">' + (c.online ? '在线' : '不在线') + '</span>' +
           '</div>' +
           '<div class="m-gas-row2">' +
             '<span class="gc-time">配置时间：<b>' + c.configTime + '</b></span>' +
@@ -661,8 +709,9 @@
         '<div class="m-gas-body">' +
           '<table class="m-grid">' +
             '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th><th>是否合格</th></tr></thead>' +
-            '<tbody>' + readingRows(gasTypesOf(c.name)) + '</tbody>' +
+            '<tbody id="mgct_' + idx + '">' + pageRowsHtml(idx, mCardPage[idx]) + '</tbody>' +
           '</table>' +
+          '<div class="gc-pager" id="mgcp_' + idx + '">' + pagerHtml(idx, mCardPage[idx], 'mgcGoPage') + '</div>' +
         '</div>' +
       '</div>';
     }).join('');
