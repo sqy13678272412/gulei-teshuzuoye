@@ -135,6 +135,7 @@
 
   /* 新增人员登记弹窗 */
   #aMask { z-index: 450; }
+  #tMask { z-index: 450; }
   .a-dialog {
     width: min(430px, 96vw); max-height: 94vh; background: #f4f6fa; border-radius: 12px;
     display: flex; flex-direction: column; overflow: hidden; animation: pop .16s ease;
@@ -181,21 +182,7 @@
   .tool-tip {
     font-size: 12.5px; color: #8a94a3; padding: 2px 4px 10px;
   }
-  .tool-row {
-    display: flex; align-items: center; gap: 10px; background: #fff;
-    border-radius: 10px; padding: 13px 14px; margin-bottom: 10px; cursor: pointer;
-    flex-wrap: wrap;
-  }
-  .tool-row input[type="checkbox"] { width: 17px; height: 17px; accent-color: #1f8ef1; flex-shrink: 0; cursor: pointer; }
-  .tool-name { flex: 1; font-size: 14px; color: #333; min-width: 0; }
-  .tool-qty {
-    width: 74px; height: 32px; border: 1px solid #d8e0ea; border-radius: 6px;
-    padding: 0 8px; font-size: 13px; outline: none; text-align: center; flex-shrink: 0;
-  }
-  .tool-qty:focus { border-color: #1f8ef1; }
-  .tool-qty:disabled { background: #f5f6f9; color: #b0b6c0; }
-
-  /* 拍照留证（人员/工器具每条独立） */
+  /* 拍照留证（新增弹窗内使用） */
   .reg-photo-bar { display: flex; align-items: center; gap: 10px; padding: 8px 0 2px; }
   .reg-photo-btn {
     flex-shrink: 0; height: 30px; padding: 0 14px; border: 1px solid #d8e0ea; border-radius: 15px;
@@ -220,17 +207,8 @@
   .reg-thumb-wrap { position: relative; }
   .reg-thumb-wrap:hover .reg-thumb-del { display: block; }
   .reg-photo-count { font-size: 12px; color: #8a94a3; }
-
-  /* 工器具自定义添加 */
-  .tool-add { color: #1f8ef1; font-size: 13.5px; padding: 8px 4px; cursor: pointer; user-select: none; }
-  .tool-custom-input { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
-  .tool-custom-input input[type="text"] {
-    flex: 1; height: 32px; border: 1px solid #d8e0ea; border-radius: 6px; padding: 0 10px;
-    font-size: 13px; outline: none; min-width: 0;
-  }
-  .tool-custom-input input[type="text"]:focus { border-color: #1f8ef1; }
-  .tool-custom-ok { color: #1f8ef1; font-size: 13.5px; cursor: pointer; flex-shrink: 0; }
-  .tool-del { color: #b0b6c0; cursor: pointer; flex-shrink: 0; font-size: 14px; }
+  /* 工器具卡片图标（不用人物剪影底图） */
+  .reg-avatar.no-icon { background-image: none; font-size: 17px; }
 
   /* 保存按钮 */
   .reg-save {
@@ -363,19 +341,12 @@
       <div class="reg-pane active" id="panePerson"></div>
       <!-- 工器具登记 -->
       <div class="reg-pane" id="paneTool">
-        <div class="tool-tip">勾选本次需要带入受限空间的工器具，并填写对应数量；每条可拍照留证</div>
         <div id="toolList"></div>
-        <div class="tool-custom-input" id="toolCustomRow" style="display:none;">
-          <input type="text" id="toolCustomName" placeholder="请输入工器具名称">
-          <span class="tool-custom-ok" onclick="confirmToolAdd()">确定</span>
-          <span class="tool-del" onclick="hideToolAdd()" title="取消">✕</span>
-        </div>
-        <div class="tool-add" onclick="showToolAdd()">＋自定义添加</div>
       </div>
     </div>
     <div class="reg-add-fab" id="personAddFab" onclick="openPersonAdd()" title="新增登记">＋</div>
+    <div class="reg-add-fab" id="toolAddFab" onclick="openToolAdd()" title="新增登记" style="display:none">＋</div>
   </div>
-  <input type="file" id="regPhotoInput" accept="image/*" multiple hidden>
 </div>
 
 <!-- ============ 新增人员登记弹窗 ============ -->
@@ -413,6 +384,37 @@
     </div>
   </div>
   <input type="file" id="addPhotoInput" accept="image/*" multiple hidden>
+</div>
+
+<!-- ============ 新增工器具登记弹窗 ============ -->
+<div class="m-mask" id="tMask">
+  <div class="a-dialog">
+    <div class="reg-head">
+      <span class="reg-back" onclick="closeToolAdd()">返回</span>
+      <span class="reg-title">新增工器具登记</span>
+      <span class="reg-close" onclick="closeToolAdd()">✕</span>
+    </div>
+    <div class="reg-body">
+      <div class="reg-card">
+        <div class="reg-row"><span class="lb">工器具名称</span>
+          <select class="reg-select" id="addToolName"></select>
+        </div>
+        <div class="reg-row"><span class="lb">数量</span>
+          <input type="number" class="reg-time" id="addToolQty" value="1" min="1" style="text-align:center;">
+        </div>
+        <div class="reg-photo-bar">
+          <button class="reg-photo-btn" onclick="document.getElementById('toolPhotoInput').click()">📷 拍照</button>
+          <span class="reg-thumbs" id="toolAddThumbs"></span>
+        </div>
+      </div>
+      <div class="a-continue" onclick="saveToolAdd(true)">＋ 继续添加</div>
+    </div>
+    <div class="a-foot">
+      <button class="a-cancel" onclick="closeToolAdd()">取 消</button>
+      <button class="a-save" onclick="saveToolAdd()">保 存</button>
+    </div>
+  </div>
+  <input type="file" id="toolPhotoInput" accept="image/*" multiple hidden>
 </div>
 
 <!-- ============ 监护人检查项弹窗 ============ -->
@@ -546,8 +548,10 @@
     el.classList.add('active');
     document.querySelectorAll('.reg-pane').forEach(function (p) { p.classList.remove('active'); });
     document.getElementById(pane === 'person' ? 'panePerson' : 'paneTool').classList.add('active');
-    var fab = document.getElementById('personAddFab');
-    if (fab) fab.style.display = pane === 'person' ? 'flex' : 'none';
+    var fabP = document.getElementById('personAddFab');
+    if (fabP) fabP.style.display = pane === 'person' ? 'flex' : 'none';
+    var fabT = document.getElementById('toolAddFab');
+    if (fabT) fabT.style.display = pane === 'tool' ? 'flex' : 'none';
   }
 
   /* ================= 人员登记（登记记录，新增走右下角＋） ================= */
@@ -699,48 +703,7 @@
     }
   }
 
-  /* ================= 拍照留证（工器具） ================= */
-  var regPhotoCtx = null; /* {type:'tool', name} */
-  function photoThumbsHtml(photos, type, name) {
-    return photos.map(function (p, j) {
-      return '<span class="reg-thumb-wrap">' +
-        '<img class="reg-thumb" src="' + p + '" onclick="previewRegPhoto(\'' + type + '\',\'' + name + '\',' + j + ')">' +
-        '<span class="reg-thumb-del" onclick="removeRegPhoto(\'' + type + '\',\'' + name + '\',' + j + ')">✕</span>' +
-      '</span>';
-    }).join('');
-  }
-  function pickPhoto(type, name) {
-    regPhotoCtx = { type: type, name: name };
-    document.getElementById('regPhotoInput').click();
-  }
-  document.getElementById('regPhotoInput').addEventListener('change', function () {
-    var ctx = regPhotoCtx;
-    var files = this.files;
-    this.value = '';
-    if (!ctx || !files.length) return;
-    var pending = files.length;
-    for (var i = 0; i < files.length; i++) {
-      (function (f) {
-        var r = new FileReader();
-        r.onload = function (e) {
-          var ts = loadJSON(TOOL_KEY) || {};
-          var t = normalizeToolSaved(ts[ctx.name]);
-          t.photos.push(e.target.result);
-          ts[ctx.name] = t;
-          localStorage.setItem(TOOL_KEY, JSON.stringify(ts));
-          if (--pending === 0) { renderToolPane(); toast('照片已保存', 1500); }
-        };
-        r.readAsDataURL(f);
-      })(files[i]);
-    }
-  });
-  function previewRegPhoto(type, name, j) {
-    var arr = normalizeToolSaved((loadJSON(TOOL_KEY) || {})[name]).photos;
-    if (!arr[j]) return;
-    document.getElementById('regPvContent').innerHTML =
-      '<img src="' + arr[j] + '" style="width:100%;border-radius:8px;display:block">';
-    document.getElementById('regPvMask').classList.add('show');
-  }
+  /* ================= 照片预览弹窗 ================= */
   function closeRegPreview() {
     document.getElementById('regPvMask').classList.remove('show');
     document.getElementById('regPvContent').innerHTML = '';
@@ -748,16 +711,8 @@
   document.getElementById('regPvMask').addEventListener('click', function (e) {
     if (e.target === this) closeRegPreview();
   });
-  function removeRegPhoto(type, name, j) {
-    var ts = loadJSON(TOOL_KEY) || {};
-    var t = normalizeToolSaved(ts[name]);
-    t.photos.splice(j, 1);
-    ts[name] = t;
-    localStorage.setItem(TOOL_KEY, JSON.stringify(ts));
-    renderToolPane();
-  }
 
-  /* ================= 工器具登记 ================= */
+  /* ================= 工器具登记（登记记录，新增走右下角＋） ================= */
   var CUSTOM_TOOL_KEY = 'cs_register_custom_tools';
   /* 兼容旧数据：工器具存档从纯数量 number 升级为 {qty, photos} */
   function normalizeToolSaved(v) {
@@ -784,62 +739,139 @@
     return defaults;
   }
 
+  /* 登记记录：[{id, name, qty, photos:[dataURL]}]；兼容旧 map 存档（转为记录数组） */
+  var toolEntries = null;
+  function loadToolEntries() {
+    if (toolEntries) return toolEntries;
+    var raw = loadJSON(TOOL_KEY);
+    if (Array.isArray(raw)) {
+      toolEntries = raw;
+    } else if (raw) {
+      toolEntries = Object.keys(raw).map(function (name, i) {
+        var t = normalizeToolSaved(raw[name]);
+        return { id: i + 1, name: name, qty: t.qty, photos: t.photos };
+      });
+      persistToolEntries();
+    } else {
+      toolEntries = [];
+    }
+    return toolEntries;
+  }
+  function persistToolEntries() { localStorage.setItem(TOOL_KEY, JSON.stringify(toolEntries)); }
+  function nextToolId() {
+    return loadToolEntries().reduce(function (m, e) { return Math.max(m, e.id); }, 0) + 1;
+  }
+  function findToolEntry(id) {
+    var list = loadToolEntries();
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
   function renderToolPane() {
-    var saved = loadJSON(TOOL_KEY) || {};
-    var custom = getCustomTools();
-    var tools = getTools().concat(custom);
-    document.getElementById('toolList').innerHTML = tools.map(function (name, i) {
-      var t = normalizeToolSaved(saved[name]);
-      var checked = saved[name] !== undefined;
-      var isCustom = custom.indexOf(name) >= 0;
-      return '<div class="tool-row">' +
-        '<input type="checkbox" id="tool_' + i + '" ' + (checked ? 'checked' : '') + ' onchange="toggleQty(' + i + ')">' +
-        '<span class="tool-name">' + name + '</span>' +
-        '<input type="number" class="tool-qty" id="qty_' + i + '" value="' + t.qty + '" min="1" ' + (checked ? '' : 'disabled') + '>' +
-        (isCustom ? '<span class="tool-del" onclick="removeCustomTool(\'' + name + '\')" title="删除">🗑</span>' : '') +
-        '<div class="reg-photo-bar" style="flex-basis:100%;padding-top:10px;">' +
-          '<button class="reg-photo-btn" onclick="pickPhoto(\'tool\',\'' + name + '\')">📷 拍照</button>' +
-          '<span class="reg-thumbs">' + photoThumbsHtml(t.photos, 'tool', name) + '</span>' +
-          '<span class="reg-photo-count">' + (t.photos.length ? t.photos.length + ' 张' : '') + '</span>' +
+    var list = loadToolEntries();
+    if (!list.length) {
+      document.getElementById('toolList').innerHTML =
+        '<div class="tool-tip" style="text-align:center;padding:40px 0;">暂无工器具登记记录<br>点击右下角 ＋ 新增登记</div>';
+      return;
+    }
+    document.getElementById('toolList').innerHTML = list.map(function (e) {
+      return '<div class="reg-card">' +
+        '<div class="reg-card-head">' +
+          '<span class="reg-avatar no-icon">🔧</span>' +
+          '<span class="reg-card-name">' + e.name + '</span>' +
+        '</div>' +
+        '<div class="reg-row"><span class="lb">名称</span><span class="val">' + e.name + '</span></div>' +
+        '<div class="reg-row"><span class="lb">数量</span><span class="val">× ' + e.qty + '</span></div>' +
+        '<div class="reg-photo-bar">' +
+          '<span class="reg-photo-label">照片</span>' +
+          '<span class="reg-thumbs">' + toolThumbsHtml(e) + '</span>' +
+          '<span class="reg-photo-count">' + (e.photos.length ? e.photos.length + ' 张' : '') + '</span>' +
         '</div>' +
       '</div>';
     }).join('');
   }
-
-  /* 工器具自定义添加 */
-  function showToolAdd() {
-    document.getElementById('toolCustomRow').style.display = 'flex';
-    document.getElementById('toolCustomName').focus();
+  function toolThumbsHtml(e) {
+    return e.photos.map(function (p, j) {
+      return '<span class="reg-thumb-wrap">' +
+        '<img class="reg-thumb" src="' + p + '" onclick="previewToolEntryPhoto(' + e.id + ',' + j + ')">' +
+      '</span>';
+    }).join('');
   }
-  function hideToolAdd() {
-    document.getElementById('toolCustomRow').style.display = 'none';
-    document.getElementById('toolCustomName').value = '';
-  }
-  function confirmToolAdd() {
-    var name = document.getElementById('toolCustomName').value.trim();
-    if (!name) { toast('请输入工器具名称'); return; }
-    var custom = getCustomTools();
-    if (getTools().indexOf(name) >= 0 || custom.indexOf(name) >= 0) { toast('该工器具已存在'); return; }
-    custom.push(name);
-    localStorage.setItem(CUSTOM_TOOL_KEY, JSON.stringify(custom));
-    hideToolAdd();
-    renderToolPane();
-    toast('已添加：' + name, 1500);
-  }
-  function removeCustomTool(name) {
-    var custom = getCustomTools().filter(function (n) { return n !== name; });
-    localStorage.setItem(CUSTOM_TOOL_KEY, JSON.stringify(custom));
-    var saved = loadJSON(TOOL_KEY) || {};
-    delete saved[name];
-    localStorage.setItem(TOOL_KEY, JSON.stringify(saved));
-    renderToolPane();
-    toast('已删除：' + name, 1500);
+  function previewToolEntryPhoto(id, j) {
+    var e = findToolEntry(id);
+    if (!e || !e.photos[j]) return;
+    document.getElementById('regPvContent').innerHTML =
+      '<img src="' + e.photos[j] + '" style="width:100%;border-radius:8px;display:block">';
+    document.getElementById('regPvMask').classList.add('show');
   }
 
-  /* 勾选后启用数量输入，取消勾选则禁用 */
-  function toggleQty(i) {
-    var cb = document.getElementById('tool_' + i);
-    document.getElementById('qty_' + i).disabled = !cb.checked;
+  /* ================= 新增工器具登记弹窗 ================= */
+  var toolAddPhotos = [];
+  function openToolAdd() {
+    var sel = document.getElementById('addToolName');
+    sel.innerHTML = '<option value="" disabled selected>请选择</option>' +
+      getTools().concat(getCustomTools()).map(function (n) { return '<option value="' + n + '">' + n + '</option>'; }).join('');
+    document.getElementById('addToolQty').value = 1;
+    toolAddPhotos = [];
+    renderToolAddThumbs();
+    document.getElementById('tMask').classList.add('show');
+  }
+  function closeToolAdd() { document.getElementById('tMask').classList.remove('show'); }
+  document.getElementById('tMask').addEventListener('click', function (e) {
+    if (e.target === this) closeToolAdd();
+  });
+  function renderToolAddThumbs() {
+    document.getElementById('toolAddThumbs').innerHTML = toolAddPhotos.map(function (p, j) {
+      return '<span class="reg-thumb-wrap">' +
+        '<img class="reg-thumb" src="' + p + '" onclick="previewToolAddPhoto(' + j + ')">' +
+        '<span class="reg-thumb-del" onclick="removeToolAddPhoto(' + j + ')">✕</span>' +
+      '</span>';
+    }).join('');
+  }
+  function previewToolAddPhoto(j) {
+    document.getElementById('regPvContent').innerHTML =
+      '<img src="' + toolAddPhotos[j] + '" style="width:100%;border-radius:8px;display:block">';
+    document.getElementById('regPvMask').classList.add('show');
+  }
+  function removeToolAddPhoto(j) { toolAddPhotos.splice(j, 1); renderToolAddThumbs(); }
+  document.getElementById('toolPhotoInput').addEventListener('change', function () {
+    var files = this.files;
+    this.value = '';
+    if (!files.length) return;
+    var pending = files.length;
+    for (var i = 0; i < files.length; i++) {
+      (function (f) {
+        var r = new FileReader();
+        r.onload = function (e) {
+          toolAddPhotos.push(e.target.result);
+          if (--pending === 0) renderToolAddThumbs();
+        };
+        r.readAsDataURL(f);
+      })(files[i]);
+    }
+  });
+  function saveToolAdd(keepOpen) {
+    var name = document.getElementById('addToolName').value;
+    var q = parseInt(document.getElementById('addToolQty').value, 10);
+    if (!name) { toast('请选择工器具名称'); return; }
+    loadToolEntries().push({
+      id: nextToolId(), name: name,
+      qty: isNaN(q) || q < 1 ? 1 : q,
+      photos: toolAddPhotos.slice()
+    });
+    persistToolEntries();
+    renderToolPane();
+    if (keepOpen) {
+      /* 继续添加：保存当前工器具后重置表单，登记下一条 */
+      document.getElementById('addToolName').value = '';
+      document.getElementById('addToolQty').value = 1;
+      toolAddPhotos = [];
+      renderToolAddThumbs();
+      toast('已添加，可继续登记下一条', 1800);
+    } else {
+      closeToolAdd();
+      toast('保存成功', 2000);
+    }
   }
 
   /* ================= 监护人检查项弹窗 ================= */

@@ -866,7 +866,19 @@
     } else {
       persons = pSaved || regSamplePersons;
     }
-    var tools = tSaved || regSampleTools;
+    /* 工器具存档兼容：新格式为登记记录数组 [{name, qty, photos}]，
+       旧格式为 {名称:{qty,photos}}；数组按名称汇总数量与照片转成旧结构 */
+    var tools;
+    if (Array.isArray(tSaved)) {
+      tools = {};
+      tSaved.forEach(function (e) {
+        if (!tools[e.name]) tools[e.name] = { qty: 0, photos: [] };
+        tools[e.name].qty += e.qty || 1;
+        tools[e.name].photos = tools[e.name].photos.concat(e.photos || []);
+      });
+    } else {
+      tools = tSaved || regSampleTools;
+    }
 
     var enteredCount = regWorkers.filter(function (w) {
       var s = persons[w.name] || {};
