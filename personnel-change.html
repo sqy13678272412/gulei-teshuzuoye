@@ -153,6 +153,23 @@
   }
   .r-title { font-size: 16px; font-weight: 600; color: #1f2d3d; }
   .r-close { margin-left: auto; color: #5a6472; font-size: 18px; cursor: pointer; }
+  .r-back { display: none; }
+  /* 移动端样式：从移动端视图打开时整体切换为手机尺寸 */
+  .r-mask.mobile .r-dialog {
+    width: min(430px, 96vw); height: min(860px, 94vh); max-height: none;
+    border-radius: 12px;
+  }
+  .r-mask.mobile .r-head { position: relative; padding: 15px 16px; }
+  .r-mask.mobile .r-title { flex: 1; text-align: center; font-size: 15.5px; }
+  .r-mask.mobile .r-back {
+    display: block; position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    color: #1f8ef1; font-size: 13.5px; cursor: pointer;
+  }
+  .r-mask.mobile .r-close {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    margin-left: 0; font-size: 20px;
+  }
+  .r-mask.mobile .r-body { padding: 14px; }
   .r-body { overflow-y: auto; padding: 16px 20px; }
   .r-summary { color: #8a94a3; font-size: 13px; margin-bottom: 12px; }
   .r-filter { display: flex; gap: 10px; margin-bottom: 14px; }
@@ -661,6 +678,7 @@
 <div class="r-mask" id="rMask">
   <div class="r-dialog">
     <div class="r-head">
+      <span class="r-back" onclick="closeChangeRecords()">返回</span>
       <span class="r-title">人员变更记录</span>
       <span class="r-close" onclick="closeChangeRecords()">✕</span>
     </div>
@@ -786,6 +804,9 @@
 
   function openChangeRecords() {
     renderRecords('all');
+    /* 从移动端视图打开时，弹窗切换为手机尺寸 */
+    var isMobile = document.getElementById('mobileView').classList.contains('show');
+    document.getElementById('rMask').classList.toggle('mobile', isMobile);
     document.getElementById('rMask').classList.add('show');
     // 固定弹窗高度：切换筛选（如只看作业人员变更）时弹窗大小不变，剩余位置留空白
     var dlg = document.querySelector('.r-dialog');
