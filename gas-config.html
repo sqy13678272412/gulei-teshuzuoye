@@ -144,7 +144,21 @@
     <div class="sel-box" id="selBox"></div>
   </div>
 
-  <!-- ============ 第二部分：自行选择探测器 ============ -->
+  <!-- ============ 第二部分：固定式探测器 ============ -->
+  <div class="module">
+    <div class="module-title">固定式探测器</div>
+    <div class="fixed-table">
+      <div class="fixed-head">
+        <div class="fixed-cell-check"><input type="checkbox" id="fixedAll" checked onchange="toggleFixedAll(this)"></div>
+        <div class="fixed-cell name">名称</div>
+        <div class="fixed-cell loc">位置</div>
+        <div class="fixed-cell gas">可检测气体类型</div>
+      </div>
+      <div id="fixedList"></div>
+    </div>
+  </div>
+
+  <!-- ============ 第三部分：自行选择探测器 ============ -->
   <div class="module">
     <div class="module-title">自行选择探测器</div>
     <div class="picker-search">
@@ -175,20 +189,6 @@
     <div class="picker-actions">
       <button class="btn" onclick="cancelPicker()">取 消</button>
       <button class="btn primary" onclick="confirmPicker()">确 定</button>
-    </div>
-  </div>
-
-  <!-- ============ 第三部分：固定式探测器 ============ -->
-  <div class="module">
-    <div class="module-title">固定式探测器</div>
-    <div class="fixed-table">
-      <div class="fixed-head">
-        <div class="fixed-cell-check"><input type="checkbox" id="fixedAll" checked onchange="toggleFixedAll(this)"></div>
-        <div class="fixed-cell name">名称</div>
-        <div class="fixed-cell loc">位置</div>
-        <div class="fixed-cell gas">可检测气体类型</div>
-      </div>
-      <div id="fixedList"></div>
     </div>
   </div>
 </div>
