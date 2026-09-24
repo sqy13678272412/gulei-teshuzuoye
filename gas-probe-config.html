@@ -117,22 +117,6 @@
   }
   .sub-title { font-size: 13.5px; color: #333; font-weight: 500; }
 
-  /* 人员定位告警类型 内嵌表格 */
-  .ai-add {
-    display: inline-flex; align-items: center; gap: 4px;
-    color: #1f8ef1; border: 1px solid #b7d9fa; background: #eaf4fe;
-    border-radius: 4px; padding: 5px 14px; cursor: pointer; font-size: 13px; margin-bottom: 12px;
-  }
-  .ai-add:hover { opacity: .85; }
-  .ai-table { width: 100%; border-collapse: collapse; }
-  .ai-table th, .ai-table td {
-    border: 1px solid #eef1f6; padding: 8px 10px; font-size: 13px; text-align: center;
-  }
-  .ai-table th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
-  .ai-table select, .ai-table input[type="text"] { width: 100%; height: 30px; }
-  .ai-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: #1f8ef1; cursor: pointer; }
-  .ai-empty td { color: #b0b6c0; padding: 34px 0; }
-
   /* Toast */
   .toast {
     position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
@@ -191,8 +175,6 @@
             <th style="width:180px;">网格区域</th>
             <th style="width:180px;">作业分类</th>
             <th style="width:100px;">是否启用</th>
-            <th style="width:200px;">默认AI预警类型</th>
-            <th style="width:220px;">默认人员定位告警类型</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -247,30 +229,6 @@
         </div>
       </div>
       <div class="form-row">
-        <span class="lb">默认AI预警类型</span>
-        <div class="ctl"><span style="color:#8a94a3;font-size:12.5px;">非必填</span></div>
-      </div>
-      <div class="form-row" style="align-items:flex-start;">
-        <span class="lb"><span class="req">*</span>默认人员定位<br>告警类型</span>
-        <div class="ctl" style="flex-direction:column;align-items:stretch;gap:0;">
-          <span class="ai-add" onclick="addAiRow()">＋ 新 增</span>
-          <table class="ai-table">
-            <thead>
-              <tr>
-                <th style="width:160px;">告警类型</th>
-                <th style="width:120px;">告警等级</th>
-                <th style="width:120px;">参数</th>
-                <th>规则对象</th>
-                <th style="width:130px;">防误判阈值(秒)</th>
-                <th style="width:90px;">是否启用</th>
-                <th style="width:70px;">操作</th>
-              </tr>
-            </thead>
-            <tbody id="aiTbody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="form-row">
         <span class="lb"><span class="req">*</span>是否启用规则</span>
         <div class="ctl" id="dEnabled">
           <label class="ck-label"><input type="radio" name="dEnabled" value="是">是</label>
@@ -295,14 +253,12 @@
       name: '默认AI预警类型非必填', region: '福建古雷中沙石化',
       category: ['八大作业', '其他作业', '一般作业'],
       detector: ['作业区域内'],
-      ai: [],
       enabled: '是'
     },
     {
       name: '罐区动火作业气体探头联动', region: '1号罐区',
       category: ['八大作业'],
       detector: ['作业区域内', '区域周围5米内'],
-      ai: [{ type: '超员', level: '提示', param: '-', obj: '作业人员', threshold: '10', on: true }],
       enabled: '是'
     }
   ];
@@ -322,7 +278,6 @@
   var rules = loadRules();
   var editIndex = -1;   // -1 表示新增
   var viewMode = false; // 详情模式只读
-  var aiRows = [];      // 弹窗内“人员定位告警类型”行
 
   /* ================= 列表渲染与筛选 ================= */
   function renderTable() {
@@ -349,12 +304,6 @@
             '<td>' + (r.enabled === '是'
               ? '<span class="tag-yes">是</span>'
               : '<span class="tag-no">否</span>') + '</td>' +
-            '<td>' + (r.ai && r.ai.length
-              ? r.ai.map(function (a) { return a.type; }).join(',')
-              : '') + '</td>' +
-            '<td>' + (r.ai && r.ai.length
-              ? r.ai.map(function (a) { return a.type + '(' + a.obj + ')'; }).join(',')
-              : '') + '</td>' +
             '<td>' +
               '<span class="op-link" onclick="openDialog(\'view\',' + idx + ')">详情</span>' +
               '<span class="op-link" onclick="copyRule(' + idx + ')">复制</span>' +
@@ -363,7 +312,7 @@
             '</td>' +
           '</tr>';
         }).join('')
-      : '<tr class="empty-row"><td colspan="7">暂无数据</td></tr>';
+      : '<tr class="empty-row"><td colspan="5">暂无数据</td></tr>';
   }
   function searchRules() { renderTable(); }
   function resetFilter() {
@@ -379,45 +328,6 @@
     document.getElementById('nameCount').textContent =
       document.getElementById('dName').value.length + '/120';
   }
-
-  function renderAiRows() {
-    document.getElementById('aiTbody').innerHTML = aiRows.length
-      ? aiRows.map(function (a, i) {
-          return '<tr>' +
-            '<td><input type="text" class="ai-f" data-i="' + i + '" data-k="type" value="' + (a.type || '') + '" placeholder="如：超员"></td>' +
-            '<td><select class="ai-f" data-i="' + i + '" data-k="level">' +
-              '<option value="">请选择</option>' +
-              ['提示', '一般', '较大', '重大'].map(function (l) {
-                return '<option ' + (a.level === l ? 'selected' : '') + '>' + l + '</option>';
-              }).join('') +
-            '</select></td>' +
-            '<td><input type="text" class="ai-f" data-i="' + i + '" data-k="param" value="' + (a.param || '') + '"></td>' +
-            '<td><input type="text" class="ai-f" data-i="' + i + '" data-k="obj" value="' + (a.obj || '') + '" placeholder="如：作业人员"></td>' +
-            '<td><input type="text" class="ai-f" data-i="' + i + '" data-k="threshold" value="' + (a.threshold || '') + '"></td>' +
-            '<td><input type="checkbox" class="ai-f" data-i="' + i + '" data-k="on" ' + (a.on ? 'checked' : '') + '></td>' +
-            '<td><span class="op-link danger" onclick="delAiRow(' + i + ')">删除</span></td>' +
-          '</tr>';
-        }).join('')
-      : '<tr class="ai-empty"><td colspan="7">暂无数据</td></tr>';
-    bindAiInputs();
-  }
-  function bindAiInputs() {
-    document.querySelectorAll('.ai-f').forEach(function (el) {
-      el.addEventListener('input', syncAiRow);
-      el.addEventListener('change', syncAiRow);
-    });
-  }
-  function syncAiRow(e) {
-    var el = e.target;
-    var i = parseInt(el.getAttribute('data-i'), 10);
-    var k = el.getAttribute('data-k');
-    aiRows[i][k] = el.type === 'checkbox' ? el.checked : el.value;
-  }
-  function addAiRow() {
-    aiRows.push({ type: '', level: '', param: '', obj: '', threshold: '', on: true });
-    renderAiRows();
-  }
-  function delAiRow(i) { aiRows.splice(i, 1); renderAiRows(); }
 
   function setChecks(containerId, values) {
     document.querySelectorAll('#' + containerId + ' input').forEach(function (cb) {
@@ -441,7 +351,7 @@
     document.getElementById('dOk').style.display = viewMode ? 'none' : '';
 
     var r = mode === 'add'
-      ? { name: '', region: '', category: [], detector: [], ai: [], enabled: '' }
+      ? { name: '', region: '', category: [], detector: [], enabled: '' }
       : rules[idx];
 
     document.getElementById('dName').value = r.name;
@@ -452,14 +362,11 @@
     document.querySelectorAll('#dEnabled input').forEach(function (radio) {
       radio.checked = radio.value === r.enabled;
     });
-    aiRows = JSON.parse(JSON.stringify(r.ai || []));
-    renderAiRows();
 
     /* 详情模式：只读 */
     document.querySelectorAll('.d-body input, .d-body select').forEach(function (el) {
       el.disabled = viewMode;
     });
-    document.querySelector('.ai-add').style.display = viewMode ? 'none' : '';
 
     document.getElementById('dMask').classList.add('show');
   }
@@ -484,7 +391,6 @@
     var data = {
       name: name, region: region,
       category: category, detector: detector,
-      ai: aiRows.filter(function (a) { return a.type; }),
       enabled: enabledRadio.value
     };
 
