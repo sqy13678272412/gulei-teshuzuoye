@@ -147,6 +147,9 @@
   .gc-status.off { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
   .gc-time { margin-left: auto; color: #8a94a3; font-size: 13px; }
   .gc-time b { color: #5a6472; font-weight: 500; }
+  .gd-pass, .gd-fail { font-size: 12.5px; padding: 2px 12px; border-radius: 3px; }
+  .gd-pass { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
+  .gd-fail { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
   .gas-card-body { display: none; border-top: 1px solid #eef1f6; padding: 16px 18px; }
   .gas-card.expanded .gas-card-body { display: block; }
   table.grid { width: 100%; border-collapse: collapse; }
@@ -607,7 +610,11 @@
     types.forEach(function (t, i) {
       var d = new Date(now - (i * 3 + 2) * 60 * 1000);
       var val = (4 + Math.random() * 40).toFixed(1);
-      rows.push('<tr><td>' + t + '</td><td>' + fmtDateTime(d) + '</td><td>' + val + ' PPM</td></tr>');
+      /* 演示判定逻辑：采集值 ≤25 PPM 合格 */
+      var pass = parseFloat(val) <= 25;
+      rows.push('<tr><td>' + t + '</td><td>' + fmtDateTime(d) + '</td><td>' + val + ' PPM</td><td>' +
+        (pass ? '<span class="gd-pass">是</span>' : '<span class="gd-fail">否</span>') +
+        '</td></tr>');
     });
     return rows.join('');
   }
@@ -626,7 +633,7 @@
         '</div>' +
         '<div class="gas-card-body">' +
           '<table class="grid">' +
-            '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th></tr></thead>' +
+            '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th><th>是否合格</th></tr></thead>' +
             '<tbody>' + readingRows(gasTypesOf(c.name)) + '</tbody>' +
           '</table>' +
         '</div>' +
@@ -653,7 +660,7 @@
         '</div>' +
         '<div class="m-gas-body">' +
           '<table class="m-grid">' +
-            '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th></tr></thead>' +
+            '<thead><tr><th>气体类型</th><th>采集时间</th><th>采集值</th><th>是否合格</th></tr></thead>' +
             '<tbody>' + readingRows(gasTypesOf(c.name)) + '</tbody>' +
           '</table>' +
         '</div>' +
