@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>气体探头配置</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f4f9; color: #333; font-size: 14px;
+  }
+
+  /* ===== 顶部 ===== */
+  .topbar {
+    height: 52px; background: #fff; border-bottom: 1px solid #e6ebf2;
+    display: flex; align-items: center; padding: 0 20px; gap: 16px;
+  }
+  .topbar .logo { font-size: 17px; font-weight: 600; color: #1f2d3d; }
+  .topbar .menu { color: #5a6472; cursor: pointer; padding: 4px 10px; border-radius: 4px; }
+  .topbar .menu.active { color: #1f8ef1; font-weight: 600; background: #eaf4fe; }
+
+  .main { padding: 16px 20px 40px; }
+
+  /* ===== 筛选栏 ===== */
+  .filter-bar {
+    background: #fff; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
+  }
+  .filter-bar .lb { color: #5a6472; font-size: 13.5px; flex-shrink: 0; }
+  .btn {
+    border: 1px solid #d8e0ea; background: #fff; color: #5a6472;
+    padding: 7px 18px; border-radius: 4px; cursor: pointer; font-size: 13px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn:hover { border-color: #1f8ef1; color: #1f8ef1; }
+  .btn.primary { background: #1f8ef1; border-color: #1f8ef1; color: #fff; }
+  .btn.primary:hover { opacity: .88; }
+  input[type="text"], select {
+    height: 34px; border: 1px solid #d8e0ea; border-radius: 4px;
+    padding: 0 10px; font-size: 13px; outline: none; background: #fff; color: #333;
+  }
+  input[type="text"]:focus, select:focus { border-color: #1f8ef1; }
+  .filter-bar input[type="text"] { width: 170px; }
+  .filter-bar select { width: 190px; color: #8a94a3; }
+  .filter-bar .spacer { flex: 1; }
+
+  /* ===== 规则表格 ===== */
+  .table-wrap {
+    background: #fff; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
+  }
+  .table-scroll { overflow-x: auto; }
+  table.grid { width: 100%; border-collapse: collapse; min-width: 1080px; }
+  table.grid th, table.grid td {
+    border: 1px solid #eef1f6; padding: 12px 14px; text-align: left;
+    font-size: 13.5px; color: #333; vertical-align: middle;
+  }
+  table.grid th { background: #f7f9fc; color: #5a6472; font-weight: 500; white-space: nowrap; }
+  table.grid tr:hover td { background: #f5f9ff; }
+  .tag-yes {
+    display: inline-block; color: #389e0d; background: #f6ffed;
+    border: 1px solid #b7eb8f; border-radius: 3px; padding: 1px 10px; font-size: 12.5px;
+  }
+  .tag-no {
+    display: inline-block; color: #8a94a3; background: #f5f6f9;
+    border: 1px solid #d8e0ea; border-radius: 3px; padding: 1px 10px; font-size: 12.5px;
+  }
+  .op-link { color: #1f8ef1; cursor: pointer; margin-right: 10px; white-space: nowrap; }
+  .op-link:hover { text-decoration: underline; }
+  .op-link.danger { color: #f5222d; }
+  .op-link.danger:hover { color: #f5222d; }
+  .empty-row td { text-align: center; color: #b0b6c0; padding: 50px 0; }
+
+  /* ===== 新增/编辑弹窗 ===== */
+  .d-mask {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 100;
+    display: none; align-items: center; justify-content: center;
+  }
+  .d-mask.show { display: flex; }
+  .d-dialog {
+    width: min(1060px, 96vw); max-height: 92vh; background: #fff; border-radius: 8px;
+    display: flex; flex-direction: column; overflow: hidden;
+    animation: pop .16s ease;
+  }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .d-head {
+    display: flex; align-items: center; padding: 16px 22px;
+    border-bottom: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .d-title { font-size: 16px; font-weight: 600; color: #1f2d3d; }
+  .d-close { margin-left: auto; color: #f5222d; font-size: 20px; cursor: pointer; }
+  .d-body { overflow-y: auto; padding: 20px 22px; }
+  .d-foot {
+    display: flex; justify-content: flex-end; gap: 12px;
+    padding: 14px 22px; border-top: 1px solid #eef1f6; flex-shrink: 0;
+  }
+  .d-foot .btn { padding: 8px 26px; font-size: 14px; }
+
+  .form-row { display: flex; align-items: flex-start; margin-bottom: 18px; }
+  .form-row .lb {
+    width: 150px; flex-shrink: 0; text-align: right; padding-right: 14px;
+    font-size: 13.5px; color: #333; padding-top: 8px;
+  }
+  .form-row .lb .req { color: #f5222d; margin-right: 3px; }
+  .form-row .ctl { flex: 1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+  .name-input { flex: 1; max-width: 460px; }
+  .char-count { color: #b0b6c0; font-size: 12.5px; }
+  .wide-select { width: 460px; max-width: 100%; }
+  .ck-label {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13.5px; color: #333; cursor: pointer; margin-right: 26px;
+  }
+  .ck-label input[type="checkbox"], .ck-label input[type="radio"] {
+    width: 15px; height: 15px; accent-color: #1f8ef1; cursor: pointer;
+  }
+  .sub-title { font-size: 13.5px; color: #333; font-weight: 500; }
+
+  /* 人员定位告警类型 内嵌表格 */
+  .ai-add {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: #1f8ef1; border: 1px solid #b7d9fa; background: #eaf4fe;
+    border-radius: 4px; padding: 5px 14px; cursor: pointer; font-size: 13px; margin-bottom: 12px;
+  }
+  .ai-add:hover { opacity: .85; }
+  .ai-table { width: 100%; border-collapse: collapse; }
+  .ai-table th, .ai-table td {
+    border: 1px solid #eef1f6; padding: 8px 10px; font-size: 13px; text-align: center;
+  }
+  .ai-table th { background: #f7f9fc; color: #5a6472; font-weight: 500; }
+  .ai-table select, .ai-table input[type="text"] { width: 100%; height: 30px; }
+  .ai-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: #1f8ef1; cursor: pointer; }
+  .ai-empty td { color: #b0b6c0; padding: 34px 0; }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, .72); color: #fff; padding: 9px 22px;
+    border-radius: 6px; font-size: 14px; z-index: 999; display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部菜单 -->
+<div class="topbar">
+  <span class="logo">特殊作业管理系统</span>
+  <span class="menu">工作台</span>
+  <span class="menu active">气体探头配置</span>
+</div>
+
+<div class="main">
+  <!-- 筛选栏 -->
+  <div class="filter-bar">
+    <span class="lb">规则名称</span>
+    <input type="text" id="fName" placeholder="请输入名称">
+    <span class="lb">网格区域</span>
+    <select id="fRegion">
+      <option value="">请选择网格区域</option>
+      <option>福建古雷中沙石化</option>
+      <option>1号罐区</option>
+      <option>2号罐区</option>
+    </select>
+    <span class="lb">作业分类</span>
+    <select id="fCategory">
+      <option value="">请选择作业分类</option>
+      <option>八大作业</option>
+      <option>其他作业</option>
+      <option>一般作业</option>
+    </select>
+    <span class="lb">是否启用</span>
+    <select id="fEnabled">
+      <option value="">请选择是否启用</option>
+      <option>是</option>
+      <option>否</option>
+    </select>
+    <button class="btn primary" onclick="searchRules()">🔍 查 询</button>
+    <button class="btn" onclick="resetFilter()">⟳ 重 置</button>
+    <span class="spacer"></span>
+    <button class="btn primary" onclick="openDialog('add')">＋ 新 增</button>
+  </div>
+
+  <!-- 规则列表 -->
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th style="width:220px;">规则名称</th>
+            <th style="width:180px;">网格区域</th>
+            <th style="width:180px;">作业分类</th>
+            <th style="width:100px;">是否启用</th>
+            <th style="width:200px;">默认AI预警类型</th>
+            <th style="width:220px;">默认人员定位告警类型</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="ruleTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 新增/编辑/详情弹窗 ============ -->
+<div class="d-mask" id="dMask">
+  <div class="d-dialog">
+    <div class="d-head">
+      <span class="d-title" id="dTitle">新增规则</span>
+      <span class="d-close" onclick="closeDialog()">✕</span>
+    </div>
+    <div class="d-body">
+      <div class="form-row">
+        <span class="lb"><span class="req">*</span>规则名称</span>
+        <div class="ctl">
+          <input type="text" class="name-input" id="dName" maxlength="120" placeholder="请输入规则名称" oninput="updateCount()">
+          <span class="char-count" id="nameCount">0/120</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="lb"><span class="req">*</span>网格区域</span>
+        <div class="ctl">
+          <select class="wide-select" id="dRegion">
+            <option value="">请选择网格区域</option>
+            <option>福建古雷中沙石化</option>
+            <option>1号罐区</option>
+            <option>2号罐区</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="lb"><span class="req">*</span>作业分类</span>
+        <div class="ctl" id="dCategory">
+          <label class="ck-label"><input type="checkbox" value="八大作业">八大作业</label>
+          <label class="ck-label"><input type="checkbox" value="其他作业">其他作业</label>
+          <label class="ck-label"><input type="checkbox" value="一般作业">一般作业</label>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="lb"><span class="req">*</span>默认固定式探测器</span>
+        <div class="ctl" id="dDetector">
+          <label class="ck-label"><input type="checkbox" value="作业区域内">作业区域内</label>
+          <label class="ck-label"><input type="checkbox" value="区域周围5米内">区域周围5米内</label>
+          <label class="ck-label"><input type="checkbox" value="区域周围20米内">区域周围20米内</label>
+          <label class="ck-label"><input type="checkbox" value="区域周围20米外">区域周围20米外</label>
+          <label class="ck-label"><input type="checkbox" value="无位置数据">无位置数据</label>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="lb">默认AI预警类型</span>
+        <div class="ctl"><span style="color:#8a94a3;font-size:12.5px;">非必填</span></div>
+      </div>
+      <div class="form-row" style="align-items:flex-start;">
+        <span class="lb"><span class="req">*</span>默认人员定位<br>告警类型</span>
+        <div class="ctl" style="flex-direction:column;align-items:stretch;gap:0;">
+          <span class="ai-add" onclick="addAiRow()">＋ 新 增</span>
+          <table class="ai-table">
+            <thead>
+              <tr>
+                <th style="width:160px;">告警类型</th>
+                <th style="width:120px;">告警等级</th>
+                <th style="width:120px;">参数</th>
+                <th>规则对象</th>
+                <th style="width:130px;">防误判阈值(秒)</th>
+                <th style="width:90px;">是否启用</th>
+                <th style="width:70px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="aiTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="lb"><span class="req">*</span>是否启用规则</span>
+        <div class="ctl" id="dEnabled">
+          <label class="ck-label"><input type="radio" name="dEnabled" value="是">是</label>
+          <label class="ck-label"><input type="radio" name="dEnabled" value="否">否</label>
+        </div>
+      </div>
+    </div>
+    <div class="d-foot">
+      <button class="btn" onclick="closeDialog()">取 消</button>
+      <button class="btn primary" id="dOk" onclick="saveRule()">确 定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ================= 数据（localStorage 持久化） ================= */
+  var STORE_KEY = 'gas_probe_rules';
+  var defaultRules = [
+    {
+      name: '默认AI预警类型非必填', region: '福建古雷中沙石化',
+      category: ['八大作业', '其他作业', '一般作业'],
+      detector: ['作业区域内'],
+      ai: [],
+      enabled: '是'
+    },
+    {
+      name: '罐区动火作业气体探头联动', region: '1号罐区',
+      category: ['八大作业'],
+      detector: ['作业区域内', '区域周围5米内'],
+      ai: [{ type: '超员', level: '提示', param: '-', obj: '作业人员', threshold: '10', on: true }],
+      enabled: '是'
+    }
+  ];
+
+  function loadRules() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return arr;
+      }
+    } catch (e) { /* 使用默认 */ }
+    return JSON.parse(JSON.stringify(defaultRules));
+  }
+  function persist() { localStorage.setItem(STORE_KEY, JSON.stringify(rules)); }
+
+  var rules = loadRules();
+  var editIndex = -1;   // -1 表示新增
+  var viewMode = false; // 详情模式只读
+  var aiRows = [];      // 弹窗内“人员定位告警类型”行
+
+  /* ================= 列表渲染与筛选 ================= */
+  function renderTable() {
+    var name = document.getElementById('fName').value.trim();
+    var region = document.getElementById('fRegion').value;
+    var category = document.getElementById('fCategory').value;
+    var enabled = document.getElementById('fEnabled').value;
+
+    var list = rules.filter(function (r) {
+      if (name && r.name.indexOf(name) === -1) return false;
+      if (region && r.region !== region) return false;
+      if (category && r.category.indexOf(category) === -1) return false;
+      if (enabled && r.enabled !== enabled) return false;
+      return true;
+    });
+
+    document.getElementById('ruleTbody').innerHTML = list.length
+      ? list.map(function (r) {
+          var idx = rules.indexOf(r);
+          return '<tr>' +
+            '<td>' + r.name + '</td>' +
+            '<td>' + r.region + '</td>' +
+            '<td>' + r.category.join(',') + '</td>' +
+            '<td>' + (r.enabled === '是'
+              ? '<span class="tag-yes">是</span>'
+              : '<span class="tag-no">否</span>') + '</td>' +
+            '<td>' + (r.ai && r.ai.length
+              ? r.ai.map(function (a) { return a.type; }).join(',')
+              : '') + '</td>' +
+            '<td>' + (r.ai && r.ai.length
+              ? r.ai.map(function (a) { return a.type + '(' + a.obj + ')'; }).join(',')
+              : '') + '</td>' +
+            '<td>' +
+              '<span class="op-link" onclick="openDialog(\'view\',' + idx + ')">详情</span>' +
+              '<span class="op-link" onclick="copyRule(' + idx + ')">复制</span>' +
+              '<span class="op-link" onclick="openDialog(\'edit\',' + idx + ')">编辑</span>' +
+              '<span class="op-link danger" onclick="delRule(' + idx + ')">删除</span>' +
+            '</td>' +
+          '</tr>';
+        }).join('')
+      : '<tr class="empty-row"><td colspan="7">暂无数据</td></tr>';
+  }
+  function searchRules() { renderTable(); }
+  function resetFilter() {
+    document.getElementById('fName').value = '';
+    document.getElementById('fRegion').value = '';
+    document.getElementById('fCategory').value = '';
+    document.getElementById('fEnabled').value = '';
+    renderTable();
+  }
+
+  /* ================= 弹窗 ================= */
+  function updateCount() {
+    document.getElementById('nameCount').textContent =
+      document.getElementById('dName').value.length + '/120';
+  }
+
+  function renderAiRows() {
+    document.getElementById('aiTbody').innerHTML = aiRows.length
+      ? aiRows.map(function (a, i) {
+          return '<tr>' +
+            '<td><input type="text" class="ai-f" data-i="' + i + '" data-k="type" value="' + (a.type || '') + '" placeholder="如：超员"></td>' +
+            '<td><select class="ai-f" data-i="' + i + '" data-k="level">' +
+              '<option value="">请选择</option>' +
+              ['提示', '一般', '较大', '重大'].map(function (l) {
+                return '<option ' + (a.level === l ? 'selected' : '') + '>' + l + '</option>';
+              }).join('') +
+            '</select></td>' +
+            '<td><input type="text" class="ai-f" data-i="' + i + '" data-k="param" value="' + (a.param || '') + '"></td>' +
+            '<td><input type="text" class="ai-f" data-i="' + i + '" data-k="obj" value="' + (a.obj || '') + '" placeholder="如：作业人员"></td>' +
+            '<td><input type="text" class="ai-f" data-i="' + i + '" data-k="threshold" value="' + (a.threshold || '') + '"></td>' +
+            '<td><input type="checkbox" class="ai-f" data-i="' + i + '" data-k="on" ' + (a.on ? 'checked' : '') + '></td>' +
+            '<td><span class="op-link danger" onclick="delAiRow(' + i + ')">删除</span></td>' +
+          '</tr>';
+        }).join('')
+      : '<tr class="ai-empty"><td colspan="7">暂无数据</td></tr>';
+    bindAiInputs();
+  }
+  function bindAiInputs() {
+    document.querySelectorAll('.ai-f').forEach(function (el) {
+      el.addEventListener('input', syncAiRow);
+      el.addEventListener('change', syncAiRow);
+    });
+  }
+  function syncAiRow(e) {
+    var el = e.target;
+    var i = parseInt(el.getAttribute('data-i'), 10);
+    var k = el.getAttribute('data-k');
+    aiRows[i][k] = el.type === 'checkbox' ? el.checked : el.value;
+  }
+  function addAiRow() {
+    aiRows.push({ type: '', level: '', param: '', obj: '', threshold: '', on: true });
+    renderAiRows();
+  }
+  function delAiRow(i) { aiRows.splice(i, 1); renderAiRows(); }
+
+  function setChecks(containerId, values) {
+    document.querySelectorAll('#' + containerId + ' input').forEach(function (cb) {
+      cb.checked = values.indexOf(cb.value) > -1;
+    });
+  }
+  function getChecks(containerId) {
+    var arr = [];
+    document.querySelectorAll('#' + containerId + ' input:checked').forEach(function (cb) {
+      arr.push(cb.value);
+    });
+    return arr;
+  }
+
+  function openDialog(mode, idx) {
+    editIndex = (mode === 'add') ? -1 : idx;
+    viewMode = (mode === 'view');
+
+    document.getElementById('dTitle').textContent =
+      mode === 'add' ? '新增规则' : mode === 'edit' ? '编辑规则' : '规则详情';
+    document.getElementById('dOk').style.display = viewMode ? 'none' : '';
+
+    var r = mode === 'add'
+      ? { name: '', region: '', category: [], detector: [], ai: [], enabled: '' }
+      : rules[idx];
+
+    document.getElementById('dName').value = r.name;
+    updateCount();
+    document.getElementById('dRegion').value = r.region;
+    setChecks('dCategory', r.category);
+    setChecks('dDetector', r.detector);
+    document.querySelectorAll('#dEnabled input').forEach(function (radio) {
+      radio.checked = radio.value === r.enabled;
+    });
+    aiRows = JSON.parse(JSON.stringify(r.ai || []));
+    renderAiRows();
+
+    /* 详情模式：只读 */
+    document.querySelectorAll('.d-body input, .d-body select').forEach(function (el) {
+      el.disabled = viewMode;
+    });
+    document.querySelector('.ai-add').style.display = viewMode ? 'none' : '';
+
+    document.getElementById('dMask').classList.add('show');
+  }
+  function closeDialog() { document.getElementById('dMask').classList.remove('show'); }
+  document.getElementById('dMask').addEventListener('click', function (e) {
+    if (e.target === this) closeDialog();
+  });
+
+  function saveRule() {
+    var name = document.getElementById('dName').value.trim();
+    var region = document.getElementById('dRegion').value;
+    var category = getChecks('dCategory');
+    var detector = getChecks('dDetector');
+    var enabledRadio = document.querySelector('#dEnabled input:checked');
+
+    if (!name) { toast('请输入规则名称'); return; }
+    if (!region) { toast('请选择网格区域'); return; }
+    if (!category.length) { toast('请选择作业分类'); return; }
+    if (!detector.length) { toast('请选择默认固定式探测器'); return; }
+    if (!enabledRadio) { toast('请选择是否启用规则'); return; }
+
+    var data = {
+      name: name, region: region,
+      category: category, detector: detector,
+      ai: aiRows.filter(function (a) { return a.type; }),
+      enabled: enabledRadio.value
+    };
+
+    if (editIndex === -1) rules.push(data);
+    else rules[editIndex] = data;
+    persist();
+    renderTable();
+    closeDialog();
+    toast('保存成功');
+  }
+
+  function copyRule(idx) {
+    var copy = JSON.parse(JSON.stringify(rules[idx]));
+    copy.name = copy.name + '-复制';
+    rules.splice(idx + 1, 0, copy);
+    persist();
+    renderTable();
+    toast('复制成功');
+  }
+  function delRule(idx) {
+    if (!confirm('确定删除该规则？')) return;
+    rules.splice(idx, 1);
+    persist();
+    renderTable();
+    toast('删除成功');
+  }
+
+  /* ================= Toast ================= */
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.style.display = 'none'; }, 1800);
+  }
+
+  renderTable();
+</script>
+</body>
+</html>
