@@ -399,6 +399,12 @@
         <div class="reg-row"><span class="lb">工器具名称</span>
           <select class="reg-select" id="addToolName"></select>
         </div>
+        <div class="reg-row"><span class="lb">登记类型</span>
+          <span class="reg-radios">
+            <label class="reg-radio"><input type="radio" name="addToolDir" value="进" checked>进</label>
+            <label class="reg-radio"><input type="radio" name="addToolDir" value="出">出</label>
+          </span>
+        </div>
         <div class="reg-row"><span class="lb">数量</span>
           <input type="number" class="reg-time" id="addToolQty" value="1" min="1" style="text-align:center;">
         </div>
@@ -739,7 +745,7 @@
     return defaults;
   }
 
-  /* 登记记录：[{id, name, qty, photos:[dataURL]}]；兼容旧 map 存档（转为记录数组） */
+  /* 登记记录：[{id, name, dir:'进'|'出', qty, photos:[dataURL]}]；兼容旧 map 存档（转为记录数组） */
   var toolEntries = null;
   function loadToolEntries() {
     if (toolEntries) return toolEntries;
@@ -749,7 +755,7 @@
     } else if (raw) {
       toolEntries = Object.keys(raw).map(function (name, i) {
         var t = normalizeToolSaved(raw[name]);
-        return { id: i + 1, name: name, qty: t.qty, photos: t.photos };
+        return { id: i + 1, name: name, dir: '进', qty: t.qty, photos: t.photos };
       });
       persistToolEntries();
     } else {
@@ -781,6 +787,7 @@
           '<span class="reg-card-name">' + e.name + '</span>' +
         '</div>' +
         '<div class="reg-row"><span class="lb">名称</span><span class="val">' + e.name + '</span></div>' +
+        '<div class="reg-row"><span class="lb">登记类型</span><span class="val">' + (e.dir === '出' ? '出' : '进') + '</span></div>' +
         '<div class="reg-row"><span class="lb">数量</span><span class="val">× ' + e.qty + '</span></div>' +
         '<div class="reg-photo-bar">' +
           '<span class="reg-photo-label">照片</span>' +
@@ -812,6 +819,7 @@
     sel.innerHTML = '<option value="" disabled selected>请选择</option>' +
       getTools().concat(getCustomTools()).map(function (n) { return '<option value="' + n + '">' + n + '</option>'; }).join('');
     document.getElementById('addToolQty').value = 1;
+    document.querySelector('input[name="addToolDir"][value="进"]').checked = true;
     toolAddPhotos = [];
     renderToolAddThumbs();
     document.getElementById('tMask').classList.add('show');
@@ -852,10 +860,11 @@
   });
   function saveToolAdd(keepOpen) {
     var name = document.getElementById('addToolName').value;
+    var dir = document.querySelector('input[name="addToolDir"]:checked').value;
     var q = parseInt(document.getElementById('addToolQty').value, 10);
     if (!name) { toast('请选择工器具名称'); return; }
     loadToolEntries().push({
-      id: nextToolId(), name: name,
+      id: nextToolId(), name: name, dir: dir,
       qty: isNaN(q) || q < 1 ? 1 : q,
       photos: toolAddPhotos.slice()
     });
@@ -864,6 +873,7 @@
     if (keepOpen) {
       /* 继续添加：保存当前工器具后重置表单，登记下一条 */
       document.getElementById('addToolName').value = '';
+      document.querySelector('input[name="addToolDir"][value="进"]').checked = true;
       document.getElementById('addToolQty').value = 1;
       toolAddPhotos = [];
       renderToolAddThumbs();

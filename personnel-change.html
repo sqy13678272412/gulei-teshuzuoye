@@ -833,7 +833,7 @@
   function normalizeRegTool(v) {
     if (v === undefined || v === null) return { qty: 1, photos: [] };
     if (typeof v === 'number') return { qty: v, photos: [] };
-    return { qty: v.qty !== undefined ? v.qty : 1, photos: v.photos || [] };
+    return { qty: v.qty !== undefined ? v.qty : 1, photos: v.photos || [], dir: v.dir };
   }
   /* 登记页的作业人员清单（与 person-tool-register.html 的 workers 一致） */
   var regWorkers = [
@@ -866,15 +866,21 @@
     } else {
       persons = pSaved || regSamplePersons;
     }
-    /* 工器具存档兼容：新格式为登记记录数组 [{name, qty, photos}]，
+    /* 工器具存档兼容：新格式为登记记录数组 [{name, dir:'进'|'出', qty, photos}]，
        旧格式为 {名称:{qty,photos}}；数组按名称汇总数量与照片转成旧结构 */
     var tools;
     if (Array.isArray(tSaved)) {
       tools = {};
       tSaved.forEach(function (e) {
-        if (!tools[e.name]) tools[e.name] = { qty: 0, photos: [] };
+        if (!tools[e.name]) tools[e.name] = { qty: 0, photos: [], dirs: {} };
         tools[e.name].qty += e.qty || 1;
         tools[e.name].photos = tools[e.name].photos.concat(e.photos || []);
+        tools[e.name].dirs[e.dir === '出' ? '出' : '进'] = true;
+      });
+      Object.keys(tools).forEach(function (n) {
+        var d = Object.keys(tools[n].dirs);
+        tools[n].dir = d.length > 1 ? '进/出' : d[0];
+        delete tools[n].dirs;
       });
     } else {
       tools = tSaved || regSampleTools;
@@ -925,6 +931,7 @@
           '<span class="rg-qty">× ' + t.qty + '</span>' +
         '</div>' +
         '<div class="rg-rows">' +
+          '<div class="rg-row"><span class="lb">登记类型</span><span class="val">' + (t.dir || '进') + '</span></div>' +
           '<div class="rg-row"><span class="lb">拍照留证</span><span class="val">' +
             (t.photos.length
               ? '<span class="rg-photos" style="margin-top:0;">' + t.photos.map(function (p) {
