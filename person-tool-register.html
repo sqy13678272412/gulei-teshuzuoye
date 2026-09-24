@@ -210,6 +210,26 @@
   /* 工器具卡片图标（不用人物剪影底图） */
   .reg-avatar.no-icon { background-image: none; font-size: 17px; }
 
+  /* 当前停留受限空间统计横幅（浅黄色，点击展开） */
+  .stat-banner {
+    background: #fdf6e3; border: 1px solid #f5dfa0; border-radius: 10px;
+    padding: 0 14px; margin-bottom: 12px; cursor: pointer; user-select: none;
+  }
+  .stat-head {
+    display: flex; align-items: center; gap: 8px; padding: 12px 0;
+    font-size: 13.5px; color: #8a6a12; font-weight: 600;
+  }
+  .stat-badge { font-size: 12px; font-weight: 400; color: #a5831f; background: #faedc2; border-radius: 10px; padding: 2px 8px; }
+  .stat-arrow { margin-left: auto; color: #c9a544; font-size: 16px; transition: transform .15s; }
+  .stat-banner.open .stat-arrow { transform: rotate(90deg); }
+  .stat-detail {
+    display: none; border-top: 1px dashed #eed58f; padding: 10px 0 12px;
+    font-size: 13px; color: #7a6420;
+  }
+  .stat-banner.open .stat-detail { display: block; }
+  .stat-detail .stat-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; }
+  .stat-detail .stat-row .lb { color: #a08a3e; flex-shrink: 0; }
+
   /* 保存按钮 */
   .reg-save {
     flex-shrink: 0; margin: 0 12px calc(12px + env(safe-area-inset-bottom));
@@ -597,8 +617,27 @@
     return 5;
   }
 
+  /* 当前停留受限空间人员统计横幅（浅黄色，点击展开） */
+  function personStatHtml(wasOpen) {
+    var names = [];
+    loadEntries().forEach(function (e) {
+      if (e.dir !== '出' && names.indexOf(e.name) < 0) names.push(e.name);
+    });
+    return '<div class="stat-banner' + (wasOpen ? ' open' : '') + '" id="personStat" onclick="this.classList.toggle(\'open\')">' +
+      '<div class="stat-head"><span>⚠ 当前停留受限空间人员信息</span>' +
+      '<span class="stat-badge">' + names.length + ' 人</span>' +
+      '<span class="stat-arrow">›</span></div>' +
+      '<div class="stat-detail">' +
+        '<div class="stat-row"><span class="lb">总人数</span><span>' + names.length + ' 人</span></div>' +
+        '<div class="stat-row"><span class="lb">人员</span><span style="text-align:right;">' + (names.length ? names.join('、') : '无') + '</span></div>' +
+      '</div>' +
+    '</div>';
+  }
+
   function renderPersonPane() {
-    document.getElementById('panePerson').innerHTML = loadEntries().map(function (e) {
+    var statEl = document.getElementById('personStat');
+    var wasOpen = statEl && statEl.classList.contains('open');
+    document.getElementById('panePerson').innerHTML = personStatHtml(wasOpen) + loadEntries().map(function (e) {
       return '<div class="reg-card">' +
         '<div class="reg-card-head">' +
           '<span class="reg-avatar"><img src="https://i.pravatar.cc/80?img=' + workerImg(e.name) + '" onerror="this.style.display=\'none\'"></span>' +
@@ -773,14 +812,38 @@
     return null;
   }
 
+  /* 当前停留受限空间工器具统计横幅（浅黄色，点击展开） */
+  function toolStatHtml(wasOpen) {
+    var map = {}; var order = [];
+    loadToolEntries().forEach(function (e) {
+      if (e.dir === '出') return;
+      if (!map[e.name]) { map[e.name] = 0; order.push(e.name); }
+      map[e.name] += e.qty || 1;
+    });
+    var total = order.reduce(function (s, n) { return s + map[n]; }, 0);
+    var detail = order.length
+      ? order.map(function (n) {
+          return '<div class="stat-row"><span>' + n + '</span><span>× ' + map[n] + '</span></div>';
+        }).join('')
+      : '<div class="stat-row"><span>暂无停留工器具</span></div>';
+    return '<div class="stat-banner' + (wasOpen ? ' open' : '') + '" id="toolStat" onclick="this.classList.toggle(\'open\')">' +
+      '<div class="stat-head"><span>⚠ 当前停留受限空间工器具信息</span>' +
+      '<span class="stat-badge">' + order.length + ' 种 / 共 ' + total + ' 件</span>' +
+      '<span class="stat-arrow">›</span></div>' +
+      '<div class="stat-detail">' + detail + '</div>' +
+    '</div>';
+  }
+
   function renderToolPane() {
+    var statEl = document.getElementById('toolStat');
+    var wasOpen = statEl && statEl.classList.contains('open');
     var list = loadToolEntries();
     if (!list.length) {
-      document.getElementById('toolList').innerHTML =
-        '<div class="tool-tip" style="text-align:center;padding:40px 0;">暂无工器具登记记录<br>点击右下角 ＋ 新增登记</div>';
+      document.getElementById('toolList').innerHTML = toolStatHtml(wasOpen) +
+        '<div class="tool-tip" style="text-align:center;padding:30px 0;">暂无工器具登记记录<br>点击右下角 ＋ 新增登记</div>';
       return;
     }
-    document.getElementById('toolList').innerHTML = list.map(function (e) {
+    document.getElementById('toolList').innerHTML = toolStatHtml(wasOpen) + list.map(function (e) {
       return '<div class="reg-card">' +
         '<div class="reg-card-head">' +
           '<span class="reg-avatar no-icon">🔧</span>' +
