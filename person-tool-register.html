@@ -161,6 +161,8 @@
   }
   .a-continue:active { background: #f0f7ff; }
   .reg-card-name { font-size: 15px; font-weight: 600; color: #1f2d3d; }
+  .reg-card-del { margin-left: auto; color: #e05656; font-size: 13px; cursor: pointer; user-select: none; flex-shrink: 0; }
+  .reg-card-del:active { opacity: .6; }
   .reg-row { display: flex; align-items: center; padding: 9px 0; font-size: 13.5px; }
   .reg-row .lb { color: #8a94a3; width: 130px; flex-shrink: 0; }
   .reg-row .val { margin-left: auto; color: #333; }
@@ -642,6 +644,7 @@
         '<div class="reg-card-head">' +
           '<span class="reg-avatar"><img src="https://i.pravatar.cc/80?img=' + workerImg(e.name) + '" onerror="this.style.display=\'none\'"></span>' +
           '<span class="reg-card-name">' + e.name + '</span>' +
+          '<span class="reg-card-del" onclick="deletePersonEntry(' + e.id + ')">删除</span>' +
         '</div>' +
         '<div class="reg-row"><span class="lb">姓名</span><span class="val">' + e.name + '</span></div>' +
         '<div class="reg-row"><span class="lb">联系方式</span><span class="val">' + e.phone + '</span></div>' +
@@ -675,6 +678,13 @@
     document.getElementById('regPvContent').innerHTML =
       '<img src="' + e.photos[j] + '" style="width:100%;border-radius:8px;display:block">';
     document.getElementById('regPvMask').classList.add('show');
+  }
+  function deletePersonEntry(id) {
+    if (!confirm('确定删除该条人员登记记录？')) return;
+    personEntries = loadEntries().filter(function (e) { return e.id !== id; });
+    persistEntries();
+    renderPersonPane();
+    toast('已删除', 1500);
   }
 
   /* ================= 新增人员登记弹窗 ================= */
@@ -847,6 +857,7 @@
       return '<div class="reg-card">' +
         '<div class="reg-card-head">' +
           '<span class="reg-card-name">' + e.name + '</span>' +
+          '<span class="reg-card-del" onclick="deleteToolEntry(' + e.id + ')">删除</span>' +
         '</div>' +
         '<div class="reg-row"><span class="lb">名称</span><span class="val">' + e.name + '</span></div>' +
         '<div class="reg-row"><span class="lb">登记类型</span><span class="val">' + (e.dir === '出' ? '出' : '进') + '</span></div>' +
@@ -872,6 +883,13 @@
     document.getElementById('regPvContent').innerHTML =
       '<img src="' + e.photos[j] + '" style="width:100%;border-radius:8px;display:block">';
     document.getElementById('regPvMask').classList.add('show');
+  }
+  function deleteToolEntry(id) {
+    if (!confirm('确定删除该条工器具登记记录？')) return;
+    toolEntries = loadToolEntries().filter(function (e) { return e.id !== id; });
+    persistToolEntries();
+    renderToolPane();
+    toast('已删除', 1500);
   }
 
   /* ================= 新增工器具登记弹窗 ================= */
