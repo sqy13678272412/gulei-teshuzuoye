@@ -212,6 +212,24 @@
   /* 工器具卡片图标（不用人物剪影底图） */
   .reg-avatar.no-icon { background-image: none; font-size: 17px; }
 
+  /* 监护人检查项：条目卡片（间距 10px） */
+  .gc-item { background: #fff; border-radius: 10px; padding: 13px 14px; margin-bottom: 10px; }
+  .gc-check { display: flex; align-items: center; gap: 10px; }
+  .gc-check input[type="checkbox"] { width: 17px; height: 17px; accent-color: #1f8ef1; flex-shrink: 0; cursor: pointer; }
+  .gc-name { font-size: 14px; color: #333; flex: 1; min-width: 0; }
+  .gc-photo-bar {
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eef1f6;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .gc-must { color: #e64340; font-size: 12px; }
+  /* 底部自定义事项 */
+  .gc-custom { background: #fff; border-radius: 10px; padding: 13px 14px; margin-top: 4px; }
+  .gc-text {
+    width: 100%; height: 36px; border: 1px solid #d8e0ea; border-radius: 6px;
+    padding: 0 10px; font-size: 13px; outline: none; box-sizing: border-box; color: #333;
+  }
+  .gc-text:focus { border-color: #1f8ef1; }
+
   /* 当前停留受限空间统计横幅（浅黄色，点击展开） */
   .stat-banner {
     background: #fdf6e3; border: 1px solid #f5dfa0; border-radius: 10px;
@@ -456,6 +474,7 @@
     <div class="reg-body" id="gcBody"></div>
     <button class="reg-save" onclick="saveGuardianCheck()">保 存</button>
   </div>
+  <input type="file" id="gcPhotoInput" accept="image/*" multiple hidden>
 </div>
 
 <!-- ============ 照片预览弹窗 ============ -->
@@ -971,12 +990,15 @@
   var gcTicketType = '受限空间作业票';
   /* 配置页无数据时的默认检查项（与 guardian-config 默认配置中适用于受限空间作业票的事项一致） */
   var gcDefaults = [
-    { id: 1, name: '已向新监护人交底当前风险情况' },
-    { id: 2, name: '已确认现场安全措施状态' },
-    { id: 3, name: '新监护人已知晓当前作业进度' },
-    { id: 4, name: '新监护人已到岗' },
-    { id: 5, name: '已核对新监护人监护资质证书' }
+    { id: 1, name: '已向新监护人交底当前风险情况', needImg: true },
+    { id: 2, name: '已确认现场安全措施状态', needImg: false },
+    { id: 3, name: '新监护人已知晓当前作业进度', needImg: true },
+    { id: 4, name: '新监护人已到岗', needImg: true },
+    { id: 5, name: '已核对新监护人监护资质证书', needImg: false }
   ];
+  /* 弹窗打开期间的照片缓存：{ 检查项id: [dataURL...], custom: [dataURL...] } */
+  var gcPhotos = {};
+  var gcPhotoCtx = null;
 
   function loadGcItems() {
     try {
@@ -985,7 +1007,11 @@
         var arr = JSON.parse(raw);
         if (Array.isArray(arr) && arr.length) {
           var list = arr.filter(function (it) { return it.types && it.types.indexOf(gcTicketType) > -1; });
-          if (list.length) return list.map(function (it) { return { id: it.id, name: it.name }; });
+          if (list.length) {
+            return list.map(function (it) {
+              return { id: it.id, name: it.name, needImg: !!it.needImg };
+            });
+          }
         }
       }
     } catch (e) { /* 配置缺失或损坏时使用默认 */ }
@@ -999,6 +1025,53 @@
     } catch (e) { return null; }
   }
 
+  function gcThumbsHtml(key) {
+    return (gcPhotos[key] || []).map(function (p, j) {
+      return '<span class="reg-thumb-wrap">' +
+        '<img class="reg-thumb" src="' + p + '" onclick="previewGcPhoto(\'' + key + '\',' + j + ')">' +
+        '<span class="reg-thumb-del" onclick="removeGcPhoto(\'' + key + '\',' + j + ')">✕</span>' +
+      '</span>';
+    }).join('');
+  }
+  function refreshGcThumbs(key) {
+    var el = document.getElementById('gcThumbs_' + key);
+    if (el) el.innerHTML = gcThumbsHtml(key);
+  }
+  function pickGcPhoto(key) {
+    gcPhotoCtx = key;
+    document.getElementById('gcPhotoInput').click();
+  }
+  document.getElementById('gcPhotoInput').addEventListener('change', function () {
+    var key = gcPhotoCtx;
+    var files = this.files;
+    this.value = '';
+    if (key === null || !files.length) return;
+    if (!gcPhotos[key]) gcPhotos[key] = [];
+    var pending = files.length;
+    for (var i = 0; i < files.length; i++) {
+      (function (f) {
+        var r = new FileReader();
+        r.onload = function (e) {
+          gcPhotos[key].push(e.target.result);
+          if (--pending === 0) refreshGcThumbs(key);
+        };
+        r.readAsDataURL(f);
+      })(files[i]);
+    }
+  });
+  function previewGcPhoto(key, j) {
+    var arr = gcPhotos[key] || [];
+    if (!arr[j]) return;
+    document.getElementById('regPvContent').innerHTML =
+      '<img src="' + arr[j] + '" style="width:100%;border-radius:8px;display:block">';
+    document.getElementById('regPvMask').classList.add('show');
+  }
+  function removeGcPhoto(key, j) {
+    if (!gcPhotos[key]) return;
+    gcPhotos[key].splice(j, 1);
+    refreshGcThumbs(key);
+  }
+
   function renderGuardianCheck() {
     var items = loadGcItems();
     var saved = loadGcSaved();
@@ -1006,16 +1079,38 @@
     if (saved && Array.isArray(saved.checked)) {
       saved.checked.forEach(function (id) { checkedMap[id] = true; });
     }
+    gcPhotos = (saved && saved.photos) ? JSON.parse(JSON.stringify(saved.photos)) : {};
+    var customText = (saved && saved.custom && saved.custom.text) ? saved.custom.text : '';
+    if (saved && saved.custom && saved.custom.photos) gcPhotos.custom = saved.custom.photos.slice();
+
     document.getElementById('gcBody').innerHTML =
-      '<div class="tool-tip">请监护人逐项核对并勾选，完成后点击底部保存</div>' +
+      '<div class="tool-tip" style="margin-bottom:10px;">请监护人逐项核对并勾选，带照片要求的检查项必须拍照，完成后点击底部保存</div>' +
       items.map(function (it, i) {
-        return '<div class="tool-row">' +
-          '<input type="checkbox" id="gc_' + i + '" data-id="' + it.id + '" ' + (checkedMap[it.id] ? 'checked' : '') + '>' +
-          '<span class="tool-name">' + it.name + '</span>' +
+        var photoBar = it.needImg
+          ? '<div class="gc-photo-bar">' +
+              '<button class="reg-photo-btn" onclick="pickGcPhoto(' + it.id + ')">📷 拍照</button>' +
+              '<span class="reg-thumbs" id="gcThumbs_' + it.id + '">' + gcThumbsHtml(it.id) + '</span>' +
+              '<span class="gc-must">*必须上传</span>' +
+            '</div>'
+          : '';
+        return '<div class="gc-item">' +
+          '<div class="gc-check">' +
+            '<input type="checkbox" id="gc_' + i + '" data-id="' + it.id + '" ' + (checkedMap[it.id] ? 'checked' : '') + '>' +
+            '<span class="gc-name">' + it.name + '</span>' +
+          '</div>' +
+          photoBar +
         '</div>';
       }).join('') +
+      '<div class="gc-custom">' +
+        '<div class="gc-name" style="margin-bottom:10px;">自定义事项</div>' +
+        '<input class="gc-text" id="gcCustomText" placeholder="请输入自定义内容（选填）" value="' + customText.replace(/"/g, '&quot;') + '">' +
+        '<div class="gc-photo-bar" style="border-top:none;">' +
+          '<button class="reg-photo-btn" onclick="pickGcPhoto(\'custom\')">📷 拍照</button>' +
+          '<span class="reg-thumbs" id="gcThumbs_custom">' + gcThumbsHtml('custom') + '</span>' +
+        '</div>' +
+      '</div>' +
       (saved && saved.time
-        ? '<div class="tool-tip" style="padding-top:4px;">上次保存：' + saved.time + '（已勾选 ' + saved.checked.length + ' / ' + items.length + ' 项）</div>'
+        ? '<div class="tool-tip" style="padding-top:10px;">上次保存：' + saved.time + '（已勾选 ' + saved.checked.length + ' / ' + items.length + ' 项）</div>'
         : '');
   }
 
@@ -1032,15 +1127,32 @@
   function saveGuardianCheck() {
     var items = loadGcItems();
     var checked = [];
+    var missing = [];
     items.forEach(function (it, i) {
-      if (document.getElementById('gc_' + i).checked) checked.push(it.id);
+      if (document.getElementById('gc_' + i).checked) {
+        checked.push(it.id);
+        /* 配置了需要照片的检查项，勾选了就必须上传照片 */
+        if (it.needImg && !(gcPhotos[it.id] && gcPhotos[it.id].length)) missing.push(it.name);
+      }
     });
     if (!checked.length) { toast('请先勾选检查项', 1500); return; }
+    if (missing.length) { toast('以下检查项必须上传照片：' + missing.join('、'), 3000); return; }
     var d = new Date();
     function pad(n) { return n < 10 ? '0' + n : '' + n; }
     var time = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
                pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-    localStorage.setItem(GC_SAVE_KEY, JSON.stringify({ checked: checked, total: items.length, time: time }));
+    var photosSave = {};
+    Object.keys(gcPhotos).forEach(function (k) {
+      if (k !== 'custom' && gcPhotos[k].length) photosSave[k] = gcPhotos[k];
+    });
+    var customEl = document.getElementById('gcCustomText');
+    localStorage.setItem(GC_SAVE_KEY, JSON.stringify({
+      checked: checked,
+      total: items.length,
+      time: time,
+      photos: photosSave,
+      custom: { text: customEl ? customEl.value.trim() : '', photos: gcPhotos.custom || [] }
+    }));
     toast('保存成功', 3000);
   }
 

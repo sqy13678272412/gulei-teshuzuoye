@@ -437,6 +437,11 @@
     <div class="m-body">
       <div class="m-label" id="itemModalLabel">事项名称</div>
       <input class="m-input" id="itemNameInput" placeholder="请输入交接事项名称">
+      <div class="m-label" style="margin-top:14px;">是否需要图片</div>
+      <div style="display:flex;gap:22px;">
+        <label class="radio-item"><input type="radio" name="itemImg" value="1">是</label>
+        <label class="radio-item"><input type="radio" name="itemImg" value="0" checked>否</label>
+      </div>
     </div>
     <div class="m-foot">
       <button class="btn" onclick="closeItemModal()">取 消</button>
@@ -515,13 +520,16 @@
   /* ================= 数据（localStorage 持久化） ================= */
   var STORE_KEY = 'guardian_handover_items';
   var ALL = allTypes.slice();
+  /* 默认第 1、3、4 项需要拍照留证（与监护人检查项弹窗一致） */
   var defaultItems = [
-    { id: 1, name: '已向新监护人交底当前风险情况', types: ALL.slice() },
-    { id: 2, name: '已确认现场安全措施状态', types: ALL.slice() },
-    { id: 3, name: '新监护人已知晓当前作业进度', types: ALL.slice() },
-    { id: 4, name: '新监护人已到岗', types: ALL.slice() },
-    { id: 5, name: '已核对新监护人监护资质证书', types: ['动火作业票', '受限空间作业票', '高处作业票', '盲板抽堵作业票'] }
+    { id: 1, name: '已向新监护人交底当前风险情况', types: ALL.slice(), needImg: true },
+    { id: 2, name: '已确认现场安全措施状态', types: ALL.slice(), needImg: false },
+    { id: 3, name: '新监护人已知晓当前作业进度', types: ALL.slice(), needImg: true },
+    { id: 4, name: '新监护人已到岗', types: ALL.slice(), needImg: true },
+    { id: 5, name: '已核对新监护人监护资质证书', types: ['动火作业票', '受限空间作业票', '高处作业票', '盲板抽堵作业票'], needImg: false }
   ];
+  /* 旧数据无 needImg 字段时，按名称识别需要拍照的事项 */
+  var LEGACY_IMG_NAMES = ['已向新监护人交底当前风险情况', '新监护人已知晓当前作业进度', '新监护人已到岗'];
 
   var items = loadItems();
 
@@ -530,7 +538,12 @@
       var raw = localStorage.getItem(STORE_KEY);
       if (raw) {
         var arr = JSON.parse(raw);
-        if (Array.isArray(arr) && arr.length) return arr;
+        if (Array.isArray(arr) && arr.length) {
+          arr.forEach(function (it) {
+            if (it.needImg === undefined) it.needImg = LEGACY_IMG_NAMES.indexOf(it.name) > -1;
+          });
+          return arr;
+        }
       }
     } catch (e) { /* 忽略损坏数据，使用默认 */ }
     return JSON.parse(JSON.stringify(defaultItems));
@@ -711,10 +724,12 @@
       title.textContent = '编辑交接事项';
       label.textContent = '事项名称';
       document.getElementById('itemNameInput').value = getItem(id).name;
+      document.querySelector('input[name="itemImg"][value="' + (getItem(id).needImg ? '1' : '0') + '"]').checked = true;
     } else {
       title.textContent = focusMode === 'type' ? '新增交接事项' : '新增交接事项';
       label.textContent = focusMode === 'type' ? '事项名称（保存后将关联当前作业类型：' + currentType + '）' : '事项名称';
       document.getElementById('itemNameInput').value = '';
+      document.querySelector('input[name="itemImg"][value="0"]').checked = true;
     }
     document.getElementById('itemMask').classList.add('show');
     setTimeout(function () { document.getElementById('itemNameInput').focus(); }, 50);
@@ -723,13 +738,15 @@
 
   function saveItem() {
     var name = document.getElementById('itemNameInput').value.trim();
+    var needImg = document.querySelector('input[name="itemImg"]:checked').value === '1';
     if (!name) { toast('请输入事项名称'); return; }
     if (editId) {
       getItem(editId).name = name;
+      getItem(editId).needImg = needImg;
       toast('已保存');
     } else {
       var nid = items.length ? Math.max.apply(null, items.map(function (i) { return i.id; })) + 1 : 1;
-      var newItem = { id: nid, name: name, types: [] };
+      var newItem = { id: nid, name: name, types: [], needImg: needImg };
       if (focusMode === 'type') newItem.types.push(currentType); // 类型聚焦下新增自动关联当前类型
       items.push(newItem);
       currentId = nid;
