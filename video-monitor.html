@@ -121,8 +121,9 @@
   .gr-name { flex: 1; min-width: 0; }
   .gr-col { width: 100px; flex-shrink: 0; text-align: center; color: #5a6472; font-size: 12.5px; }
   .gr-item.off .gr-col { color: #a0a8b4; }
-  .gr-photos { display: flex; gap: 8px; flex-wrap: wrap; }
+  .gr-photos { display: flex; gap: 8px; flex-wrap: wrap; width: 180px; flex-shrink: 0; align-items: center; }
   .gr-photos img { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; border: 1px solid #e6ebf2; cursor: pointer; }
+  .gr-noimg { color: #c0c6cf; font-size: 12px; }
   .gr-custom { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid #f2f5fa; font-size: 13px; flex-wrap: wrap; }
   .gr-custom .txt { color: #333; flex: 1; min-width: 0; }
   .img-preview { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 999; cursor: zoom-out; }
@@ -810,11 +811,11 @@
   var GR_SAVE_KEY = 'guardian_check_SX-20260915-0001';
   var GR_ITEMS_KEY = 'guardian_handover_items';
   var grDefaults = [
-    { id: 1, name: '已向新监护人交底当前风险情况' },
-    { id: 2, name: '已确认现场安全措施状态' },
-    { id: 3, name: '新监护人已知晓当前作业进度' },
-    { id: 4, name: '新监护人已到岗' },
-    { id: 5, name: '已核对新监护人监护资质证书' }
+    { id: 1, name: '已向新监护人交底当前风险情况', needImg: true },
+    { id: 2, name: '已确认现场安全措施状态', needImg: false },
+    { id: 3, name: '新监护人已知晓当前作业进度', needImg: true },
+    { id: 4, name: '新监护人已到岗', needImg: true },
+    { id: 5, name: '已核对新监护人监护资质证书', needImg: false }
   ];
   function loadGrRecord() {
     try {
@@ -829,7 +830,7 @@
         var arr = JSON.parse(raw);
         if (Array.isArray(arr) && arr.length) {
           var list = arr.filter(function (it) { return it.types && it.types.indexOf('受限空间作业票') > -1; });
-          if (list.length) return list.map(function (it) { return { id: it.id, name: it.name }; });
+          if (list.length) return list.map(function (it) { return { id: it.id, name: it.name, needImg: !!it.needImg }; });
         }
       }
     } catch (e) { /* 配置缺失时使用默认 */ }
@@ -861,10 +862,12 @@
     var itemRows = items.map(function (it) {
       var on = !!checkedMap[it.id];
       var ph = grPhotosHtml(photos[it.id]);
+      /* 后台配置需要拍照的事项：有照片展示缩略图，无照片展示"未拍照"占位 */
+      var phCell = ph ? ph : (it.needImg ? '<span class="gr-noimg">未拍照</span>' : '—');
       return '<div class="gr-item' + (on ? '' : ' off') + '">' +
         '<span class="gr-check">' + (on ? '✓' : '—') + '</span>' +
         '<span class="gr-name">' + it.name + '</span>' +
-        (ph ? '<span class="gr-photos">' + ph + '</span>' : '') +
+        '<span class="gr-photos">' + phCell + '</span>' +
         '<span class="gr-col">' + inspector + '</span>' +
         '<span class="gr-col">' + chkTime + '</span>' +
       '</div>';
@@ -875,7 +878,7 @@
       if (!c.text && !ph) return;
       customRows += '<div class="gr-custom">' +
         '<div class="txt">📝 自定义事项：' + (c.text || '（无文字内容）') + '</div>' +
-        (ph ? '<span class="gr-photos">' + ph + '</span>' : '') +
+        '<span class="gr-photos">' + (ph || '—') + '</span>' +
         '<span class="gr-col">' + inspector + '</span>' +
         '<span class="gr-col">' + chkTime + '</span>' +
       '</div>';
@@ -888,6 +891,7 @@
       '<div class="gr-thead">' +
         '<span class="gr-check" style="visibility:hidden;">✓</span>' +
         '<span class="gr-name">监护检查事项</span>' +
+        '<span class="gr-photos">照片</span>' +
         '<span class="gr-col">检查人</span>' +
         '<span class="gr-col">检查时间</span>' +
       '</div>' +
