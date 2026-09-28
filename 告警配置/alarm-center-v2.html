@@ -169,6 +169,13 @@
   .detail-row { display: flex; margin-bottom: 12px; font-size: 13.5px; }
   .detail-row .k { width: 100px; color: #8a94a3; flex-shrink: 0; text-align: right; padding-right: 12px; }
   .detail-row .v { flex: 1; color: #1f2d3d; line-height: 1.7; }
+  /* 处置附件上传（PC / 移动端共用） */
+  .up-btn { display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border: 1px solid #d8e0ea; border-radius: 15px; background: #fff; font-size: 12.5px; color: #333; cursor: pointer; }
+  .up-btn:hover { border-color: #1f8ef1; }
+  .up-wrap { position: relative; display: inline-block; margin: 4px 0 0 6px; vertical-align: top; }
+  .up-thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid #e6ebf2; display: block; }
+  .up-del { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; line-height: 16px; text-align: center; cursor: pointer; display: none; }
+  .up-wrap:hover .up-del { display: block; }
   .tline { border-left: 2px solid #e6ebf2; margin-left: 8px; padding-left: 16px; }
   .tline .ti { position: relative; margin-bottom: 14px; font-size: 13px; color: #5a6472; line-height: 1.6; }
   .tline .ti::before { content: ''; position: absolute; left: -21.5px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: #1f8ef1; border: 2px solid #fff; box-shadow: 0 0 0 1px #1f8ef1; }
@@ -419,6 +426,7 @@
               <button class="btn" onclick="mCloseHandle()">取 消</button>
               <button class="btn primary" onclick="mFinishHandle()">处置完成</button>
             </div>
+            <input type="file" id="mHandlePhotoInput" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
           </div>
 
           <!-- 搜索底部面板 -->
@@ -564,6 +572,7 @@
       <button class="btn primary" id="handleDoneBtn" style="display:none" onclick="finishHandle()">处置完成</button>
     </div>
   </div>
+  <input type="file" id="handlePhotoInput" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1313,6 +1322,7 @@
         '<div class="mp-drow"><span class="k">处理方式</span><span class="v"><span class="st-tag ' + (mode === '提醒' ? 'st-tip' : 'st-gray') + '">' + mode + '</span></span></div>' +
         '<div class="mp-drow"><span class="k">处理状态</span><span class="v"><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></span></div>' +
         '<div class="mp-drow"><span class="k">触发时间</span><span class="v">' + a.time + '</span></div>' +
+        mHandlePhotosRowHtml(a) +
       '</div>' +
       '<div class="mp-sec">' +
         '<div class="mp-drow"><span class="k">流转记录</span><span class="v"><span class="mp-tline">' +
@@ -1329,6 +1339,7 @@
     var a = alarms.filter(function (x) { return x.id === id; })[0];
     if (!a) return;
     mCurAlarmId = id;
+    curHandlePhotos = [];
     var ruleName = (RULE_OPTIONS.filter(function (o) { return o.id === a.ruleId; })[0] || {}).name || '';
     document.getElementById('mHandleBody').innerHTML =
       '<div class="mp-sec" style="box-shadow:none;border:1px solid #eef1f6;">' +
@@ -1339,7 +1350,10 @@
         '<div class="mp-drow"><span class="k">处理状态</span><span class="v"><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></span></div>' +
       '</div>' +
       '<div class="mp-frow"><div class="lb"><span style="color:#e64340">*</span> 处置方案说明</div>' +
-        '<textarea id="mHandleDesc" placeholder="请输入处置方案说明"></textarea></div>';
+        '<textarea id="mHandleDesc" placeholder="请输入处置方案说明"></textarea></div>' +
+      '<div class="mp-frow"><div class="lb">处置附件（照片）</div>' +
+        '<label class="up-btn" for="mHandlePhotoInput">📷 上传照片</label>' +
+        '<span id="mHandleThumbs">' + handleThumbsHtml() + '</span></div>';
     document.getElementById('mHandleMask').classList.add('show');
     document.getElementById('mHandleSheet').classList.add('show');
   }
@@ -1351,7 +1365,7 @@
     var desc = (document.getElementById('mHandleDesc') || {}).value || '';
     desc = desc.trim();
     if (!desc) { toast('请填写处置方案说明'); return; }
-    if (!applyHandle(mCurAlarmId, desc)) return;
+    if (!applyHandle(mCurAlarmId, desc, curHandlePhotos)) return;
     mCloseHandle();
     mCloseDetail();
     renderMobileStats();
@@ -1360,12 +1374,63 @@
   }
 
   var curAlarmId = null;
+  /* ================= 处置附件上传（PC / 移动端共用 curHandlePhotos） ================= */
+  var curHandlePhotos = [];
+  function handleThumbsHtml() {
+    return curHandlePhotos.map(function (p, i) {
+      return '<span class="up-wrap"><img class="up-thumb" src="' + p + '">' +
+        '<span class="up-del" onclick="delHandlePhoto(' + i + ')">✕</span></span>';
+    }).join('');
+  }
+  function renderHandleThumbs() {
+    ['handleThumbs', 'mHandleThumbs'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = handleThumbsHtml();
+    });
+  }
+  function delHandlePhoto(i) { curHandlePhotos.splice(i, 1); renderHandleThumbs(); }
+  function readHandlePhotos(files) {
+    if (!files.length) return;
+    var pending = files.length;
+    for (var i = 0; i < files.length; i++) {
+      (function (f) {
+        var r = new FileReader();
+        r.onload = function (e) {
+          curHandlePhotos.push(e.target.result);
+          if (--pending === 0) renderHandleThumbs();
+        };
+        r.readAsDataURL(f);
+      })(files[i]);
+    }
+  }
+  document.getElementById('handlePhotoInput').addEventListener('change', function () {
+    readHandlePhotos(this.files); this.value = '';
+  });
+  document.getElementById('mHandlePhotoInput').addEventListener('change', function () {
+    readHandlePhotos(this.files); this.value = '';
+  });
+  /* 详情里展示已上传的处置附件 */
+  function handlePhotosRowHtml(a) {
+    if (!a.handlePhotos || !a.handlePhotos.length) return '';
+    var imgs = a.handlePhotos.map(function (p) {
+      return '<img class="up-thumb" style="display:inline-block;margin:4px 6px 0 0;" src="' + p + '">';
+    }).join('');
+    return '<div class="detail-row"><span class="k">处置附件</span><span class="v">' + imgs + '</span></div>';
+  }
+  function mHandlePhotosRowHtml(a) {
+    if (!a.handlePhotos || !a.handlePhotos.length) return '';
+    var imgs = a.handlePhotos.map(function (p) {
+      return '<img class="up-thumb" style="display:inline-block;margin:4px 6px 0 0;" src="' + p + '">';
+    }).join('');
+    return '<div class="mp-drow"><span class="k">处置附件</span><span class="v">' + imgs + '</span></div>';
+  }
   function openAlarmDlg(id, mode) {
     var a = alarms.filter(function (x) { return x.id === id; })[0];
     curAlarmId = id;
     var ruleName = (RULE_OPTIONS.filter(function (o) { return o.id === a.ruleId; })[0] || {}).name || '';
     if (mode === 'handle') {
-      /* 处置弹窗：触发规则 + 处置方案说明 + 处置完成 */
+      /* 处置弹窗：触发规则 + 处置方案说明 + 附件上传 + 处置完成 */
+      curHandlePhotos = [];
       document.getElementById('alarmDlgTitle') && (document.getElementById('alarmDlgTitle').textContent = '告警处置');
       document.getElementById('alarmDlgBody').innerHTML =
         '<div class="detail-row"><span class="k">告警编号</span><span class="v">' + a.id + '</span></div>' +
@@ -1375,7 +1440,8 @@
         '<div class="detail-row"><span class="k">处理方式</span><span class="v"><span class="st-tag ' + (handleModeOf(a) === '提醒' ? 'st-tip' : 'st-gray') + '">' + handleModeOf(a) + '</span></span></div>' +
         '<div class="detail-row"><span class="k">处理状态</span><span class="v"><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></span></div>' +
         '<div class="detail-row"><span class="k">触发时间</span><span class="v">' + a.time + '</span></div>' +
-        '<div class="detail-row"><span class="k">处置方案说明</span><span class="v"><textarea id="handleDesc" rows="4" placeholder="请输入处置方案说明" style="width:100%;height:90px;border:1px solid #d8e0ea;border-radius:4px;padding:8px 10px;font-size:13.5px;resize:vertical;outline:none;font-family:inherit"></textarea></span></div>';
+        '<div class="detail-row"><span class="k">处置方案说明</span><span class="v"><textarea id="handleDesc" rows="4" placeholder="请输入处置方案说明" style="width:100%;height:90px;border:1px solid #d8e0ea;border-radius:4px;padding:8px 10px;font-size:13.5px;resize:vertical;outline:none;font-family:inherit"></textarea></span></div>' +
+        '<div class="detail-row"><span class="k">处置附件</span><span class="v"><label class="up-btn" for="handlePhotoInput">📷 上传照片</label><span id="handleThumbs">' + handleThumbsHtml() + '</span></span></div>';
       document.getElementById('handleDoneBtn').style.display = '';
     } else {
       document.getElementById('alarmDlgBody').innerHTML =
@@ -1386,6 +1452,7 @@
         '<div class="detail-row"><span class="k">处理方式</span><span class="v"><span class="st-tag ' + (handleModeOf(a) === '提醒' ? 'st-tip' : 'st-gray') + '">' + handleModeOf(a) + '</span></span></div>' +
         '<div class="detail-row"><span class="k">处理状态</span><span class="v"><span class="st-tag ' + stClass(a.status) + '">' + a.status + '</span></span></div>' +
         '<div class="detail-row"><span class="k">触发时间</span><span class="v">' + a.time + '</span></div>' +
+        handlePhotosRowHtml(a) +
         '<div class="detail-row"><span class="k">流转记录</span><span class="v"><div class="tline">' +
           a.logs.map(function (l) { return '<div class="ti"><span class="tt">' + l.t + '</span><br>' + l.txt + '</div>'; }).join('') +
         '</div></span></div>';
@@ -1399,7 +1466,7 @@
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
   }
   /* 处置闭环（PC / 移动端共用） */
-  function applyHandle(id, desc) {
+  function applyHandle(id, desc, photos) {
     var a = alarms.filter(function (x) { return x.id === id; })[0];
     if (!a) return false;
     var now = formatNow();
@@ -1407,14 +1474,15 @@
     a.handler = '沈青荣';
     a.handleTime = now;
     a.handleDesc = desc;
-    a.logs.push({ t: now, txt: '沈青荣 提交处置方案并处置完成，告警闭环' });
+    a.handlePhotos = (photos || []).slice();
+    a.logs.push({ t: now, txt: '沈青荣 提交处置方案并处置完成，告警闭环' + (a.handlePhotos.length ? '（含附件 ' + a.handlePhotos.length + ' 张）' : '') });
     saveAlarms();
     return true;
   }
   function finishHandle() {
     var desc = document.getElementById('handleDesc').value.trim();
     if (!desc) { toast('请填写处置方案说明'); return; }
-    if (!applyHandle(curAlarmId, desc)) return;
+    if (!applyHandle(curAlarmId, desc, curHandlePhotos)) return;
     closeAlarmDlg();
     renderStats();
     queryAlarms();
