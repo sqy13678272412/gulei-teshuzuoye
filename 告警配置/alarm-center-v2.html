@@ -504,16 +504,22 @@
       <div class="sec-title">消息通知配置</div>
       <div class="fgi" style="margin-bottom:0">
         <label style="margin-bottom:8px"><span class="req">*</span>动作目标类型<span style="color:#e02020;font-weight:400;margin-left:10px;">根据现有古雷系统流程配置那里的选择来参考设计的</span></label>
-        <select class="select" id="notifyType" style="max-width:360px" onchange="onNotifyType()">
-          <option value="">请选择动作目标类型</option>
-          <option>指定部门</option>
-          <option>申请部门</option>
-          <option>上一阶段自由选择</option>
-          <option>表单内人员</option>
-          <option>属地部门</option>
-          <option>申请部门及子部门</option>
-          <option>属地部门及子部门</option>
-        </select>
+        <div class="msel" style="max-width:360px;flex:none">
+          <div class="msel-box" onclick="toggleMsel(event,'notifyTypeDrop')">
+            <span class="msel-ph" id="notifyTypeText">请选择动作目标类型</span>
+            <span class="msel-arrow">▾</span>
+          </div>
+          <div class="msel-drop" id="notifyTypeDrop">
+            <div class="msel-opt" onclick="pickNotifyType('')">请选择动作目标类型</div>
+            <div class="msel-opt" onclick="pickNotifyType('指定部门')">指定部门</div>
+            <div class="msel-opt" onclick="pickNotifyType('申请部门')">申请部门</div>
+            <div class="msel-opt" onclick="pickNotifyType('上一阶段自由选择')">上一阶段自由选择</div>
+            <div class="msel-opt" onclick="pickNotifyType('表单内人员')">表单内人员</div>
+            <div class="msel-opt" onclick="pickNotifyType('属地部门')">属地部门</div>
+            <div class="msel-opt" onclick="pickNotifyType('申请部门及子部门')">申请部门及子部门</div>
+            <div class="msel-opt" onclick="pickNotifyType('属地部门及子部门')">属地部门及子部门</div>
+          </div>
+        </div>
         <div id="notifyBox" style="margin-top:10px"></div>
       </div>
     </div>
@@ -831,7 +837,16 @@
     return { type: type || '', dept: [], post: [], job: [], major: [], tag: [], formUsers: [] };
   }
   function onNotifyType() {
-    notifyState = blankNotify(document.getElementById('notifyType').value);
+    /* 兼容旧引用：改为自定义下拉后统一走 pickNotifyType */
+    pickNotifyType(document.getElementById('notifyTypeText').getAttribute('data-v') || '');
+  }
+  function pickNotifyType(v) {
+    document.getElementById('notifyTypeDrop').classList.remove('show');
+    notifyState = blankNotify(v);
+    var t = document.getElementById('notifyTypeText');
+    t.setAttribute('data-v', v);
+    t.textContent = v || '请选择动作目标类型';
+    t.className = v ? '' : 'msel-ph';
     renderNotifyBox();
   }
   function renderNotifyBox() {
@@ -878,7 +893,10 @@
   }
   function setNotify(nt) {
     notifyState = nt && NOTIFY_DEFS[nt.type] ? JSON.parse(JSON.stringify(nt)) : blankNotify('');
-    document.getElementById('notifyType').value = notifyState.type;
+    var t = document.getElementById('notifyTypeText');
+    t.setAttribute('data-v', notifyState.type);
+    t.textContent = notifyState.type || '请选择动作目标类型';
+    t.className = notifyState.type ? '' : 'msel-ph';
     renderNotifyBox();
   }
   function getNotify() { return notifyState || blankNotify(''); }
