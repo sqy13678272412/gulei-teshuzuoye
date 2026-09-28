@@ -772,7 +772,6 @@
         '<div class="rc-head">' +
           '<span class="rc-type ' + r.type + '">' + (isGuardian ? '监护人变更' : '作业人员') + '</span>' +
           '<span class="rc-action ' + (actionTag[r.action] || 'change') + '">' + r.action + '</span>' +
-          '<span class="rc-time">操作时间：' + r.time + '</span>' +
         '</div>' +
         '<div class="rc-persons">' +
           r.persons.map(function (p) {
@@ -798,7 +797,7 @@
               }).join('') + '</div>' +
             '</div>'
           : '') +
-        '<div class="rc-operator">操作人：' + r.operator + '</div>' +
+        '<div class="rc-operator">操作人：' + r.operator + '<span class="rc-time" style="margin-left:16px;">操作时间：' + r.time + '</span></div>' +
       '</div>';
     }).join('');
   }
