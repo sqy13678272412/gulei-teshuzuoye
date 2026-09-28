@@ -147,6 +147,16 @@
 
   .panel-body { flex: 1; overflow-y: auto; padding: 10px; }
 
+  /* 完成情况校验单选 */
+  .verify-bar {
+    display: flex; align-items: center; gap: 18px;
+    padding: 10px 16px; border-bottom: 1px solid #eef1f6;
+    font-size: 13.5px; color: #333; background: #fff;
+  }
+  .verify-bar label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .verify-lb { color: #5a6472; font-weight: 600; }
+  .verify-bar input { accent-color: #1f8ef1; }
+
   /* 通用列表行（交接事项 / 作业类型共用） */
   .item-row {
     display: flex; align-items: center; gap: 8px;
@@ -419,6 +429,11 @@
             <span style="color:#e64340;font-size:12.5px;">【开发同事备注：1、清单里面的检查项配置的需要照片，那么在对应的检查项下面就需要拍照（看APP对应界面），2、点击复制是复制整个清单包括检查项。】</span>
             <span class="spacer"></span>
             <button class="btn primary" onclick="openClModal('add')">＋ 新增清单</button>
+          </div>
+          <div class="verify-bar">
+            <span class="verify-lb">完成情况校验：</span>
+            <label><input type="radio" name="verifyMode" value="all" onchange="setVerifyMode(this.value)"> 必须全部完成</label>
+            <label><input type="radio" name="verifyMode" value="any" onchange="setVerifyMode(this.value)"> 不必全部完成</label>
           </div>
           <div class="panel-body" id="clSimpleList"></div>
         </div>
@@ -840,6 +855,14 @@
   var ACC_KEY = 'guardian_acceptance_items';
   var accData = loadAcc();
   var currentClId = accData.length ? accData[0].id : null;
+
+  /* ================= 完成情况校验（必须全部完成 / 不必全部完成） ================= */
+  var VERIFY_MODE_KEY = 'guardian_check_verify_mode';
+  function setVerifyMode(v) { localStorage.setItem(VERIFY_MODE_KEY, v); toast('完成情况校验已保存'); }
+  (function () {
+    var m = localStorage.getItem(VERIFY_MODE_KEY) || 'all';
+    document.querySelector('input[name="verifyMode"][value="' + m + '"]').checked = true;
+  })();
 
   function defaultAccData() {
     return [
