@@ -190,6 +190,9 @@
   .rc-action.enter { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
   .rc-action.change { color: #1f8ef1; background: #eaf4fe; border: 1px solid #b7d9fa; }
   .rc-persons { display: flex; flex-direction: column; gap: 10px; }
+  .rc-persons.swap { flex-direction: row; align-items: center; gap: 14px; }
+  .rc-persons.swap .rc-person { flex: 1; }
+  .rc-arrow { color: #8a94a3; font-size: 18px; flex-shrink: 0; }
   .rc-person {
     display: flex; gap: 10px; align-items: center;
     background: #f7f9fc; border-radius: 8px; padding: 10px 12px; min-width: 0;
@@ -203,6 +206,7 @@
   .rc-psub { font-size: 12px; color: #8a94a3; margin-top: 3px; }
   .rc-tag-new { font-size: 11px; color: #389e0d; border: 1px solid #b7eb8f; border-radius: 3px; padding: 1px 6px; margin-left: 8px; }
   .rc-tag-new.leave { color: #cf1322; border-color: #ffa39e; }
+  .rc-tag-old { font-size: 11px; color: #a0a8b4; border: 1px solid #d8e0ea; border-radius: 3px; padding: 1px 6px; margin-left: 8px; }
 
   /* 监护人变更：交接信息区 */
   .rc-handover { margin-top: 14px; border-top: 1px dashed #e6ebf2; padding-top: 12px; }
@@ -725,7 +729,8 @@
   var changeRecords = [
     {
       type: 'guardian', action: '变更', time: '2026-09-12 09:30:15', operator: '王强',
-      persons: [{ name: '李敏', dept: '安环部', phone: '138****7788' }],
+      from: { name: '赵磊', dept: '安环部', phone: '138****5566' },
+      to: { name: '李敏', dept: '安环部', phone: '138****7788' },
       checks: [
         { text: '已向新监护人交底当前风险情况', photos: 1, videos: 1 },
         { text: '已确认现场安全措施状态', photos: 1, videos: 0 },
@@ -745,16 +750,18 @@
       ]
     }
   ];
-  /* 新增一条变更记录（操作人默认当前登录人 hsk） */
-  function addChangeRecord(type, action, persons) {
+  /* 新增一条变更记录（操作人默认当前登录人 hsk；监护人变更可传 from/to 记录谁变更为谁） */
+  function addChangeRecord(type, action, persons, from, to) {
     var d = new Date();
     function p(n) { return (n < 10 ? '0' : '') + n; }
-    changeRecords.unshift({
+    var rec = {
       type: type, action: action, operator: 'hsk',
       time: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' +
             p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()),
-      persons: persons.map(function (x) { return { name: x.name, dept: x.dept, phone: x.phone }; })
-    });
+      persons: (persons || []).map(function (x) { return { name: x.name, dept: x.dept, phone: x.phone }; })
+    };
+    if (from && to) { rec.from = from; rec.to = to; }
+    changeRecords.unshift(rec);
   }
 
   function renderRecords(type) {
@@ -773,15 +780,30 @@
           '<span class="rc-type ' + r.type + '">' + (isGuardian ? '监护人变更' : '作业人员') + '</span>' +
           '<span class="rc-action ' + (actionTag[r.action] || 'change') + '">' + r.action + '</span>' +
         '</div>' +
-        '<div class="rc-persons">' +
-          r.persons.map(function (p) {
-            return '<div class="rc-person">' +
-              '<span class="rc-avatar">' + p.name.charAt(0) + '</span>' +
-              '<div><div class="rc-pname">' + p.name + '<span class="rc-tag-new' + (r.action === '离场' ? ' leave' : '') + '">' + (personTag[r.action] || '人员') + '</span></div>' +
-              '<div class="rc-psub">' + p.dept + ' | ' + p.phone + '</div></div>' +
-            '</div>';
-          }).join('') +
-        '</div>' +
+        /* 监护人变更：展示 原人员 → 新人员；其他（离场/入场/作业人员变更）：只展示涉及人员 */
+        (isGuardian && r.from && r.to
+          ? '<div class="rc-persons swap">' +
+              '<div class="rc-person">' +
+                '<span class="rc-avatar">' + r.from.name.charAt(0) + '</span>' +
+                '<div><div class="rc-pname">' + r.from.name + '<span class="rc-tag-old">原人员</span></div>' +
+                '<div class="rc-psub">' + r.from.dept + ' | ' + r.from.phone + '</div></div>' +
+              '</div>' +
+              '<span class="rc-arrow">→</span>' +
+              '<div class="rc-person">' +
+                '<span class="rc-avatar">' + r.to.name.charAt(0) + '</span>' +
+                '<div><div class="rc-pname">' + r.to.name + '<span class="rc-tag-new">新人员</span></div>' +
+                '<div class="rc-psub">' + r.to.dept + ' | ' + r.to.phone + '</div></div>' +
+              '</div>' +
+            '</div>'
+          : '<div class="rc-persons">' +
+              r.persons.map(function (p) {
+                return '<div class="rc-person">' +
+                  '<span class="rc-avatar">' + p.name.charAt(0) + '</span>' +
+                  '<div><div class="rc-pname">' + p.name + '<span class="rc-tag-new' + (r.action === '离场' ? ' leave' : '') + '">' + (personTag[r.action] || '人员') + '</span></div>' +
+                  '<div class="rc-psub">' + p.dept + ' | ' + p.phone + '</div></div>' +
+                '</div>';
+              }).join('') +
+            '</div>') +
         (isGuardian && r.checks
           ? '<div class="rc-handover">' +
               '<div class="rc-ho-title">交接信息</div>' +
@@ -1547,7 +1569,7 @@
 
       <div class="g-card">
         <div class="g-card-title">新监护人选择</div>
-        <select class="g-select">
+        <select class="g-select" id="gNewSel">
           <option value="">请选择新监护人</option>
           <option>李敏</option>
           <option>王强</option>
@@ -1570,9 +1592,25 @@
 
       <div class="g-error">⊘ 审批状态不允许监护人变更</div>
     </div>
-    <button class="g-confirm" onclick="toast('确认变更（示例）')">确认变更</button>
+    <button class="g-confirm" onclick="confirmGuardianChange()">确认变更</button>
   </div>
 </div>
+
+<script>
+  /* ================= 监护人变更确认：记录 原监护人 → 新监护人 ================= */
+  function confirmGuardianChange() {
+    var name = document.getElementById('gNewSel').value;
+    if (!name) { toast('请选择新监护人'); return; }
+    var info = {
+      '李敏': { name: '李敏', dept: '安环部', phone: '138****7788' },
+      '王强': { name: '王强', dept: '生产一部', phone: '138****2345' }
+    }[name];
+    addChangeRecord('guardian', '变更', [],
+      { name: '赵磊', dept: '安环部', phone: '138****5566' }, info);
+    closeGuardianChange();
+    toast('监护人变更成功：赵磊 → ' + name);
+  }
+</script>
 
 <script>
   /* ================= 监护人变更弹窗 ================= */
