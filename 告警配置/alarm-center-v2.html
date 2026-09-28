@@ -495,6 +495,17 @@
         </div>
       </div>
 
+      <!-- 实时数据获取频率（选择 受限空间未连续监测气体浓度 时展示） -->
+      <div id="freqBox" style="display:none;margin-top:14px">
+        <div class="fgi" style="max-width:520px;margin-bottom:0">
+          <label><span class="req">*</span>实时数据获取频率</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="input" id="rFreq" type="number" min="1" placeholder="请输入" style="width:220px">
+            <span style="color:#5a6472;font-size:13px">秒</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 中断超时阈值卡片（选择 作业中断超时未气体分析 时展示） -->
       <div id="thBox" style="display:none">
         <div class="sec-title">中断超时阈值配置</div>
@@ -620,6 +631,7 @@
     if (r.overGraceMinutes === undefined) r.overGraceMinutes = '';
     if (r.crossIntervalMinutes === undefined) r.crossIntervalMinutes = '';
     if (r.approveTimeout === undefined) r.approveTimeout = '';
+    if (r.dataFreq === undefined) r.dataFreq = '';
     delete r.locOffset; delete r.graceMinutes;
     if (!r.notifyTarget || !NOTIFY_DEFS[r.notifyTarget.type]) {
       /* 旧版推送对象数据迁移为“表单内人员” */
@@ -701,6 +713,7 @@
   var TH_RULE_ID = 1; /* 作业中断超时未气体分析 */
   var OVER_RULE_ID = 5; /* 作业票有效期超时 */
   var APR_RULE_ID = 9; /* 作业票超时未审批 */
+  var FREQ_RULE_ID = 2; /* 受限空间未连续监测气体浓度：实时数据获取频率 */
   var GRACE_DEFS = {
     5: { label: '超时后报警宽限时长', unit: '分钟', field: 'overGraceMinutes' },
     8: { label: '交叉/关联作业票允许间隔时间', unit: '分钟', field: 'crossIntervalMinutes' },
@@ -742,6 +755,11 @@
     prevTargets = []; /* 选项重建后，按全新勾选状态生成卡片 */
     onTargetChk();
     updateGraceBox();
+    updateFreqBox();
+  }
+  function updateFreqBox() {
+    var on = Number(document.getElementById('rRuleId').value) === FREQ_RULE_ID;
+    document.getElementById('freqBox').style.display = on ? 'block' : 'none';
   }
   function defaultCardsFor(type) {
     if (type === '动火作业') {
@@ -922,7 +940,9 @@
       graceVals[OVER_RULE_ID] = r.overGraceMinutes || '';
       graceVals[8] = r.crossIntervalMinutes || '';
       graceVals[APR_RULE_ID] = r.approveTimeout || '';
+      document.getElementById('rFreq').value = r.dataFreq || '';
       updateGraceBox();
+      updateFreqBox();
     } else {
       document.getElementById('rName').value = '';
       document.getElementById('rRuleId').value = '';
@@ -932,7 +952,9 @@
       setTargets([]);
       setNotify(null);
       graceVals = {};
+      document.getElementById('rFreq').value = '';
       updateGraceBox();
+      updateFreqBox();
     }
     document.getElementById('ruleMask').classList.add('show');
   }
@@ -988,11 +1010,20 @@
         thSave.push({ type: thCards[i].type, level: thCards[i].level, minutes: m });
       }
     }
+    /* 实时数据获取频率校验（报警类型：受限空间未连续监测气体浓度） */
+    var dataFreq = '';
+    if (Number(ruleId) === FREQ_RULE_ID) {
+      var fv = document.getElementById('rFreq').value.trim();
+      var fm = parseInt(fv, 10);
+      if (!fm || fm <= 0 || String(fm) !== fv) { toast('请填写实时数据获取频率（正整数秒）'); return; }
+      dataFreq = fm;
+    }
     var payload = { name: name, ruleId: Number(ruleId), targets: selTargets.slice(),
       thresholds: thSave,
       overGraceMinutes: extra.overGraceMinutes,
       crossIntervalMinutes: extra.crossIntervalMinutes,
       approveTimeout: extra.approveTimeout,
+      dataFreq: dataFreq,
       notifyTarget: nt, enabled: enable };
     if (editCode) {
       var r = rules.filter(function (x) { return x.code === editCode; })[0];
