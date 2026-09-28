@@ -228,7 +228,7 @@
                   <th style="width:44px"><input type="checkbox" id="chkAll" onclick="toggleAll(this)"></th>
                   <th>规则编号</th>
                   <th>规则名称</th>
-                  <th>报警规则</th>
+                  <th>报警类型</th>
                   <th>启用状态</th>
                   <th>操作</th>
                 </tr>
@@ -452,15 +452,14 @@
 
       <div class="sec-title">基础信息</div>
       <div class="fgrid">
-        <div class="fgi"><label><span class="req">*</span>规则编号</label><input class="input" id="rCode" placeholder="请输入规则编号"></div>
         <div class="fgi"><label><span class="req">*</span>规则名称</label><input class="input" id="rName" placeholder="请输入规则名称"></div>
       </div>
 
       <div class="sec-title">规则配置</div>
       <div class="fgrid">
-        <div class="fgi"><label><span class="req">*</span>报警规则</label>
+        <div class="fgi"><label><span class="req">*</span>报警类型</label>
           <select class="select" id="rRuleId" onchange="onRuleChange()">
-            <option value="">请选择报警规则</option>
+            <option value="">请选择报警类型</option>
           </select>
         </div>
         <div class="fgi"><label><span class="req">*</span>对象（可多选）</label>
@@ -678,8 +677,8 @@
   var editCode = null;
   var selTargets = [];
   function initRuleDlg() {
-    /* 报警规则下拉 */
-    document.getElementById('rRuleId').innerHTML = '<option value="">请选择报警规则</option>' +
+    /* 报警类型下拉 */
+    document.getElementById('rRuleId').innerHTML = '<option value="">请选择报警类型</option>' +
       RULE_OPTIONS.map(function (o) { return '<option value="' + o.id + '">' + o.name + '</option>'; }).join('');
     /* 对象多选下拉 */
     document.getElementById('targetDrop').innerHTML = TARGET_TYPES.map(function (t) {
@@ -754,7 +753,7 @@
     return LOCKED_TARGET_RULES.indexOf(Number(document.getElementById('rRuleId').value)) >= 0;
   }
   function openTargetDrop(e) {
-    if (isTargetLocked()) { toast('该报警规则的对象固定为「受限空间作业」，不可修改'); return; }
+    if (isTargetLocked()) { toast('该报警类型的对象固定为「受限空间作业」，不可修改'); return; }
     toggleMsel(e, 'targetDrop');
   }
   function onTargetChk() {
@@ -883,8 +882,6 @@
     document.getElementById('targetDrop').classList.remove('show');
     if (code) {
       var r = rules.filter(function (x) { return x.code === code; })[0];
-      document.getElementById('rCode').value = r.code;
-      document.getElementById('rCode').disabled = true;
       document.getElementById('rName').value = r.name;
       document.getElementById('rRuleId').value = String(r.ruleId);
       setRadio('rEnable', String(r.enabled ? 1 : 0));
@@ -898,8 +895,6 @@
       graceVals[APR_RULE_ID] = r.approveTimeout || '';
       updateGraceBox();
     } else {
-      document.getElementById('rCode').disabled = false;
-      document.getElementById('rCode').value = '';
       document.getElementById('rName').value = '';
       document.getElementById('rRuleId').value = '';
       setRadio('rEnable', '1');
@@ -930,7 +925,7 @@
     var name = document.getElementById('rName').value.trim();
     if (!name) { toast('请输入规则名称'); return; }
     var ruleId = document.getElementById('rRuleId').value;
-    if (!ruleId) { toast('请选择报警规则'); return; }
+    if (!ruleId) { toast('请选择报警类型'); return; }
     if (!selTargets.length) { toast('请至少选择一种作业票类型'); return; }
     /* 动作目标类型校验 */
     var nt = getNotify();
@@ -975,9 +970,13 @@
       for (var k in payload) r[k] = payload[k];
       toast('规则[' + editCode + ']已更新');
     } else {
-      var code = document.getElementById('rCode').value.trim();
-      if (!code) { toast('请输入规则编号'); return; }
-      if (rules.filter(function (x) { return x.code === code; }).length) { toast('规则编号[' + code + ']已存在，请更换'); return; }
+      /* 规则编号由系统自动生成（运规-序号），不再需要手工填写 */
+      var maxSeq = 0;
+      rules.forEach(function (x) {
+        var m = /运规-(\d+)/.exec(x.code || '');
+        if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+      });
+      var code = '运规-' + String(maxSeq + 1).padStart(3, '0');
       payload.code = code;
       rules.push(payload);
       toast('规则[' + code + ']已创建');
