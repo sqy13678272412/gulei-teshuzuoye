@@ -1809,11 +1809,6 @@
   /* 批量离场 / 批量入场分区 */
   .b-sec-head { display: flex; align-items: center; margin: 2px 0 10px; }
   .b-sec-title { font-size: 14px; font-weight: 600; color: #1f2d3d; }
-  .b-sec-btn {
-    margin-left: auto; font-size: 12.5px; color: #fff; background: #1f8ef1;
-    padding: 6px 16px; border-radius: 15px; cursor: pointer; font-weight: 400;
-  }
-  .b-sec-btn.leave { background: #e64340; }
   .b-row { display: flex; align-items: center; gap: 10px; }
   .b-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #1f8ef1; flex-shrink: 0; cursor: pointer; }
   .b-empty { font-size: 12.5px; color: #a0a8b4; padding: 10px 2px 14px; }
@@ -1846,9 +1841,9 @@
       <span class="p-close" onclick="closeBatchChange()">✕</span>
     </div>
     <div class="p-body">
-      <div class="b-sec-head"><span class="b-sec-title">批量离场（勾选人员后离场）</span><span class="b-sec-btn leave" onclick="confirmBatchLeave()">确认离场</span></div>
+      <div class="b-sec-head"><span class="b-sec-title">人员离场（勾选后提交）</span></div>
       <div id="batchLeaveList"></div>
-      <div class="b-sec-head"><span class="b-sec-title">入场</span><span class="b-sec-btn" onclick="confirmBatchEnter()">确认入场</span></div>
+      <div class="b-sec-head"><span class="b-sec-title">人员入场</span></div>
       <div class="b-lb" style="margin-top:0;">入场人员（请选择，可多选）</div>
       <div class="b-msel">
         <div class="b-msel-box" onclick="toggleEnterDrop(event)">
@@ -1860,7 +1855,7 @@
       <div id="batchEnterSelected"></div>
     </div>
     <div class="b-foot">
-      <button class="sheet-cancel" onclick="closeBatchChange()">关 闭</button>
+      <button class="sheet-ok" style="flex:1;" onclick="confirmBatchSubmit()">确认提交</button>
     </div>
   </div>
 </div>
@@ -1989,30 +1984,31 @@
     if (e.target === this) closeBatchChange();
   });
 
-  /* 批量离场：勾选的在场人员统一离场 */
-  function confirmBatchLeave() {
-    var idxs = Array.prototype.map.call(document.querySelectorAll('.bl-chk:checked'), function (c) { return Number(c.value); });
-    if (!idxs.length) { toast('请先勾选要离场的人员'); return; }
-    idxs.sort(function (a, b) { return b - a; }); /* 从后往前删，避免下标错位 */
-    var persons = idxs.map(function (i) { return workers[i]; });
-    idxs.forEach(function (i) { workers.splice(i, 1); });
-    addChangeRecord('worker', '离场', persons);
+  /* 确认提交：勾选的离场人员 + 已选的入场人员 一并处理 */
+  function confirmBatchSubmit() {
+    var msgs = [];
+    var leaveIdxs = Array.prototype.map.call(document.querySelectorAll('.bl-chk:checked'), function (c) { return Number(c.value); });
+    if (leaveIdxs.length) {
+      leaveIdxs.sort(function (a, b) { return b - a; }); /* 从后往前删，避免下标错位 */
+      var leavePersons = leaveIdxs.map(function (i) { return workers[i]; });
+      leaveIdxs.forEach(function (i) { workers.splice(i, 1); });
+      addChangeRecord('worker', '离场', leavePersons);
+      msgs.push('离场 ' + leavePersons.length + ' 人：' + leavePersons.map(function (p) { return p.name; }).join('、'));
+    }
+    if (selEnterNames.length) {
+      var enterPersons = selEnterNames.map(function (n) {
+        return workerCandidates.filter(function (x) { return x.name === n; })[0];
+      });
+      enterPersons.forEach(function (p) { workers.push({ name: p.name, dept: p.dept, phone: p.phone }); });
+      addChangeRecord('worker', '入场', enterPersons);
+      selEnterNames = [];
+      msgs.push('入场 ' + enterPersons.length + ' 人：' + enterPersons.map(function (p) { return p.name; }).join('、'));
+    }
+    if (!msgs.length) { toast('请先勾选离场人员或选择入场人员'); return; }
     renderWorkers();
     renderBatchList();
-    toast('已离场 ' + persons.length + ' 人：' + persons.map(function (p) { return p.name; }).join('、'));
-  }
-  /* 确认入场：把已选人员加入在场清单 */
-  function confirmBatchEnter() {
-    if (!selEnterNames.length) { toast('请先选择入场人员'); return; }
-    var persons = selEnterNames.map(function (n) {
-      return workerCandidates.filter(function (x) { return x.name === n; })[0];
-    });
-    persons.forEach(function (p) { workers.push({ name: p.name, dept: p.dept, phone: p.phone }); });
-    addChangeRecord('worker', '入场', persons);
-    selEnterNames = [];
-    renderWorkers();
-    renderBatchList();
-    toast('已入场 ' + persons.length + ' 人：' + persons.map(function (p) { return p.name; }).join('、'));
+    closeBatchChange();
+    toast(msgs.join('；'));
   }
 
   renderWorkers();

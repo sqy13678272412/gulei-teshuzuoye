@@ -705,6 +705,7 @@
       box.innerHTML = list.map(function (i) {
         return '<div class="item-row">' +
           '<span class="item-name">' + i.name + '</span>' +
+          '<span class="' + (i.needImg ? 'img-tag' : 'img-none') + '" style="flex-shrink:0;">' + (i.needImg ? '需要图片' : '无需图片') + '</span>' +
           '<span class="item-ops" style="display:flex;">' +
             '<span class="item-op edit" title="编辑" onclick="openItemModal(\'edit\',' + i.id + ')">✎</span>' +
             '<span class="item-op del" title="删除" onclick="delItem(' + i.id + ')">🗑</span>' +
