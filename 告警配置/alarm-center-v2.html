@@ -511,6 +511,16 @@
         <div id="thCards"></div>
       </div>
 
+      <div class="sec-title">报警处置</div>
+      <div class="fgi" style="max-width:360px">
+        <label style="margin-bottom:8px"><span class="req">*</span>报警信息处理方式</label>
+        <select class="select" id="handleMode">
+          <option value="">请选择处理方式</option>
+          <option>提醒</option>
+          <option>处置</option>
+        </select>
+      </div>
+
       <div class="sec-title">消息通知配置</div>
       <div class="fgi" style="margin-bottom:0">
         <label style="margin-bottom:8px"><span class="req">*</span>动作目标类型<span style="color:#e02020;font-weight:400;margin-left:10px;">根据现有古雷系统流程配置那里的选择来参考设计的</span></label>
@@ -631,6 +641,7 @@
     if (r.crossIntervalMinutes === undefined) r.crossIntervalMinutes = '';
     if (r.approveTimeout === undefined) r.approveTimeout = '';
     if (r.dataFreq === undefined) r.dataFreq = '';
+    if (r.handleMode === undefined) r.handleMode = '';
     delete r.locOffset; delete r.graceMinutes;
     if (!r.notifyTarget || !NOTIFY_DEFS[r.notifyTarget.type]) {
       /* 旧版推送对象数据迁移为“表单内人员” */
@@ -939,6 +950,7 @@
       graceVals[8] = r.crossIntervalMinutes || '';
       graceVals[APR_RULE_ID] = r.approveTimeout || '';
       document.getElementById('rFreq').value = r.dataFreq || '';
+      document.getElementById('handleMode').value = r.handleMode || '';
       updateGraceBox();
       updateFreqBox();
     } else {
@@ -951,6 +963,7 @@
       setNotify(null);
       graceVals = {};
       document.getElementById('rFreq').value = '';
+      document.getElementById('handleMode').value = '';
       updateGraceBox();
       updateFreqBox();
     }
@@ -975,6 +988,8 @@
     if (!name) { toast('请输入规则名称'); return; }
     var ruleId = document.getElementById('rRuleId').value;
     if (!ruleId) { toast('请选择报警类型'); return; }
+    var handleMode = document.getElementById('handleMode').value;
+    if (!handleMode) { toast('请选择报警信息处理方式'); return; }
     if (!selTargets.length) { toast('请至少选择一种作业票类型'); return; }
     /* 动作目标类型校验 */
     var nt = getNotify();
@@ -1022,6 +1037,7 @@
       crossIntervalMinutes: extra.crossIntervalMinutes,
       approveTimeout: extra.approveTimeout,
       dataFreq: dataFreq,
+      handleMode: handleMode,
       notifyTarget: nt, enabled: enable };
     if (editCode) {
       var r = rules.filter(function (x) { return x.code === editCode; })[0];
