@@ -258,7 +258,7 @@
               <button class="btn primary" onclick="openToolModal('add')">＋ 新增</button>
             </div>
             <div class="reg-mode-bar">
-              <span class="reg-mode-lb">登记时机：</span>
+              <span class="reg-mode-lb">允许登记时段：</span>
               <label><input type="radio" name="regMode" value="all" onchange="setRegMode(this.value)"> 允许全程登记</label>
               <label><input type="radio" name="regMode" value="working" onchange="setRegMode(this.value)"> 只允许作业中进行登记</label>
             </div>
@@ -311,7 +311,7 @@
 
   /* ================= 登记时机（允许全程登记 / 只允许作业中登记） ================= */
   var REG_MODE_KEY = 'tool_reg_mode';
-  function setRegMode(v) { localStorage.setItem(REG_MODE_KEY, v); toast('登记时机已保存'); }
+  function setRegMode(v) { localStorage.setItem(REG_MODE_KEY, v); toast('允许登记时段已保存'); }
   (function () {
     var m = localStorage.getItem(REG_MODE_KEY) || 'all';
     document.querySelector('input[name="regMode"][value="' + m + '"]').checked = true;
