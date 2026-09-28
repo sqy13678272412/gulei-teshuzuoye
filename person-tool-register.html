@@ -402,7 +402,10 @@
     <div class="reg-body">
       <div class="reg-card">
         <div class="reg-row"><span class="lb">人员姓名</span>
-          <select class="reg-select" id="addName"></select>
+          <select class="reg-select" id="addName" onchange="onAddNameChange()"></select>
+        </div>
+        <div class="reg-row" id="otherPersonRow" style="display:none;"><span class="lb">其他人员姓名</span>
+          <input class="reg-time" id="otherPersonName" placeholder="请输入其他人员姓名">
         </div>
         <div class="reg-row"><span class="lb">人员登记类型</span>
           <span class="reg-radios">
@@ -439,7 +442,13 @@
     <div class="reg-body">
       <div class="reg-card">
         <div class="reg-row"><span class="lb">工器具名称</span>
-          <select class="reg-select" id="addToolName"></select>
+          <select class="reg-select" id="addToolName" onchange="onAddToolNameChange()"></select>
+        </div>
+        <div class="reg-row" id="otherToolRow" style="display:none;"><span class="lb">其他工器具名称</span>
+          <input class="reg-time" id="otherToolName" placeholder="请输入其他工器具名称">
+        </div>
+        <div class="reg-row" id="otherToolCfgRow" style="display:none;"><span class="lb">是否纳入配置项</span>
+          <label class="reg-radio"><input type="checkbox" id="otherToolCfg"> 勾选代表同意纳入工器具配置</label>
         </div>
         <div class="reg-row"><span class="lb">登记类型</span>
           <span class="reg-radios">
@@ -713,12 +722,19 @@
   function openPersonAdd() {
     var sel = document.getElementById('addName');
     sel.innerHTML = '<option value="" disabled selected>请选择</option>' +
-      workers.map(function (w) { return '<option value="' + w.name + '">' + w.name + '（' + w.phone + '）</option>'; }).join('');
+      workers.map(function (w) { return '<option value="' + w.name + '">' + w.name + '（' + w.phone + '）</option>'; }).join('') +
+      '<option value="__other__">其他人员</option>';
+    document.getElementById('otherPersonRow').style.display = 'none';
+    document.getElementById('otherPersonName').value = '';
     document.querySelector('input[name="addDir"][value="进"]').checked = true;
     document.getElementById('addTime').value = nowStr();
     addPhotos = [];
     renderAddThumbs();
     document.getElementById('aMask').classList.add('show');
+  }
+  function onAddNameChange() {
+    var isOther = document.getElementById('addName').value === '__other__';
+    document.getElementById('otherPersonRow').style.display = isOther ? '' : 'none';
   }
   function closePersonAdd() { document.getElementById('aMask').classList.remove('show'); }
   document.getElementById('aMask').addEventListener('click', function (e) {
@@ -755,10 +771,13 @@
     }
   });
   function savePersonAdd(keepOpen) {
-    var name = document.getElementById('addName').value;
+    var nameSel = document.getElementById('addName').value;
+    var isOther = nameSel === '__other__';
+    var name = isOther ? document.getElementById('otherPersonName').value.trim() : nameSel;
     var dir = document.querySelector('input[name="addDir"]:checked').value;
     var time = document.getElementById('addTime').value;
-    if (!name) { toast('请选择人员姓名'); return; }
+    if (!nameSel) { toast('请选择人员姓名'); return; }
+    if (isOther && !name) { toast('请输入其他人员姓名'); return; }
     if (!time) { toast('请选择时间'); return; }
     var phone = '';
     for (var i = 0; i < workers.length; i++) if (workers[i].name === name) phone = workers[i].phone;
@@ -768,6 +787,8 @@
     if (keepOpen) {
       /* 继续添加：保存当前人员后重置表单，登记下一人 */
       document.getElementById('addName').value = '';
+      document.getElementById('otherPersonRow').style.display = 'none';
+      document.getElementById('otherPersonName').value = '';
       document.querySelector('input[name="addDir"][value="进"]').checked = true;
       document.getElementById('addTime').value = nowStr();
       addPhotos = [];
@@ -918,12 +939,22 @@
   function openToolAdd() {
     var sel = document.getElementById('addToolName');
     sel.innerHTML = '<option value="" disabled selected>请选择</option>' +
-      getTools().concat(getCustomTools()).map(function (n) { return '<option value="' + n + '">' + n + '</option>'; }).join('');
+      getTools().concat(getCustomTools()).map(function (n) { return '<option value="' + n + '">' + n + '</option>'; }).join('') +
+      '<option value="__other__">其他工器具</option>';
+    document.getElementById('otherToolRow').style.display = 'none';
+    document.getElementById('otherToolName').value = '';
+    document.getElementById('otherToolCfgRow').style.display = 'none';
+    document.getElementById('otherToolCfg').checked = false;
     document.getElementById('addToolQty').value = 1;
     document.querySelector('input[name="addToolDir"][value="进"]').checked = true;
     toolAddPhotos = [];
     renderToolAddThumbs();
     document.getElementById('tMask').classList.add('show');
+  }
+  function onAddToolNameChange() {
+    var isOther = document.getElementById('addToolName').value === '__other__';
+    document.getElementById('otherToolRow').style.display = isOther ? '' : 'none';
+    document.getElementById('otherToolCfgRow').style.display = isOther ? '' : 'none';
   }
   function closeToolAdd() { document.getElementById('tMask').classList.remove('show'); }
   document.getElementById('tMask').addEventListener('click', function (e) {
@@ -960,10 +991,21 @@
     }
   });
   function saveToolAdd(keepOpen) {
-    var name = document.getElementById('addToolName').value;
+    var nameSel = document.getElementById('addToolName').value;
+    var isOther = nameSel === '__other__';
+    var name = isOther ? document.getElementById('otherToolName').value.trim() : nameSel;
     var dir = document.querySelector('input[name="addToolDir"]:checked').value;
     var q = parseInt(document.getElementById('addToolQty').value, 10);
-    if (!name) { toast('请选择工器具名称'); return; }
+    if (!nameSel) { toast('请选择工器具名称'); return; }
+    if (isOther && !name) { toast('请输入其他工器具名称'); return; }
+    if (isOther && document.getElementById('otherToolCfg').checked) {
+      /* 勾选"纳入配置项"：写入自定义工器具，供后续登记选择 */
+      var customs = getCustomTools();
+      if (customs.indexOf(name) === -1) {
+        customs.push(name);
+        localStorage.setItem(CUSTOM_TOOL_KEY, JSON.stringify(customs));
+      }
+    }
     loadToolEntries().push({
       id: nextToolId(), name: name, dir: dir,
       qty: isNaN(q) || q < 1 ? 1 : q,
@@ -974,6 +1016,10 @@
     if (keepOpen) {
       /* 继续添加：保存当前工器具后重置表单，登记下一条 */
       document.getElementById('addToolName').value = '';
+      document.getElementById('otherToolRow').style.display = 'none';
+      document.getElementById('otherToolName').value = '';
+      document.getElementById('otherToolCfgRow').style.display = 'none';
+      document.getElementById('otherToolCfg').checked = false;
       document.querySelector('input[name="addToolDir"][value="进"]').checked = true;
       document.getElementById('addToolQty').value = 1;
       toolAddPhotos = [];
