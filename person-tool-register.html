@@ -189,6 +189,7 @@
   .reg-photo-btn {
     flex-shrink: 0; height: 30px; padding: 0 14px; border: 1px solid #d8e0ea; border-radius: 15px;
     background: #fff; font-size: 12.5px; color: #333; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
   }
   .reg-photo-btn:active { background: #f5f6f9; }
   /* 展示态照片标签（纯展示，不可点击） */
@@ -413,7 +414,7 @@
           <input type="datetime-local" class="reg-time" id="addTime">
         </div>
         <div class="reg-photo-bar">
-          <button class="reg-photo-btn" onclick="document.getElementById('addPhotoInput').click()">📷 拍照</button>
+          <label class="reg-photo-btn" for="addPhotoInput">📷 拍照</label>
           <span class="reg-thumbs" id="addThumbs"></span>
         </div>
       </div>
@@ -424,7 +425,7 @@
       <button class="a-save" onclick="savePersonAdd()">保 存</button>
     </div>
   </div>
-  <input type="file" id="addPhotoInput" accept="image/*" multiple hidden>
+  <input type="file" id="addPhotoInput" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
 </div>
 
 <!-- ============ 新增工器具登记弹窗 ============ -->
@@ -450,7 +451,7 @@
           <input type="number" class="reg-time" id="addToolQty" value="1" min="1" style="text-align:center;">
         </div>
         <div class="reg-photo-bar">
-          <button class="reg-photo-btn" onclick="document.getElementById('toolPhotoInput').click()">📷 拍照</button>
+          <label class="reg-photo-btn" for="toolPhotoInput">📷 拍照</label>
           <span class="reg-thumbs" id="toolAddThumbs"></span>
         </div>
       </div>
@@ -461,7 +462,7 @@
       <button class="a-save" onclick="saveToolAdd()">保 存</button>
     </div>
   </div>
-  <input type="file" id="toolPhotoInput" accept="image/*" multiple hidden>
+  <input type="file" id="toolPhotoInput" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
 </div>
 
 <!-- ============ 监护人检查项弹窗 ============ -->
@@ -475,7 +476,7 @@
     <div class="reg-body" id="gcBody"></div>
     <button class="reg-save" onclick="saveGuardianCheck()">保 存</button>
   </div>
-  <input type="file" id="gcPhotoInput" accept="image/*" multiple hidden>
+  <input type="file" id="gcPhotoInput" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;">
 </div>
 
 <!-- ============ 照片预览弹窗 ============ -->
@@ -1042,8 +1043,8 @@
     if (el) el.innerHTML = gcThumbsHtml(key);
   }
   function pickGcPhoto(key) {
+    /* label for=gcPhotoInput 会原生打开文件框，这里只记录当前操作的是哪个检查项 */
     gcPhotoCtx = key;
-    document.getElementById('gcPhotoInput').click();
   }
   document.getElementById('gcPhotoInput').addEventListener('change', function () {
     var key = gcPhotoCtx;
@@ -1085,7 +1086,7 @@
         '</div>' +
         '<input class="gc-text gc-custom-text" placeholder="请输入自定义内容（选填）" value="' + c.text.replace(/"/g, '&quot;') + '">' +
         '<div class="gc-photo-bar" style="border-top:none;">' +
-          '<button class="reg-photo-btn" onclick="pickGcPhoto(\'c' + c.key + '\')">📷 拍照</button>' +
+          '<label class="reg-photo-btn" for="gcPhotoInput" onclick="pickGcPhoto(\'c' + c.key + '\')">📷 拍照</label>' +
           '<span class="reg-thumbs" id="gcThumbs_c' + c.key + '">' + gcThumbsHtml('c' + c.key) + '</span>' +
         '</div>' +
       '</div>';
@@ -1131,7 +1132,7 @@
       items.map(function (it, i) {
         var photoBar = it.needImg
           ? '<div class="gc-photo-bar">' +
-              '<button class="reg-photo-btn" onclick="pickGcPhoto(' + it.id + ')">📷 拍照</button>' +
+              '<label class="reg-photo-btn" for="gcPhotoInput" onclick="pickGcPhoto(' + it.id + ')">📷 拍照</label>' +
               '<span class="reg-thumbs" id="gcThumbs_' + it.id + '">' + gcThumbsHtml(it.id) + '</span>' +
               '<span class="gc-must">*必须上传</span>' +
             '</div>'
