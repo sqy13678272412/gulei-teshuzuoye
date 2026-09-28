@@ -185,12 +185,15 @@
   .rc-type.guardian { color: #d46b08; background: #fff7e6; border: 1px solid #ffd591; }
   .rc-type.worker { color: #1f8ef1; background: #eaf4fe; border: 1px solid #b7d9fa; }
   .rc-time { margin-left: auto; color: #8a94a3; font-size: 12.5px; }
-  .rc-persons { display: flex; align-items: center; gap: 14px; }
+  .rc-action { font-size: 12px; padding: 3px 10px; border-radius: 3px; }
+  .rc-action.leave { color: #cf1322; background: #fff1f0; border: 1px solid #ffa39e; }
+  .rc-action.enter { color: #389e0d; background: #f6ffed; border: 1px solid #b7eb8f; }
+  .rc-action.change { color: #1f8ef1; background: #eaf4fe; border: 1px solid #b7d9fa; }
+  .rc-persons { display: flex; flex-direction: column; gap: 10px; }
   .rc-person {
-    flex: 1; display: flex; gap: 10px; align-items: center;
+    display: flex; gap: 10px; align-items: center;
     background: #f7f9fc; border-radius: 8px; padding: 10px 12px; min-width: 0;
   }
-  .rc-arrow { color: #8a94a3; font-size: 18px; flex-shrink: 0; }
   .rc-avatar {
     width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
     background: #16233f; color: #fff; font-size: 14px;
@@ -198,8 +201,8 @@
   }
   .rc-pname { font-size: 14px; font-weight: 600; color: #1f2d3d; }
   .rc-psub { font-size: 12px; color: #8a94a3; margin-top: 3px; }
-  .rc-tag-old { font-size: 11px; color: #a0a8b4; border: 1px solid #d8e0ea; border-radius: 3px; padding: 1px 6px; margin-left: 8px; }
   .rc-tag-new { font-size: 11px; color: #389e0d; border: 1px solid #b7eb8f; border-radius: 3px; padding: 1px 6px; margin-left: 8px; }
+  .rc-tag-new.leave { color: #cf1322; border-color: #ffa39e; }
 
   /* 监护人变更：交接信息区 */
   .rc-handover { margin-top: 14px; border-top: 1px dashed #e6ebf2; padding-top: 12px; }
@@ -718,12 +721,11 @@
   }).join('');
 
   /* ================= 人员变更记录弹窗 ================= */
-  // 两类变更：guardian（监护人变更，含交接确认项，照片/视频挂在对应确认项下）；worker（作业人员变更，仅人员替换）
+  /* 人员变更记录：只记录 谁离场 / 谁入场 / 谁操作 / 操作时间，不记录谁变更为了谁 */
   var changeRecords = [
     {
-      type: 'guardian', time: '2026-09-12 09:30:15', operator: '王强',
-      from: { name: '赵磊', dept: '安环部', phone: '138****5566' },
-      to: { name: '李敏', dept: '安环部', phone: '138****7788' },
+      type: 'guardian', action: '变更', time: '2026-09-12 09:30:15', operator: '王强',
+      persons: [{ name: '李敏', dept: '安环部', phone: '138****7788' }],
       checks: [
         { text: '已向新监护人交底当前风险情况', photos: 1, videos: 1 },
         { text: '已确认现场安全措施状态', photos: 1, videos: 0 },
@@ -732,22 +734,28 @@
       ]
     },
     {
-      type: 'worker', time: '2026-09-13 14:05:22', operator: 'hsk',
-      from: { name: '张强', dept: '设备部', phone: '139****1122' },
-      to: { name: '郑磊', dept: '设备部', phone: '139****9900' }
+      type: 'worker', action: '离场', time: '2026-09-13 14:05:22', operator: 'hsk',
+      persons: [{ name: '张强', dept: '设备部 | XX承包商', phone: '139****1122' }]
     },
     {
-      type: 'guardian', time: '2026-09-14 08:40:51', operator: 'hsk',
-      from: { name: '李敏', dept: '安环部', phone: '138****7788' },
-      to: { name: '王强', dept: '生产一部', phone: '138****2345' },
-      checks: [
-        { text: '已向新监护人交底当前风险情况', photos: 1, videos: 0 },
-        { text: '已确认现场安全措施状态', photos: 0, videos: 0 },
-        { text: '新监护人已到岗', photos: 0, videos: 0 },
-        { text: '已核对新监护人监护资质证书', photos: 0, videos: 0 }
+      type: 'worker', action: '入场', time: '2026-09-14 08:40:51', operator: 'hsk',
+      persons: [
+        { name: '郑磊', dept: '设备部 | XX承包商', phone: '139****9900' },
+        { name: '周杰', dept: '检修车间 | XX承包商', phone: '137****8899' }
       ]
     }
   ];
+  /* 新增一条变更记录（操作人默认当前登录人 hsk） */
+  function addChangeRecord(type, action, persons) {
+    var d = new Date();
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    changeRecords.unshift({
+      type: type, action: action, operator: 'hsk',
+      time: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' +
+            p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()),
+      persons: persons.map(function (x) { return { name: x.name, dept: x.dept, phone: x.phone }; })
+    });
+  }
 
   function renderRecords(type) {
     var list = changeRecords.filter(function (r) { return type === 'all' || r.type === type; });
@@ -756,27 +764,26 @@
     document.getElementById('rSummary').textContent =
       '共 ' + changeRecords.length + ' 条变更记录（监护人变更 ' + gCount + ' 条，作业人员变更 ' + wCount + ' 条）';
 
+    var actionTag = { '离场': 'leave', '入场': 'enter', '变更': 'change' };
+    var personTag = { '离场': '离场人员', '入场': '入场人员', '变更': '新上岗人员' };
     document.getElementById('rList').innerHTML = list.map(function (r) {
       var isGuardian = r.type === 'guardian';
       return '<div class="rc-card">' +
         '<div class="rc-head">' +
-          '<span class="rc-type ' + r.type + '">' + (isGuardian ? '监护人变更' : '作业人员变更') + '</span>' +
-          '<span class="rc-time">变更时间：' + r.time + '</span>' +
+          '<span class="rc-type ' + r.type + '">' + (isGuardian ? '监护人变更' : '作业人员') + '</span>' +
+          '<span class="rc-action ' + (actionTag[r.action] || 'change') + '">' + r.action + '</span>' +
+          '<span class="rc-time">操作时间：' + r.time + '</span>' +
         '</div>' +
         '<div class="rc-persons">' +
-          '<div class="rc-person">' +
-            '<span class="rc-avatar">' + r.from.name.charAt(0) + '</span>' +
-            '<div><div class="rc-pname">' + r.from.name + '<span class="rc-tag-old">原人员</span></div>' +
-            '<div class="rc-psub">' + r.from.dept + ' | ' + r.from.phone + '</div></div>' +
-          '</div>' +
-          '<span class="rc-arrow">➜</span>' +
-          '<div class="rc-person">' +
-            '<span class="rc-avatar">' + r.to.name.charAt(0) + '</span>' +
-            '<div><div class="rc-pname">' + r.to.name + '<span class="rc-tag-new">新人员</span></div>' +
-            '<div class="rc-psub">' + r.to.dept + ' | ' + r.to.phone + '</div></div>' +
-          '</div>' +
+          r.persons.map(function (p) {
+            return '<div class="rc-person">' +
+              '<span class="rc-avatar">' + p.name.charAt(0) + '</span>' +
+              '<div><div class="rc-pname">' + p.name + '<span class="rc-tag-new' + (r.action === '离场' ? ' leave' : '') + '">' + (personTag[r.action] || '人员') + '</span></div>' +
+              '<div class="rc-psub">' + p.dept + ' | ' + p.phone + '</div></div>' +
+            '</div>';
+          }).join('') +
         '</div>' +
-        (isGuardian
+        (isGuardian && r.checks
           ? '<div class="rc-handover">' +
               '<div class="rc-ho-title">交接信息</div>' +
               '<div class="rc-checks">' + r.checks.map(function (c) {
@@ -1730,40 +1737,47 @@
   .sheet-ok:active { opacity: .88; }
 </style>
 
-<!-- ============ 人员变更底部滑出弹窗 ============ -->
+<!-- ============ 作业人员离场底部滑出弹窗 ============ -->
 <div class="sheet-mask" id="wMask">
   <div class="sheet">
     <div class="sheet-head">
-      <span class="sheet-close" onclick="closeWorkerChange()">✕</span>
-      <span class="sheet-title">人员变更</span>
+      <span class="sheet-close" onclick="closeWorkerLeave()">✕</span>
+      <span class="sheet-title">人员离场</span>
     </div>
-    <div class="sheet-label">变更角色</div>
-    <input class="sheet-input" value="作业人员" disabled>
-    <div class="sheet-label">原人员</div>
-    <input class="sheet-input" value="张强" disabled>
-    <div class="sheet-label">替换为</div>
-    <select class="sheet-select">
-      <option>郑磊（139****9900）</option>
-      <option>李敏（138****7788）</option>
-      <option>王强（138****2345）</option>
-    </select>
+    <div class="sheet-label">离场人员</div>
+    <input class="sheet-input" id="leaveName" disabled>
+    <div class="sheet-label">离场原因（选填）</div>
+    <input class="sheet-input" id="leaveReason" placeholder="请输入离场原因">
     <div class="sheet-btns">
-      <button class="sheet-cancel" onclick="closeWorkerChange()">取 消</button>
-      <button class="sheet-ok" onclick="confirmWorkerChange()">确认变更</button>
+      <button class="sheet-cancel" onclick="closeWorkerLeave()">取 消</button>
+      <button class="sheet-ok" onclick="confirmWorkerLeave()">确认离场</button>
     </div>
   </div>
 </div>
 
 <script>
-  /* ================= 人员变更底部滑出弹窗 ================= */
-  function openWorkerChange() { document.getElementById('wMask').classList.add('show'); }
-  function closeWorkerChange() { document.getElementById('wMask').classList.remove('show'); }
-  function confirmWorkerChange() {
-    closeWorkerChange();
-    toast('变更成功（示例）');
+  /* ================= 作业人员离场底部滑出弹窗 ================= */
+  var leaveIdx = null;
+  function openWorkerLeave(i) {
+    leaveIdx = i;
+    document.getElementById('leaveName').value = workers[i].name + '（' + workers[i].phone + '）';
+    document.getElementById('leaveReason').value = '';
+    document.getElementById('wMask').classList.add('show');
+  }
+  function closeWorkerLeave() { document.getElementById('wMask').classList.remove('show'); }
+  function confirmWorkerLeave() {
+    if (leaveIdx === null) return;
+    var w = workers[leaveIdx];
+    workers.splice(leaveIdx, 1);
+    leaveIdx = null;
+    addChangeRecord('worker', '离场', [w]);
+    renderWorkers();
+    renderBatchList();
+    closeWorkerLeave();
+    toast('【' + w.name + '】已离场');
   }
   document.getElementById('wMask').addEventListener('click', function (e) {
-    if (e.target === this) closeWorkerChange();
+    if (e.target === this) closeWorkerLeave();
   });
 </script>
 
@@ -1778,18 +1792,22 @@
     background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px;
     box-shadow: 0 1px 4px rgba(31, 45, 92, .05);
   }
-  .b-card-head { display: flex; align-items: center; gap: 10px; }
-  .b-lb { font-size: 12.5px; color: #8a94a3; margin: 12px 0 6px; }
-  .b-select {
-    width: 100%; height: 38px; border: 1px solid #d8e0ea; border-radius: 6px;
-    padding: 0 10px; font-size: 13.5px; background: #fff; color: #333; outline: none;
-  }
-  .b-select:focus { border-color: #1f8ef1; }
   .b-foot {
     display: flex; gap: 10px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
     background: #fff; border-top: 1px solid #eef1f6; flex-shrink: 0;
   }
   .b-foot button { flex: 1; height: 40px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  /* 批量离场 / 批量入场分区 */
+  .b-sec-head { display: flex; align-items: center; margin: 2px 0 10px; }
+  .b-sec-title { font-size: 14px; font-weight: 600; color: #1f2d3d; }
+  .b-sec-btn {
+    margin-left: auto; font-size: 12.5px; color: #fff; background: #1f8ef1;
+    padding: 6px 16px; border-radius: 15px; cursor: pointer; font-weight: 400;
+  }
+  .b-sec-btn.leave { background: #e64340; }
+  .b-row { display: flex; align-items: center; gap: 10px; }
+  .b-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #1f8ef1; flex-shrink: 0; cursor: pointer; }
+  .b-empty { font-size: 12.5px; color: #a0a8b4; padding: 10px 2px 14px; }
 </style>
 
 <!-- ============ 批量变更弹窗 ============ -->
@@ -1801,11 +1819,13 @@
       <span class="p-close" onclick="closeBatchChange()">✕</span>
     </div>
     <div class="p-body">
-      <div id="batchList"></div>
+      <div class="b-sec-head"><span class="b-sec-title">批量离场（勾选人员后离场）</span><span class="b-sec-btn leave" onclick="confirmBatchLeave()">确认离场</span></div>
+      <div id="batchLeaveList"></div>
+      <div class="b-sec-head"><span class="b-sec-title">批量入场（勾选人员后入场）</span><span class="b-sec-btn" onclick="confirmBatchEnter()">确认入场</span></div>
+      <div id="batchEnterList"></div>
     </div>
     <div class="b-foot">
-      <button class="sheet-cancel" onclick="closeBatchChange()">取 消</button>
-      <button class="sheet-ok" onclick="confirmBatchChange()">确 定</button>
+      <button class="sheet-cancel" onclick="closeBatchChange()">关 闭</button>
     </div>
   </div>
 </div>
@@ -1821,15 +1841,15 @@
     { name: '黄伟', dept: '生产二部', phone: '13612348899' },
     { name: '吴敏', dept: '生产二部', phone: '13512340011' }
   ];
-  /* 可替换人选池 */
+  /* 可入场人选池（不在当前作业人员清单中的人） */
   var workerCandidates = [
-    { name: '郑磊', phone: '13912349900' },
-    { name: '李敏', phone: '13812347788' },
-    { name: '王强', phone: '13812342345' },
-    { name: '周杰', phone: '13712348899' }
+    { name: '郑磊', dept: '设备部 | XX承包商', phone: '13912349900' },
+    { name: '周杰', dept: '检修车间 | XX承包商', phone: '13712348899' },
+    { name: '孙浩', dept: '生产二部', phone: '13412342233' },
+    { name: '林芳', dept: '安环部', phone: '13312343344' }
   ];
 
-  function workerCardHtml(w) {
+  function workerCardHtml(w, i) {
     return '<div class="person-card">' +
       '<div class="person-avatar"></div>' +
       '<div class="person-info">' +
@@ -1837,7 +1857,7 @@
         '<div class="person-sub">' + w.dept + '<br>' + w.phone + '</div>' +
       '</div>' +
       '<div class="person-ops">' +
-        '<span class="person-op" onclick="openWorkerChange()">变更</span>' +
+        '<span class="person-op" onclick="openWorkerLeave(' + i + ')">离场</span>' +
       '</div>' +
     '</div>';
   }
@@ -1846,26 +1866,26 @@
     document.getElementById('workerList').innerHTML = workers.map(workerCardHtml).join('');
   }
 
+  function batchRowHtml(who, chkClass, chkVal) {
+    return '<div class="b-card"><div class="b-row">' +
+      '<input type="checkbox" class="' + chkClass + '" value="' + chkVal + '">' +
+      '<div class="person-avatar" style="width:36px;height:36px;"></div>' +
+      '<div class="person-info">' +
+        '<div class="person-name" style="font-size:14px;">' + who.name + '</div>' +
+        '<div class="person-sub">' + who.dept + '<br>' + who.phone + '</div>' +
+      '</div>' +
+    '</div></div>';
+  }
   function renderBatchList() {
-    document.getElementById('batchList').innerHTML = workers.map(function (w, i) {
-      var opts = '<option value="">请选择</option>' + workerCandidates.filter(function (c) {
-        return c.name !== w.name;
-      }).map(function (c) {
-        return '<option value="' + c.name + '|' + c.phone + '">' + c.name + '（' + c.phone + '）</option>';
-      }).join('');
-      return '<div class="b-card">' +
-        '<div class="b-lb" style="margin:0 0 8px;">现有人员</div>' +
-        '<div class="b-card-head">' +
-          '<div class="person-avatar" style="width:36px;height:36px;"></div>' +
-          '<div class="person-info">' +
-            '<div class="person-name" style="font-size:14px;">' + w.name + '</div>' +
-            '<div class="person-sub">' + w.dept + '<br>' + w.phone + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="b-lb">更换人员（请选择）</div>' +
-        '<select class="b-select" id="batchSel_' + i + '">' + opts + '</select>' +
-      '</div>';
-    }).join('');
+    document.getElementById('batchLeaveList').innerHTML = workers.length
+      ? workers.map(function (w, i) { return batchRowHtml(w, 'bl-chk', i); }).join('')
+      : '<div class="b-empty">当前无在场作业人员</div>';
+    var enterPool = workerCandidates.filter(function (c) {
+      return !workers.some(function (w) { return w.name === c.name; });
+    });
+    document.getElementById('batchEnterList').innerHTML = enterPool.length
+      ? enterPool.map(function (c, i) { return batchRowHtml(c, 'be-chk', i); }).join('')
+      : '<div class="b-empty">暂无可入场人员</div>';
   }
 
   function openBatchChange() {
@@ -1877,23 +1897,31 @@
     if (e.target === this) closeBatchChange();
   });
 
-  /* 确定：把勾选了替换人的卡片直接更新到人员变更页面 */
-  function confirmBatchChange() {
-    var changed = 0;
-    workers.forEach(function (w, i) {
-      var v = document.getElementById('batchSel_' + i).value;
-      if (v) {
-        var parts = v.split('|');
-        w.name = parts[0];
-        w.phone = parts[1];
-        changed++;
-      }
-    });
-    if (!changed) { toast('请先选择更换人员'); return; }
+  /* 批量离场：勾选的在场人员统一离场 */
+  function confirmBatchLeave() {
+    var idxs = Array.prototype.map.call(document.querySelectorAll('.bl-chk:checked'), function (c) { return Number(c.value); });
+    if (!idxs.length) { toast('请先勾选要离场的人员'); return; }
+    idxs.sort(function (a, b) { return b - a; }); /* 从后往前删，避免下标错位 */
+    var persons = idxs.map(function (i) { return workers[i]; });
+    idxs.forEach(function (i) { workers.splice(i, 1); });
+    addChangeRecord('worker', '离场', persons);
     renderWorkers();
-    closeBatchChange();
-    closeWorkerChange();
-    toast('批量变更成功');
+    renderBatchList();
+    toast('已离场 ' + persons.length + ' 人：' + persons.map(function (p) { return p.name; }).join('、'));
+  }
+  /* 批量入场：勾选的候选人员统一入场 */
+  function confirmBatchEnter() {
+    var vals = Array.prototype.map.call(document.querySelectorAll('.be-chk:checked'), function (c) { return Number(c.value); });
+    if (!vals.length) { toast('请先勾选要入场的人员'); return; }
+    var pool = workerCandidates.filter(function (c) {
+      return !workers.some(function (w) { return w.name === c.name; });
+    });
+    var persons = vals.map(function (i) { return pool[i]; });
+    persons.forEach(function (p) { workers.push({ name: p.name, dept: p.dept, phone: p.phone }); });
+    addChangeRecord('worker', '入场', persons);
+    renderWorkers();
+    renderBatchList();
+    toast('已入场 ' + persons.length + ' 人：' + persons.map(function (p) { return p.name; }).join('、'));
   }
 
   renderWorkers();
