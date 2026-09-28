@@ -109,6 +109,12 @@
   .fgi .input, .fgi .select { width: 100%; }
   .fgi .msel { width: 100%; }
   /* 阈值卡片 */
+  .th-group { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .th-group:last-child { margin-bottom: 0; }
+  .th-group-label {
+    width: 92px; flex-shrink: 0; font-size: 13.5px; font-weight: 600; color: #1f2d3d; padding-top: 16px;
+  }
+  .th-group-cards { display: flex; flex-wrap: wrap; gap: 14px; flex: 1; min-width: 0; }
   .th-card { width: 320px; border: 1px solid #e6ebf2; border-radius: 8px; padding: 14px 16px; background: #fafbfd; }
   .th-card-head { display: flex; align-items: center; font-size: 13.5px; font-weight: 600; color: #1f2d3d; margin-bottom: 12px; }
   .th-card-head .del { margin-left: auto; cursor: pointer; color: #8a94a3; font-size: 15px; padding: 0 4px; }
@@ -448,8 +454,6 @@
     <div class="dlg-head" style="flex-shrink:0"><span class="dlg-title" id="ruleDlgTitle">新建运行规则</span><span class="dlg-x" onclick="closeRuleDlg()">✕</span></div>
     <div style="flex:1;overflow-y:auto">
     <div class="dlg-body">
-      <div class="dlg-sub">用于配置运行中心监测类规则，保存后可直接进入规则引擎。</div>
-
       <div class="sec-title">基础信息</div>
       <div class="fgrid">
         <div class="fgi"><label><span class="req">*</span>规则名称</label><input class="input" id="rName" placeholder="请输入规则名称"></div>
@@ -496,7 +500,7 @@
       <!-- 中断超时阈值卡片（选择 作业中断超时未气体分析 时展示） -->
       <div id="thBox" style="display:none">
         <div class="sec-title">中断超时阈值配置</div>
-        <div id="thCards" style="display:flex;flex-wrap:wrap;gap:14px"></div>
+        <div id="thCards"></div>
       </div>
 
       <div class="sec-title">消息通知配置</div>
@@ -783,14 +787,23 @@
     var box = document.getElementById('thBox');
     if (ruleId !== TH_RULE_ID || !thCards.length) { box.style.display = 'none'; return; }
     box.style.display = 'block';
-    document.getElementById('thCards').innerHTML = thCards.map(function (c, i) {
+    var cardHtml = function (c, i) {
       var title = c.type === '动火作业' ? '作业级别：' + c.level : '受限空间';
       var label = c.type === '动火作业' ? '中断超时阈值' : '受限空间中断超时阈值';
       return '<div class="th-card">' +
         '<div class="th-card-head">' + title + '<span class="del" title="删除" onclick="deleteThCard(' + i + ')">✕</span></div>' +
         '<div class="fi2">' + label + '<input class="input" type="number" min="1" value="' + (c.minutes === '' || c.minutes === undefined ? '' : c.minutes) + '" oninput="onThInput(' + i + ',this.value)">分钟</div>' +
       '</div>';
-    }).join('');
+    };
+    /* 按作业类型分组：一行动火（特级/一级/二级），一行受限空间 */
+    var dh = [], sx = [];
+    thCards.forEach(function (c, i) { (c.type === '动火作业' ? dh : sx).push({ c: c, i: i }); });
+    var html = '';
+    if (dh.length) html += '<div class="th-group"><div class="th-group-label">动火作业</div><div class="th-group-cards">' +
+      dh.map(function (x) { return cardHtml(x.c, x.i); }).join('') + '</div></div>';
+    if (sx.length) html += '<div class="th-group"><div class="th-group-label">受限空间作业</div><div class="th-group-cards">' +
+      sx.map(function (x) { return cardHtml(x.c, x.i); }).join('') + '</div></div>';
+    document.getElementById('thCards').innerHTML = html;
   }
   function onThInput(i, v) { thCards[i].minutes = v; }
   function deleteThCard(i) { thCards.splice(i, 1); renderThCards(); }
