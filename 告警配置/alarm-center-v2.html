@@ -208,7 +208,7 @@
         <div class="cfg-main">
           <div class="filter-bar">
             <span class="fl">关键词</span>
-            <input class="input kw" id="fKw" placeholder="规则编号/名称/对象/测点">
+            <input class="input kw" id="fKw" placeholder="名称/对象/测点">
             <span class="fl">启用状态</span>
             <select class="select" id="fStatus" style="width:180px">
               <option value="">全部状态</option>
@@ -230,7 +230,6 @@
               <thead>
                 <tr>
                   <th style="width:44px"><input type="checkbox" id="chkAll" onclick="toggleAll(this)"></th>
-                  <th>规则编号</th>
                   <th>规则名称</th>
                   <th>报警类型</th>
                   <th>启用状态</th>
@@ -647,7 +646,7 @@
     var kw = document.getElementById('fKw').value.trim();
     var st = document.getElementById('fStatus').value;
     var list = rules.filter(function (r) {
-      if (kw && r.code.indexOf(kw) < 0 && r.name.indexOf(kw) < 0) return false;
+      if (kw && r.name.indexOf(kw) < 0) return false;
       if (st !== '' && String(r.enabled ? 1 : 0) !== st) return false;
       return true;
     });
@@ -664,12 +663,11 @@
     document.getElementById('cateCnt').textContent = '(' + rules.length + ')';
     document.getElementById('ruleTotal').textContent = '共 ' + list.length + ' 条';
     document.getElementById('chkAll').checked = false;
-    if (!list.length) { tb.innerHTML = '<tr><td colspan="6"><div class="empty">暂无数据</div></td></tr>'; return; }
+    if (!list.length) { tb.innerHTML = '<tr><td colspan="5"><div class="empty">暂无数据</div></td></tr>'; return; }
     tb.innerHTML = list.map(function (r) {
       var alarmRule = (RULE_OPTIONS.filter(function (o) { return o.id === r.ruleId; })[0] || {}).name || '-';
       return '<tr>' +
         '<td><input type="checkbox" class="rchk" value="' + r.code + '"></td>' +
-        '<td>' + r.code + '</td>' +
         '<td class="tleft">' + r.name + '</td>' +
         '<td class="tleft">' + alarmRule + '</td>' +
         '<td><span class="tag ' + (r.enabled ? 'on' : 'off') + '" onclick="toggleRule(\'' + r.code + '\')">' + (r.enabled ? '启用' : '停用') + '</span></td>' +
