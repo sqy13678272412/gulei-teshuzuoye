@@ -120,6 +120,16 @@
   .type-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
   .type-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+  /* 登记时机单选 */
+  .reg-mode-bar {
+    display: flex; align-items: center; gap: 18px;
+    padding: 10px 16px; border-bottom: 1px solid #eef1f6;
+    font-size: 13.5px; color: #333; background: #fff;
+  }
+  .reg-mode-bar label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .reg-mode-lb { color: #5a6472; }
+  .reg-mode-bar input { accent-color: #1f8ef1; }
+
   /* 右侧工器具表格 */
   table.tool-grid { width: 100%; border-collapse: collapse; }
   table.tool-grid th, table.tool-grid td {
@@ -247,6 +257,11 @@
               <span class="spacer"></span>
               <button class="btn primary" onclick="openToolModal('add')">＋ 新增</button>
             </div>
+            <div class="reg-mode-bar">
+              <span class="reg-mode-lb">登记时机：</span>
+              <label><input type="radio" name="regMode" value="all" onchange="setRegMode(this.value)"> 允许全程登记</label>
+              <label><input type="radio" name="regMode" value="working" onchange="setRegMode(this.value)"> 只允许作业中进行登记</label>
+            </div>
             <div class="panel-body" id="toolRightBody"></div>
           </div>
         </div>
@@ -279,8 +294,7 @@
 
 <script>
   /* ================= 作业类型与配色 ================= */
-  var allTypes = ['受限空间作业', '动火作业', '高处作业', '动土作业', '盲板抽堵作业',
-                  '吊装作业', '临时用电作业', '断路作业', '冷工作业'];
+  var allTypes = ['受限空间作业'];
   var tagPalette = [
     { color: '#1677ff' }, { color: '#389e0d' }, { color: '#d46b08' }, { color: '#722ed1' },
     { color: '#08979c' }, { color: '#c41d7f' }, { color: '#cf1322' }, { color: '#ad6800' },
@@ -294,6 +308,14 @@
   var STORE_KEY = 'tool_config_items';
   var toolData = loadTool();
   var currentType = allTypes[0]; // 默认选中第一个：受限空间作业
+
+  /* ================= 登记时机（允许全程登记 / 只允许作业中登记） ================= */
+  var REG_MODE_KEY = 'tool_reg_mode';
+  function setRegMode(v) { localStorage.setItem(REG_MODE_KEY, v); toast('登记时机已保存'); }
+  (function () {
+    var m = localStorage.getItem(REG_MODE_KEY) || 'all';
+    document.querySelector('input[name="regMode"][value="' + m + '"]').checked = true;
+  })();
 
   function defaultToolData() {
     var empty = function () { return []; };
