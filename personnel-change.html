@@ -1395,7 +1395,7 @@
         </div>
       </div>
 
-      <div class="p-role">作业人员 (<span id="workerCount">0</span>)<span class="p-role-link" onclick="openBatchChange()">批量变更</span></div>
+      <div class="p-role">作业人员 (<span id="workerCount">0</span>)<span class="p-role-link" onclick="openBatchChange()">其他变更</span></div>
       <div id="workerList"></div>
 
     </div>
@@ -1737,47 +1737,56 @@
   .sheet-ok:active { opacity: .88; }
 </style>
 
-<!-- ============ 作业人员离场底部滑出弹窗 ============ -->
+<!-- ============ 人员变更底部滑出弹窗 ============ -->
 <div class="sheet-mask" id="wMask">
   <div class="sheet">
     <div class="sheet-head">
-      <span class="sheet-close" onclick="closeWorkerLeave()">✕</span>
-      <span class="sheet-title">人员离场</span>
+      <span class="sheet-close" onclick="closeWorkerChange()">✕</span>
+      <span class="sheet-title">人员变更</span>
     </div>
-    <div class="sheet-label">离场人员</div>
-    <input class="sheet-input" id="leaveName" disabled>
-    <div class="sheet-label">离场原因（选填）</div>
-    <input class="sheet-input" id="leaveReason" placeholder="请输入离场原因">
+    <div class="sheet-label">变更角色</div>
+    <input class="sheet-input" value="作业人员" disabled>
+    <div class="sheet-label">原人员</div>
+    <input class="sheet-input" id="wcOld" disabled>
+    <div class="sheet-label">替换为</div>
+    <select class="sheet-select" id="wcSel"></select>
     <div class="sheet-btns">
-      <button class="sheet-cancel" onclick="closeWorkerLeave()">取 消</button>
-      <button class="sheet-ok" onclick="confirmWorkerLeave()">确认离场</button>
+      <button class="sheet-cancel" onclick="closeWorkerChange()">取 消</button>
+      <button class="sheet-ok" onclick="confirmWorkerChange()">确认变更</button>
     </div>
   </div>
 </div>
 
 <script>
-  /* ================= 作业人员离场底部滑出弹窗 ================= */
-  var leaveIdx = null;
-  function openWorkerLeave(i) {
-    leaveIdx = i;
-    document.getElementById('leaveName').value = workers[i].name + '（' + workers[i].phone + '）';
-    document.getElementById('leaveReason').value = '';
+  /* ================= 人员变更底部滑出弹窗 ================= */
+  var changeIdx = null;
+  function openWorkerChange(i) {
+    changeIdx = i;
+    document.getElementById('wcOld').value = workers[i].name + '（' + workers[i].phone + '）';
+    document.getElementById('wcSel').innerHTML = workerCandidates.filter(function (c) {
+      return c.name !== workers[i].name;
+    }).map(function (c) {
+      return '<option value="' + c.name + '|' + c.phone + '|' + c.dept + '">' + c.name + '（' + c.phone + '）</option>';
+    }).join('');
     document.getElementById('wMask').classList.add('show');
   }
-  function closeWorkerLeave() { document.getElementById('wMask').classList.remove('show'); }
-  function confirmWorkerLeave() {
-    if (leaveIdx === null) return;
-    var w = workers[leaveIdx];
-    workers.splice(leaveIdx, 1);
-    leaveIdx = null;
-    addChangeRecord('worker', '离场', [w]);
+  function closeWorkerChange() { document.getElementById('wMask').classList.remove('show'); }
+  function confirmWorkerChange() {
+    if (changeIdx === null) return;
+    var v = document.getElementById('wcSel').value;
+    if (!v) { toast('请选择替换人员'); return; }
+    var parts = v.split('|');
+    var oldW = workers[changeIdx];
+    workers[changeIdx] = { name: parts[0], dept: parts[2], phone: parts[1] };
+    addChangeRecord('worker', '变更', [workers[changeIdx]]);
+    changeIdx = null;
     renderWorkers();
     renderBatchList();
-    closeWorkerLeave();
-    toast('【' + w.name + '】已离场');
+    closeWorkerChange();
+    toast('【' + oldW.name + '】已变更为【' + parts[0] + '】');
   }
   document.getElementById('wMask').addEventListener('click', function (e) {
-    if (e.target === this) closeWorkerLeave();
+    if (e.target === this) closeWorkerChange();
   });
 </script>
 
@@ -1808,6 +1817,24 @@
   .b-row { display: flex; align-items: center; gap: 10px; }
   .b-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #1f8ef1; flex-shrink: 0; cursor: pointer; }
   .b-empty { font-size: 12.5px; color: #a0a8b4; padding: 10px 2px 14px; }
+  /* 入场人员多选下拉 */
+  .b-msel { position: relative; margin-bottom: 4px; }
+  .b-msel-box {
+    min-height: 38px; border: 1px solid #d8e0ea; border-radius: 6px; padding: 6px 10px;
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center; cursor: pointer; background: #fff; font-size: 13px;
+  }
+  .b-msel-box:hover { border-color: #1f8ef1; }
+  .b-msel-arrow { margin-left: auto; color: #8a94a3; font-size: 12px; }
+  .b-msel-ph { color: #b0b8c4; font-size: 13px; }
+  .b-msel-drop {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff;
+    border: 1px solid #d8e0ea; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    max-height: 220px; overflow-y: auto; display: none; z-index: 30;
+  }
+  .b-msel-drop.show { display: block; }
+  .b-msel-opt { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: 13.5px; cursor: pointer; }
+  .b-msel-opt:hover { background: #f5f9ff; }
+  .b-msel-opt input { width: 15px; height: 15px; accent-color: #1f8ef1; }
 </style>
 
 <!-- ============ 批量变更弹窗 ============ -->
@@ -1815,14 +1842,22 @@
   <div class="p-dialog" style="height:min(880px,94vh);">
     <div class="p-head">
       <span class="p-back" onclick="closeBatchChange()">返回</span>
-      <span class="p-title">批量变更</span>
+      <span class="p-title">其他变更</span>
       <span class="p-close" onclick="closeBatchChange()">✕</span>
     </div>
     <div class="p-body">
       <div class="b-sec-head"><span class="b-sec-title">批量离场（勾选人员后离场）</span><span class="b-sec-btn leave" onclick="confirmBatchLeave()">确认离场</span></div>
       <div id="batchLeaveList"></div>
-      <div class="b-sec-head"><span class="b-sec-title">批量入场（勾选人员后入场）</span><span class="b-sec-btn" onclick="confirmBatchEnter()">确认入场</span></div>
-      <div id="batchEnterList"></div>
+      <div class="b-sec-head"><span class="b-sec-title">入场</span><span class="b-sec-btn" onclick="confirmBatchEnter()">确认入场</span></div>
+      <div class="b-lb" style="margin-top:0;">入场人员（请选择，可多选）</div>
+      <div class="b-msel">
+        <div class="b-msel-box" onclick="toggleEnterDrop(event)">
+          <span class="b-msel-ph" id="enterDropText">请选择入场人员</span>
+          <span class="b-msel-arrow">▾</span>
+        </div>
+        <div class="b-msel-drop" id="enterDrop"></div>
+      </div>
+      <div id="batchEnterSelected"></div>
     </div>
     <div class="b-foot">
       <button class="sheet-cancel" onclick="closeBatchChange()">关 闭</button>
@@ -1857,7 +1892,7 @@
         '<div class="person-sub">' + w.dept + '<br>' + w.phone + '</div>' +
       '</div>' +
       '<div class="person-ops">' +
-        '<span class="person-op" onclick="openWorkerLeave(' + i + ')">离场</span>' +
+        '<span class="person-op" onclick="openWorkerChange(' + i + ')">变更</span>' +
       '</div>' +
     '</div>';
   }
@@ -1880,13 +1915,70 @@
     document.getElementById('batchLeaveList').innerHTML = workers.length
       ? workers.map(function (w, i) { return batchRowHtml(w, 'bl-chk', i); }).join('')
       : '<div class="b-empty">当前无在场作业人员</div>';
-    var enterPool = workerCandidates.filter(function (c) {
+    renderEnterDrop();
+    renderEnterSelected();
+  }
+
+  /* 入场人员多选下拉 */
+  var selEnterNames = [];
+  function enterPool() {
+    return workerCandidates.filter(function (c) {
       return !workers.some(function (w) { return w.name === c.name; });
     });
-    document.getElementById('batchEnterList').innerHTML = enterPool.length
-      ? enterPool.map(function (c, i) { return batchRowHtml(c, 'be-chk', i); }).join('')
-      : '<div class="b-empty">暂无可入场人员</div>';
   }
+  function renderEnterDrop() {
+    var pool = enterPool();
+    document.getElementById('enterDrop').innerHTML = pool.length
+      ? pool.map(function (c) {
+          return '<label class="b-msel-opt"><input type="checkbox" value="' + c.name + '" ' +
+            (selEnterNames.indexOf(c.name) >= 0 ? 'checked' : '') + ' onchange="onEnterChk(this)"> ' +
+            c.name + '（' + c.phone + '）</label>';
+        }).join('')
+      : '<div class="b-empty" style="padding:10px 12px;">暂无可入场人员</div>';
+    var t = document.getElementById('enterDropText');
+    if (selEnterNames.length) {
+      t.textContent = '已选 ' + selEnterNames.length + ' 人：' + selEnterNames.join('、');
+      t.className = '';
+    } else {
+      t.textContent = '请选择入场人员';
+      t.className = 'b-msel-ph';
+    }
+  }
+  function renderEnterSelected() {
+    var box = document.getElementById('batchEnterSelected');
+    if (!selEnterNames.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="b-lb">已选入场人员（' + selEnterNames.length + '）</div>' +
+      selEnterNames.map(function (n) {
+        var c = workerCandidates.filter(function (x) { return x.name === n; })[0];
+        return '<div class="b-card"><div class="b-row">' +
+          '<div class="person-avatar" style="width:36px;height:36px;"></div>' +
+          '<div class="person-info">' +
+            '<div class="person-name" style="font-size:14px;">' + c.name + '</div>' +
+            '<div class="person-sub">' + c.dept + '<br>' + c.phone + '</div>' +
+          '</div>' +
+          '<span class="g-del" style="margin-left:auto;" onclick="removeEnterSel(\'' + c.name + '\')">✕</span>' +
+        '</div></div>';
+      }).join('');
+  }
+  function onEnterChk(el) {
+    if (el.checked) selEnterNames.push(el.value);
+    else selEnterNames = selEnterNames.filter(function (n) { return n !== el.value; });
+    renderEnterDrop();
+    renderEnterSelected();
+  }
+  function removeEnterSel(n) {
+    selEnterNames = selEnterNames.filter(function (x) { return x !== n; });
+    renderEnterDrop();
+    renderEnterSelected();
+  }
+  function toggleEnterDrop(e) {
+    e.stopPropagation();
+    document.getElementById('enterDrop').classList.toggle('show');
+  }
+  document.addEventListener('click', function (e) {
+    var d = document.getElementById('enterDrop');
+    if (d && d.classList.contains('show') && !d.parentNode.contains(e.target)) d.classList.remove('show');
+  });
 
   function openBatchChange() {
     renderBatchList();
@@ -1909,16 +2001,15 @@
     renderBatchList();
     toast('已离场 ' + persons.length + ' 人：' + persons.map(function (p) { return p.name; }).join('、'));
   }
-  /* 批量入场：勾选的候选人员统一入场 */
+  /* 确认入场：把已选人员加入在场清单 */
   function confirmBatchEnter() {
-    var vals = Array.prototype.map.call(document.querySelectorAll('.be-chk:checked'), function (c) { return Number(c.value); });
-    if (!vals.length) { toast('请先勾选要入场的人员'); return; }
-    var pool = workerCandidates.filter(function (c) {
-      return !workers.some(function (w) { return w.name === c.name; });
+    if (!selEnterNames.length) { toast('请先选择入场人员'); return; }
+    var persons = selEnterNames.map(function (n) {
+      return workerCandidates.filter(function (x) { return x.name === n; })[0];
     });
-    var persons = vals.map(function (i) { return pool[i]; });
     persons.forEach(function (p) { workers.push({ name: p.name, dept: p.dept, phone: p.phone }); });
     addChangeRecord('worker', '入场', persons);
+    selEnterNames = [];
     renderWorkers();
     renderBatchList();
     toast('已入场 ' + persons.length + ' 人：' + persons.map(function (p) { return p.name; }).join('、'));
