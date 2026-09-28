@@ -113,14 +113,18 @@
   .gr-card { border: 1px solid #e8edf5; border-radius: 8px; margin-top: 14px; overflow: hidden; }
   .gr-head { display: flex; align-items: center; gap: 18px; padding: 12px 16px; background: #f7f9fc; font-size: 13px; color: #5a6472; flex-wrap: wrap; }
   .gr-head b { color: #1f2d3d; font-size: 13.5px; }
+  .gr-thead { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-top: 1px solid #f2f5fa; font-size: 12px; color: #8a94a3; }
   .gr-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid #f2f5fa; font-size: 13px; color: #333; flex-wrap: wrap; }
   .gr-item.off { color: #a0a8b4; }
   .gr-check { width: 20px; height: 20px; border-radius: 50%; background: #2fbf71; color: #fff; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .gr-item.off .gr-check { background: #d5dae3; }
-  .gr-photos { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .gr-name { flex: 1; min-width: 0; }
+  .gr-col { width: 100px; flex-shrink: 0; text-align: center; color: #5a6472; font-size: 12.5px; }
+  .gr-item.off .gr-col { color: #a0a8b4; }
+  .gr-photos { display: flex; gap: 8px; flex-wrap: wrap; }
   .gr-photos img { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; border: 1px solid #e6ebf2; cursor: pointer; }
-  .gr-custom { padding: 10px 16px; border-top: 1px solid #f2f5fa; font-size: 13px; }
-  .gr-custom .txt { color: #333; margin-bottom: 8px; }
+  .gr-custom { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid #f2f5fa; font-size: 13px; flex-wrap: wrap; }
+  .gr-custom .txt { color: #333; flex: 1; min-width: 0; }
   .img-preview { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 999; cursor: zoom-out; }
   .img-preview.show { display: flex; }
   .img-preview img { max-width: 86%; max-height: 86%; border-radius: 8px; background: #fff; }
@@ -852,13 +856,17 @@
     var checkedMap = {};
     (rec.checked || []).forEach(function (id) { checkedMap[id] = true; });
     var photos = rec.photos || {};
+    var inspector = rec.inspector || 'hsk';
+    var chkTime = rec.time || '—';
     var itemRows = items.map(function (it) {
       var on = !!checkedMap[it.id];
       var ph = grPhotosHtml(photos[it.id]);
       return '<div class="gr-item' + (on ? '' : ' off') + '">' +
         '<span class="gr-check">' + (on ? '✓' : '—') + '</span>' +
-        '<span>' + it.name + '</span>' +
+        '<span class="gr-name">' + it.name + '</span>' +
         (ph ? '<span class="gr-photos">' + ph + '</span>' : '') +
+        '<span class="gr-col">' + inspector + '</span>' +
+        '<span class="gr-col">' + chkTime + '</span>' +
       '</div>';
     }).join('');
     var customRows = '';
@@ -868,13 +876,20 @@
       customRows += '<div class="gr-custom">' +
         '<div class="txt">📝 自定义事项：' + (c.text || '（无文字内容）') + '</div>' +
         (ph ? '<span class="gr-photos">' + ph + '</span>' : '') +
+        '<span class="gr-col">' + inspector + '</span>' +
+        '<span class="gr-col">' + chkTime + '</span>' +
       '</div>';
     });
     box.innerHTML = '<div class="gr-card">' +
       '<div class="gr-head">' +
         '<b>🛡 监护检查记录</b>' +
-        '<span>检查时间：' + (rec.time || '—') + '</span>' +
         '<span>已勾选 ' + (rec.checked ? rec.checked.length : 0) + ' / ' + items.length + ' 项</span>' +
+      '</div>' +
+      '<div class="gr-thead">' +
+        '<span class="gr-check" style="visibility:hidden;">✓</span>' +
+        '<span class="gr-name">监护检查事项</span>' +
+        '<span class="gr-col">检查人</span>' +
+        '<span class="gr-col">检查时间</span>' +
       '</div>' +
       itemRows +
       customRows +
